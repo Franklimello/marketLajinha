@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FiStar, FiSearch } from 'react-icons/fi'
 import { api } from '../api/client'
+import SEO from '../componentes/SEO'
 
 export default function HomePage() {
   const [lojas, setLojas] = useState([])
@@ -45,8 +46,26 @@ export default function HomePage() {
       )
     : todasOrdenadas
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'MarketLajinha',
+    url: 'https://marketlajinha.com.br',
+    description: 'Marketplace com os melhores estabelecimentos da sua cidade',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://marketlajinha.com.br/busca?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  }
+
   return (
     <div className="max-w-lg mx-auto px-4">
+      <SEO
+        title="Início"
+        description="Peça dos melhores restaurantes, lanchonetes e estabelecimentos da sua cidade. Entrega rápida e segura."
+        jsonLd={jsonLd}
+      />
       {/* Search */}
       <div className="relative mb-5">
         <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />

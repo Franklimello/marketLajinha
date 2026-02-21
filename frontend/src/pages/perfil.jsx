@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
+import SEO from '../componentes/SEO'
 import BAIRROS_DISPONIVEIS from '../data/bairros'
 import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiChevronLeft, FiSave, FiX } from 'react-icons/fi'
 
@@ -126,6 +127,7 @@ export default function PerfilPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4">
+      <SEO title="Minha conta" noIndex />
       <h1 className="text-xl font-bold text-stone-900 mb-4">Minha conta</h1>
 
       {sucesso && <p className="text-sm text-green-600 bg-green-50 rounded-lg p-3 mb-4">{sucesso}</p>}

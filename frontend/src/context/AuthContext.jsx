@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
 
-      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      const reg = await navigator.serviceWorker.register('/sw.js')
 
       await navigator.serviceWorker.ready
 

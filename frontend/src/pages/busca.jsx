@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { FiSearch, FiX, FiStar, FiMapPin } from 'react-icons/fi'
 import { api } from '../api/client'
+import SEO from '../componentes/SEO'
 
 export default function BuscaPage() {
   const [lojas, setLojas] = useState([])
@@ -46,6 +47,10 @@ export default function BuscaPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pb-4">
+      <SEO
+        title="Buscar estabelecimentos"
+        description="Encontre restaurantes, lanchonetes, pizzarias e outros estabelecimentos na sua cidade."
+      />
       {/* Search input */}
       <div className="relative mb-4">
         <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /perfil
+Disallow: /pedidos
+Disallow: /login
+Disallow: /cadastro
+
+Sitemap: https://marketlajinha.com.br/sitemap.xml

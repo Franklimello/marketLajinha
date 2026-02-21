@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import Header from './componentes/header'
 import Footer from './componentes/footer'
+import InstallPrompt from './componentes/InstallPrompt'
 import { useAuth } from './context/AuthContext'
 import { setTokenGetter } from './api/client'
 
@@ -19,6 +20,7 @@ export default function App() {
         <Outlet />
       </main>
       <Footer />
+      <InstallPrompt />
     </div>
   )
 }

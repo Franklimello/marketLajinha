@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
+import SEO from '../componentes/SEO'
 import { FiClock, FiCheck, FiTruck, FiX } from 'react-icons/fi'
 
 const STATUS_MAP = {
@@ -41,6 +42,7 @@ export default function PedidosPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4">
+      <SEO title="Meus pedidos" noIndex />
       <h1 className="text-xl font-bold text-stone-900 mb-4">Meus pedidos</h1>
 
       {pedidos.length === 0 ? (

@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '../config/firebase'
 import { useAuth } from '../context/AuthContext'
+import SEO from '../componentes/SEO'
 import { FiMail, FiLock, FiUser, FiPhone, FiChevronLeft } from 'react-icons/fi'
 
 export default function CadastroPage() {
@@ -69,6 +70,7 @@ export default function CadastroPage() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
+      <SEO title="Criar conta" description="Crie sua conta no MarketLajinha e peça nos melhores estabelecimentos." noIndex />
       <Link to="/" className="flex items-center gap-1 text-stone-400 hover:text-stone-700 text-sm mb-6">
         <FiChevronLeft /> Voltar
       </Link>

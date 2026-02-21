@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '../config/firebase'
 import { useAuth } from '../context/AuthContext'
+import SEO from '../componentes/SEO'
 import { FiMail, FiLock, FiChevronLeft } from 'react-icons/fi'
 
 export default function LoginPage() {
@@ -55,6 +56,7 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
+      <SEO title="Entrar" description="Faça login no MarketLajinha para acompanhar seus pedidos." noIndex />
       <Link to="/" className="flex items-center gap-1 text-stone-400 hover:text-stone-700 text-sm mb-6">
         <FiChevronLeft /> Voltar
       </Link>

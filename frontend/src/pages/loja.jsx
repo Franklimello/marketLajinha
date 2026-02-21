@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import SEO from '../componentes/SEO'
 import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag } from 'react-icons/fi'
 
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
@@ -552,8 +553,34 @@ export default function LojaPage() {
   const categorias = Object.keys(produtosPorCategoria)
   const horaFecha = loja.horario_fechamento || null
 
+  const lojaJsonLd = loja ? {
+    '@context': 'https://schema.org',
+    '@type': 'Restaurant',
+    name: loja.nome,
+    image: loja.logo_url || '',
+    address: { '@type': 'PostalAddress', addressLocality: loja.cidade || '', streetAddress: loja.endereco || '' },
+    url: `https://marketlajinha.com.br/loja/${loja.slug}`,
+    servesCuisine: loja.categoria_negocio || '',
+    openingHoursSpecification: loja.horario_abertura && loja.horario_fechamento ? {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: loja.horario_abertura,
+      closes: loja.horario_fechamento,
+    } : undefined,
+  } : null
+
   return (
     <div className="max-w-lg mx-auto pb-24">
+      {loja && (
+        <SEO
+          title={loja.nome}
+          description={`Peça no ${loja.nome}. ${loja.categoria_negocio || 'Restaurante'} em ${loja.cidade || 'sua cidade'}. Cardápio completo com entrega.`}
+          image={loja.logo_url}
+          url={`https://marketlajinha.com.br/loja/${loja.slug}`}
+          type="restaurant"
+          jsonLd={lojaJsonLd}
+        />
+      )}
       <Link to="/" className="absolute top-4 left-4 z-20 w-8 h-8 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow text-stone-700 hover:bg-white"><FiChevronLeft /></Link>
 
       {/* Banner */}
