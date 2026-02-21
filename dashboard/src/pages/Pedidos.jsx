@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { io } from 'socket.io-client'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
-import { FiClock, FiCheckCircle, FiXCircle, FiSearch, FiFilter, FiPrinter, FiRefreshCw } from 'react-icons/fi'
+import { FiClock, FiCheckCircle, FiXCircle, FiSearch, FiFilter, FiPrinter, FiRefreshCw, FiMessageCircle } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const STATUS_MAP = {
   PENDING: { label: 'Pendente', cor: 'bg-yellow-100 text-yellow-700' },
@@ -36,21 +40,15 @@ export default function Pedidos() {
   const [busca, setBusca] = useState('')
   const [pedidoAberto, setPedidoAberto] = useState(null)
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
-  const intervaloRef = useRef(null)
+  const [wsConectado, setWsConectado] = useState(false)
   const audioRef = useRef(null)
-  const pedidosAnterioresRef = useRef(0)
+  const socketRef = useRef(null)
 
   const carregarPedidos = useCallback(async (silencioso = false) => {
     if (!silencioso) setCarregando(true)
     try {
       const res = await api.pedidos.listar()
       const lista = Array.isArray(res) ? res : []
-
-      if (silencioso && lista.length > pedidosAnterioresRef.current && pedidosAnterioresRef.current > 0) {
-        try { audioRef.current?.play() } catch {}
-      }
-      pedidosAnterioresRef.current = lista.length
-
       setPedidos(lista)
       setUltimaAtualizacao(new Date())
     } catch {
@@ -64,8 +62,28 @@ export default function Pedidos() {
     if (!loja) return
     carregarPedidos()
 
-    intervaloRef.current = setInterval(() => carregarPedidos(true), 15000)
-    return () => clearInterval(intervaloRef.current)
+    const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      setWsConectado(true)
+      socket.emit('join:loja', loja.id)
+    })
+
+    socket.on('disconnect', () => setWsConectado(false))
+
+    socket.on('pedido:novo', (pedido) => {
+      setPedidos((prev) => [pedido, ...prev])
+      setUltimaAtualizacao(new Date())
+      try { audioRef.current?.play() } catch {}
+    })
+
+    socket.on('pedido:atualizado', (pedidoAtualizado) => {
+      setPedidos((prev) => prev.map((p) => p.id === pedidoAtualizado.id ? pedidoAtualizado : p))
+      setUltimaAtualizacao(new Date())
+    })
+
+    return () => { socket.disconnect() }
   }, [loja, carregarPedidos])
 
   async function mudarStatus(id, novoStatus) {
@@ -119,6 +137,10 @@ export default function Pedidos() {
                   · atualizado às {ultimaAtualizacao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               )}
+              <span className={`ml-2 inline-flex items-center gap-1 text-xs ${wsConectado ? 'text-green-500' : 'text-stone-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${wsConectado ? 'bg-green-500' : 'bg-stone-300'}`} />
+                {wsConectado ? 'Ao vivo' : 'Offline'}
+              </span>
             </p>
           </div>
           <button onClick={() => carregarPedidos(true)} title="Atualizar agora" className="p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition">
@@ -283,7 +305,19 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus }) {
             </div>
             <div>
               <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Telefone</p>
-              <p className="font-medium text-stone-900">{pedido.telefone_cliente}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-stone-900">{pedido.telefone_cliente}</p>
+                {pedido.telefone_cliente && (
+                  <a
+                    href={`https://wa.me/55${pedido.telefone_cliente.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${pedido.nome_cliente || ''}! Sobre seu pedido no MarketLajinha:`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition"
+                  >
+                    <FaWhatsapp /> WhatsApp
+                  </a>
+                )}
+              </div>
             </div>
             <div className="col-span-2">
               <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Tipo de entrega</p>

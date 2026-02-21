@@ -27,8 +27,9 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.18.0",
-    "qrcode": "^1.5.4",
     "prisma": "^7.4.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

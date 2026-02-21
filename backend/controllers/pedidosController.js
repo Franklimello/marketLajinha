@@ -3,6 +3,7 @@ const clientesService = require('../services/clientesService');
 const { statusPedidoEnum, formaPagamentoEnum } = require('../schemas/pedidosSchema');
 const { imprimirPedidoPorSetor } = require('../services/impressaoService');
 const { notificarCliente, notificarLoja } = require('../services/notificacaoService');
+const { emitNovoPedido, emitStatusPedido } = require('../config/socket');
 
 async function listar(req, res, next) {
   try {
@@ -53,6 +54,8 @@ async function criar(req, res, next) {
 
     const pedido = await pedidosService.criar(dados);
 
+    emitNovoPedido(dados.loja_id, pedido);
+
     imprimirPedidoPorSetor(pedido.id).catch((err) => {
       console.error(`[Impressão Auto] Falha ao imprimir pedido ${pedido.id}:`, err.message);
     });
@@ -78,6 +81,8 @@ async function atualizarStatus(req, res, next) {
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
     if (pedido.loja_id !== req.user.loja_id) return res.status(403).json({ erro: 'Pedido de outra loja.' });
     const atualizado = await pedidosService.atualizarStatus(req.params.id, req.validated.status);
+
+    emitStatusPedido(pedido.loja_id, pedido.cliente_id, atualizado);
 
     if (pedido.cliente_id) {
       const nomeLoja = pedido.loja?.nome || '';

@@ -13,12 +13,14 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const routes = require('./routes');
 const { errorHandler } = require('./middleware');
+const { initSocket } = require('./config/socket');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -80,9 +82,13 @@ app.use(errorHandler);
 // ── Exportar app para testes ──
 module.exports = app;
 
+// ── HTTP Server + Socket.io ──
+const server = http.createServer(app);
+initSocket(server, allowedOrigins);
+
 // ── Graceful shutdown ──
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}]`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}] (WebSocket ativo)`);
 });
 
 process.on('SIGTERM', () => {
