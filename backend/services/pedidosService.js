@@ -30,6 +30,7 @@ async function listarPorCliente(clienteId) {
   return prisma.pedidos.findMany({
     where: { cliente_id: clienteId },
     orderBy: { created_at: 'desc' },
+    take: 10,
     include: {
       loja: { select: { id: true, nome: true, slug: true, logo_url: true } },
       ...INCLUDE_ITENS,
