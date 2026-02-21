@@ -1,0 +1,204 @@
+// Schema Prisma - Marketplace Multi-Loja (marcket)
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Lojas {
+  id                    String    @id @default(cuid())
+  nome                  String
+  slug                  String    @unique
+  categoria_negocio     String
+  cidade                String
+  endereco              String    @default("")
+  telefone              String    @default("")
+  horario_funcionamento String    @default("")
+  horario_abertura      String    @default("")
+  horario_fechamento    String    @default("")
+  logo_url              String
+  cor_primaria          String
+  ativa                 Boolean
+  aberta                Boolean
+  forcar_status         Boolean   @default(false)
+  taxa_entrega          Float     @default(0)
+  tempo_entrega         String    @default("")
+  pix_tipo              String    @default("")
+  pix_chave             String    @default("")
+  pix_nome_titular      String    @default("")
+  pix_cidade            String    @default("")
+  vencimento            DateTime  @default(now())
+
+  produtos    Produtos[]
+  usuarios    Usuarios[]
+  pedidos     Pedidos[]
+  bairroTaxas BairroTaxa[]
+  impressoras Impressora[]
+}
+
+model Usuarios {
+  id           String   @id @default(cuid())
+  loja_id      String
+  nome         String
+  email        String
+  firebase_uid String   @unique
+  role         Role
+
+  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+model Produtos {
+  id               String   @id @default(cuid())
+  loja_id          String
+  nome             String
+  descricao        String
+  preco            Decimal
+  estoque          Int
+  imagem_url       String
+  categoria        String   @default("")
+  setor_impressao  String   @default("")
+  ativo            Boolean
+
+  loja       Lojas              @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  itens      ItensPedido[]
+  variacoes  VariacaoProduto[]
+  adicionais AdicionalProduto[]
+}
+
+model VariacaoProduto {
+  id         String  @id @default(cuid())
+  produto_id String
+  nome       String
+  preco      Decimal
+
+  produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+}
+
+model AdicionalProduto {
+  id         String  @id @default(cuid())
+  produto_id String
+  nome       String
+  preco      Decimal
+
+  produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+}
+
+model Clientes {
+  id           String   @id @default(cuid())
+  firebase_uid String   @unique
+  nome         String
+  email        String
+  telefone     String   @default("")
+  created_at   DateTime @default(now())
+
+  enderecos  EnderecoCliente[]
+  pedidos    Pedidos[]
+  fcmTokens  FcmToken[]
+}
+
+model FcmToken {
+  id         String   @id @default(cuid())
+  cliente_id String
+  token      String   @unique
+  created_at DateTime @default(now())
+
+  cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+}
+
+model EnderecoCliente {
+  id         String  @id @default(cuid())
+  cliente_id String
+  apelido    String  @default("")
+  bairro     String
+  rua        String
+  numero     String
+  complemento String @default("")
+  referencia String  @default("")
+  padrao     Boolean @default(false)
+
+  cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+}
+
+model Pedidos {
+  id               String         @id @default(cuid())
+  loja_id          String
+  cliente_id       String?
+  nome_cliente     String
+  telefone_cliente String
+  endereco         String
+  bairro           String         @default("")
+  taxa_entrega     Decimal        @default(0)
+  total            Decimal
+  status           StatusPedido
+  forma_pagamento  FormaPagamento
+  observacao       String         @default("")
+  created_at       DateTime       @default(now())
+
+  loja    Lojas         @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  cliente Clientes?     @relation(fields: [cliente_id], references: [id])
+  itens   ItensPedido[]
+}
+
+model ItensPedido {
+  id              String  @id @default(cuid())
+  pedido_id       String
+  produto_id      String
+  quantidade      Int
+  preco_unitario  Decimal
+  variacao_nome   String  @default("")
+  variacao_preco  Decimal @default(0)
+  adicionais_json String  @default("[]")
+
+  pedido  Pedidos  @relation(fields: [pedido_id], references: [id], onDelete: Cascade)
+  produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+}
+
+model BairroTaxa {
+  id      String  @id @default(cuid())
+  loja_id String
+  nome    String
+  taxa    Decimal
+
+  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+
+  @@unique([loja_id, nome])
+}
+
+model Impressora {
+  id      String  @id @default(cuid())
+  loja_id String
+  setor   String
+  nome    String  @default("")
+  ip      String
+  porta   Int     @default(9100)
+  ativa   Boolean @default(true)
+
+  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+
+  @@unique([loja_id, setor])
+}
+
+enum StatusPedido {
+  PENDING
+  APPROVED
+  IN_ROUTE
+  DELIVERED
+  CANCELLED
+}
+
+enum FormaPagamento {
+  PIX
+  DEBIT
+  CREDIT
+  CASH
+}

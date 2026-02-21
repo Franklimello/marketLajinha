@@ -1,0 +1,11 @@
+const BAIRROS_DISPONIVEIS = [
+  'Aldeia', 'Areado', 'Barra Azul', 'Caeté', 'Campestre', 'Centro',
+  'Club América', 'Córrego Carvalhinho', 'Córrego do Carvalho',
+  'Córrego do Satlher', 'Córrego o Indaiá', 'Córrego Rico',
+  'Córrego São Domingos', 'Honorato', 'Itá', 'JK', 'Moreiras',
+  'Mutunzinho', 'Novo Horizonte', 'Palmeiras', 'Pedra Queimada',
+  'Prata', 'Sagrada Família', 'Santa Terezinha', 'São Sebastião',
+  'Socapo', 'Vale das Pedras', 'Vale do Sol',
+]
+
+export default BAIRROS_DISPONIVEIS

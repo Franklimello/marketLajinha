@@ -1,0 +1,361 @@
+import { useState, useEffect, useCallback } from 'react'
+import { api } from '../api/client'
+import {
+  FiShield, FiTrash2, FiLock, FiUnlock, FiSearch,
+  FiUsers, FiPackage, FiClipboard, FiShoppingBag,
+  FiChevronDown, FiChevronUp, FiAlertTriangle, FiEye
+} from 'react-icons/fi'
+
+export default function AdminSistema() {
+  const [stats, setStats] = useState(null)
+  const [lojas, setLojas] = useState([])
+  const [filtro, setFiltro] = useState('')
+  const [expandida, setExpandida] = useState(null)
+  const [detalheLoja, setDetalheLoja] = useState(null)
+  const [carregando, setCarregando] = useState(true)
+  const [modal, setModal] = useState(null)
+  const [processando, setProcessando] = useState(false)
+
+  const carregar = useCallback(async () => {
+    try {
+      const [s, l] = await Promise.all([api.admin.stats(), api.admin.listarLojas()])
+      setStats(s)
+      setLojas(l)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCarregando(false)
+    }
+  }, [])
+
+  useEffect(() => { carregar() }, [carregar])
+
+  async function handleBloquear(id) {
+    setProcessando(true)
+    try {
+      await api.admin.bloquearLoja(id)
+      await carregar()
+      setModal(null)
+    } catch (e) {
+      alert(e.message)
+    } finally { setProcessando(false) }
+  }
+
+  async function handleDesbloquear(id) {
+    setProcessando(true)
+    try {
+      await api.admin.desbloquearLoja(id)
+      await carregar()
+    } catch (e) {
+      alert(e.message)
+    } finally { setProcessando(false) }
+  }
+
+  async function handleExcluir(id) {
+    setProcessando(true)
+    try {
+      await api.admin.excluirLoja(id)
+      await carregar()
+      setModal(null)
+      setExpandida(null)
+      setDetalheLoja(null)
+    } catch (e) {
+      alert(e.message)
+    } finally { setProcessando(false) }
+  }
+
+  async function verDetalhes(id) {
+    if (expandida === id) {
+      setExpandida(null)
+      setDetalheLoja(null)
+      return
+    }
+    try {
+      const d = await api.admin.buscarLoja(id)
+      setDetalheLoja(d)
+      setExpandida(id)
+    } catch (e) {
+      alert(e.message)
+    }
+  }
+
+  const lojasFiltradas = lojas.filter(
+    (l) =>
+      l.nome?.toLowerCase().includes(filtro.toLowerCase()) ||
+      l.slug?.toLowerCase().includes(filtro.toLowerCase()) ||
+      l.cidade?.toLowerCase().includes(filtro.toLowerCase())
+  )
+
+  if (carregando) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-pulse text-stone-400">Carregando painel admin...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-red-100 rounded-lg">
+          <FiShield className="text-xl text-red-600" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-stone-900">Painel do Administrador</h1>
+          <p className="text-sm text-stone-500">Gerencie todas as lojas do sistema</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <StatCard icon={FiShoppingBag} label="Lojas" value={stats.lojas} sub={`${stats.lojasAtivas} ativas`} color="amber" />
+          <StatCard icon={FiUsers} label="Usuários" value={stats.usuarios} color="blue" />
+          <StatCard icon={FiPackage} label="Produtos" value={stats.produtos} color="green" />
+          <StatCard icon={FiClipboard} label="Pedidos" value={stats.pedidos} color="purple" />
+          <StatCard icon={FiUsers} label="Clientes" value={stats.clientes} color="rose" />
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+        <input
+          type="text"
+          placeholder="Buscar loja por nome, slug ou cidade..."
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+        />
+      </div>
+
+      {/* Lojas */}
+      <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-stone-200 bg-stone-50">
+          <h2 className="font-semibold text-stone-700 text-sm">
+            {lojasFiltradas.length} loja{lojasFiltradas.length !== 1 ? 's' : ''} encontrada{lojasFiltradas.length !== 1 ? 's' : ''}
+          </h2>
+        </div>
+
+        {lojasFiltradas.length === 0 ? (
+          <div className="p-8 text-center text-stone-400">Nenhuma loja encontrada.</div>
+        ) : (
+          <div className="divide-y divide-stone-100">
+            {lojasFiltradas.map((loja) => (
+              <div key={loja.id}>
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors">
+                  {/* Logo */}
+                  {loja.logo_url ? (
+                    <img src={loja.logo_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center font-bold text-amber-700 flex-shrink-0 text-sm">
+                      {loja.nome?.charAt(0)}
+                    </div>
+                  )}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-stone-900 text-sm truncate">{loja.nome}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                        loja.ativa ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {loja.ativa ? 'Ativa' : 'Bloqueada'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-stone-400 flex items-center gap-2 mt-0.5">
+                      <span>/{loja.slug}</span>
+                      {loja.cidade && <span>• {loja.cidade}</span>}
+                      <span>• {loja._count?.produtos || 0} prod.</span>
+                      <span>• {loja._count?.pedidos || 0} ped.</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => verDetalhes(loja.id)}
+                      className="p-2 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors"
+                      title="Ver detalhes"
+                    >
+                      {expandida === loja.id ? <FiChevronUp /> : <FiEye />}
+                    </button>
+
+                    {loja.ativa ? (
+                      <button
+                        onClick={() => setModal({ tipo: 'bloquear', loja })}
+                        className="p-2 rounded-lg text-amber-500 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                        title="Bloquear loja"
+                      >
+                        <FiLock />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleDesbloquear(loja.id)}
+                        disabled={processando}
+                        className="p-2 rounded-lg text-green-500 hover:bg-green-50 hover:text-green-700 transition-colors"
+                        title="Desbloquear loja"
+                      >
+                        <FiUnlock />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setModal({ tipo: 'excluir', loja })}
+                      className="p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      title="Excluir loja"
+                    >
+                      <FiTrash2 />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded details */}
+                {expandida === loja.id && detalheLoja && (
+                  <div className="px-4 pb-4 bg-stone-50 border-t border-stone-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                      {/* Usuários da loja */}
+                      <div className="bg-white rounded-lg p-3 border border-stone-200">
+                        <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Usuários ({detalheLoja.usuarios?.length || 0})</h4>
+                        {detalheLoja.usuarios?.length ? (
+                          <div className="space-y-1.5">
+                            {detalheLoja.usuarios.map((u) => (
+                              <div key={u.id} className="flex justify-between items-center text-sm">
+                                <span className="text-stone-700">{u.nome || u.email}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                  u.role === 'ADMIN' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                                }`}>{u.role}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-stone-400">Nenhum usuário</p>
+                        )}
+                      </div>
+
+                      {/* Produtos da loja */}
+                      <div className="bg-white rounded-lg p-3 border border-stone-200">
+                        <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Produtos ({detalheLoja.produtos?.length || 0})</h4>
+                        {detalheLoja.produtos?.length ? (
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                            {detalheLoja.produtos.map((p) => (
+                              <div key={p.id} className="flex justify-between items-center text-sm">
+                                <span className="text-stone-700 truncate">{p.nome}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-stone-400">{p.categoria}</span>
+                                  <span className="text-xs font-medium text-stone-600">
+                                    R$ {Number(p.preco).toFixed(2).replace('.', ',')}
+                                  </span>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${p.ativo ? 'bg-green-500' : 'bg-red-400'}`} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-stone-400">Nenhum produto</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Extra info */}
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                      <InfoBox label="Telefone" value={detalheLoja.telefone || '—'} />
+                      <InfoBox label="Cidade" value={detalheLoja.cidade || '—'} />
+                      <InfoBox label="Categoria" value={detalheLoja.categoria_negocio || '—'} />
+                      <InfoBox label="PIX" value={detalheLoja.pix_chave ? 'Configurado' : 'Não configurado'} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de confirmação */}
+      {modal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !processando && setModal(null)}>
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-2 rounded-lg ${modal.tipo === 'excluir' ? 'bg-red-100' : 'bg-amber-100'}`}>
+                <FiAlertTriangle className={`text-xl ${modal.tipo === 'excluir' ? 'text-red-600' : 'text-amber-600'}`} />
+              </div>
+              <h3 className="font-semibold text-stone-900">
+                {modal.tipo === 'excluir' ? 'Excluir Loja' : 'Bloquear Loja'}
+              </h3>
+            </div>
+
+            <p className="text-sm text-stone-600 mb-1">
+              {modal.tipo === 'excluir'
+                ? `Tem certeza que deseja excluir permanentemente a loja "${modal.loja.nome}"?`
+                : `Deseja bloquear a loja "${modal.loja.nome}"? Ela ficará invisível no marketplace.`}
+            </p>
+
+            {modal.tipo === 'excluir' && (
+              <p className="text-xs text-red-500 mb-4">
+                Esta ação é irreversível. Todos os produtos, pedidos e dados serão removidos.
+              </p>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setModal(null)}
+                disabled={processando}
+                className="flex-1 px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() =>
+                  modal.tipo === 'excluir'
+                    ? handleExcluir(modal.loja.id)
+                    : handleBloquear(modal.loja.id)
+                }
+                disabled={processando}
+                className={`flex-1 px-4 py-2 text-sm rounded-lg text-white font-medium transition-colors ${
+                  modal.tipo === 'excluir'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                } disabled:opacity-50`}
+              >
+                {processando ? 'Processando...' : modal.tipo === 'excluir' ? 'Excluir' : 'Bloquear'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StatCard({ icon: Icon, label, value, sub, color }) {
+  const colors = {
+    amber: 'bg-amber-50 text-amber-600',
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-green-50 text-green-600',
+    purple: 'bg-purple-50 text-purple-600',
+    rose: 'bg-rose-50 text-rose-600',
+  }
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`p-1.5 rounded-lg ${colors[color]}`}>
+          <Icon className="text-sm" />
+        </div>
+        <span className="text-xs font-medium text-stone-500">{label}</span>
+      </div>
+      <p className="text-2xl font-bold text-stone-900">{value}</p>
+      {sub && <p className="text-xs text-stone-400 mt-0.5">{sub}</p>}
+    </div>
+  )
+}
+
+function InfoBox({ label, value }) {
+  return (
+    <div className="bg-white rounded-lg p-2 border border-stone-200">
+      <p className="text-stone-400 text-[10px] uppercase font-medium">{label}</p>
+      <p className="text-stone-700 text-sm truncate">{value}</p>
+    </div>
+  )
+}
