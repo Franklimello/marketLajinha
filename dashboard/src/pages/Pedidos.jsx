@@ -43,12 +43,20 @@ export default function Pedidos() {
   const [wsConectado, setWsConectado] = useState(false)
   const audioRef = useRef(null)
   const socketRef = useRef(null)
+  const intervaloRef = useRef(null)
+  const pedidosCountRef = useRef(0)
 
   const carregarPedidos = useCallback(async (silencioso = false) => {
     if (!silencioso) setCarregando(true)
     try {
       const res = await api.pedidos.listar()
       const lista = Array.isArray(res) ? res : []
+
+      if (silencioso && lista.length > pedidosCountRef.current && pedidosCountRef.current > 0) {
+        try { audioRef.current?.play() } catch {}
+      }
+      pedidosCountRef.current = lista.length
+
       setPedidos(lista)
       setUltimaAtualizacao(new Date())
     } catch {
@@ -62,6 +70,8 @@ export default function Pedidos() {
     if (!loja) return
     carregarPedidos()
 
+    intervaloRef.current = setInterval(() => carregarPedidos(true), 15000)
+
     const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
     socketRef.current = socket
 
@@ -73,7 +83,11 @@ export default function Pedidos() {
     socket.on('disconnect', () => setWsConectado(false))
 
     socket.on('pedido:novo', (pedido) => {
-      setPedidos((prev) => [pedido, ...prev])
+      setPedidos((prev) => {
+        if (prev.some((p) => p.id === pedido.id)) return prev
+        pedidosCountRef.current = prev.length + 1
+        return [pedido, ...prev]
+      })
       setUltimaAtualizacao(new Date())
       try { audioRef.current?.play() } catch {}
     })
@@ -83,7 +97,10 @@ export default function Pedidos() {
       setUltimaAtualizacao(new Date())
     })
 
-    return () => { socket.disconnect() }
+    return () => {
+      clearInterval(intervaloRef.current)
+      socket.disconnect()
+    }
   }, [loja, carregarPedidos])
 
   async function mudarStatus(id, novoStatus) {
