@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
-import { FiClock, FiCheckCircle, FiXCircle, FiSearch, FiFilter, FiPrinter } from 'react-icons/fi'
+import { FiClock, FiCheckCircle, FiXCircle, FiSearch, FiFilter, FiPrinter, FiRefreshCw } from 'react-icons/fi'
 
 const STATUS_MAP = {
   PENDING: { label: 'Pendente', cor: 'bg-yellow-100 text-yellow-700' },
@@ -35,23 +35,38 @@ export default function Pedidos() {
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [busca, setBusca] = useState('')
   const [pedidoAberto, setPedidoAberto] = useState(null)
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
+  const intervaloRef = useRef(null)
+  const audioRef = useRef(null)
+  const pedidosAnterioresRef = useRef(0)
+
+  const carregarPedidos = useCallback(async (silencioso = false) => {
+    if (!silencioso) setCarregando(true)
+    try {
+      const res = await api.pedidos.listar()
+      const lista = Array.isArray(res) ? res : []
+
+      if (silencioso && lista.length > pedidosAnterioresRef.current && pedidosAnterioresRef.current > 0) {
+        try { audioRef.current?.play() } catch {}
+      }
+      pedidosAnterioresRef.current = lista.length
+
+      setPedidos(lista)
+      setUltimaAtualizacao(new Date())
+    } catch {
+      if (!silencioso) setPedidos([])
+    } finally {
+      if (!silencioso) setCarregando(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!loja) return
     carregarPedidos()
-  }, [loja])
 
-  async function carregarPedidos() {
-    setCarregando(true)
-    try {
-      const res = await api.pedidos.listar()
-      setPedidos(Array.isArray(res) ? res : [])
-    } catch {
-      setPedidos([])
-    } finally {
-      setCarregando(false)
-    }
-  }
+    intervaloRef.current = setInterval(() => carregarPedidos(true), 15000)
+    return () => clearInterval(intervaloRef.current)
+  }, [loja, carregarPedidos])
 
   async function mudarStatus(id, novoStatus) {
     try {
@@ -94,8 +109,23 @@ export default function Pedidos() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Pedidos</h1>
-        <p className="text-stone-500 text-sm mt-1">{pedidos.length} pedido(s) no total</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-stone-900">Pedidos</h1>
+            <p className="text-stone-500 text-sm mt-1">
+              {pedidos.length} pedido(s) no total
+              {ultimaAtualizacao && (
+                <span className="ml-2 text-xs text-stone-400">
+                  · atualizado às {ultimaAtualizacao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              )}
+            </p>
+          </div>
+          <button onClick={() => carregarPedidos(true)} title="Atualizar agora" className="p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition">
+            <FiRefreshCw size={20} />
+          </button>
+        </div>
+        <audio ref={audioRef} src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2JkZWTjHxybG16iJSdnpiQg3VtcIGRnaalm5CDdG90gZGfo6Sgk4R2cXSCkZ+koZiMfnRyeYiXoaOemIyCdnN3hZSfoaCXi392c3eElp+joZiMfnZzeIWWoaOel4t+dXJ3" preload="auto" />
       </div>
 
       {/* Filtros por status */}
