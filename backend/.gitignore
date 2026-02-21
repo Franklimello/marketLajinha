@@ -4,5 +4,6 @@ node_modules
 # Chave do Firebase (nunca commitar)
 serviceAccountKey.json
 *-service-account*.json
+firebase_env_value.txt
 
 /generated/prisma

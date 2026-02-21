@@ -69,6 +69,9 @@ app.use(routes);
 // ── Error handler ──
 app.use(errorHandler);
 
+// ── Exportar app para testes ──
+module.exports = app;
+
 // ── Graceful shutdown ──
 const server = app.listen(PORT, () => {
   console.log(`Servidor marcket rodando em http://localhost:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}]`);
