@@ -93,6 +93,7 @@ export default function LojaPage() {
     nome_cliente: '', telefone_cliente: '', endereco: '',
     bairro: '', forma_pagamento: 'PIX', observacao: '',
   })
+  const [trocoPara, setTrocoPara] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [pixData, setPixData] = useState(null)
   const [pixCarregando, setPixCarregando] = useState(false)
@@ -280,6 +281,7 @@ export default function LojaPage() {
         codigo_cupom: cupomAplicado ? codigoCupom.trim() : '',
         observacao: [
           formPedido.observacao,
+          formPedido.forma_pagamento === 'CASH' && trocoPara ? `Troco para R$ ${Number(trocoPara).toFixed(2).replace('.', ',')}` : '',
           ...itensCarrinho.filter(([, i]) => i.obs).map(([, i]) => `${i.produto.nome}: ${i.obs}`),
         ].filter(Boolean).join(' | '),
         itens: itensCarrinho.flatMap(([, i]) => {
@@ -559,18 +561,78 @@ export default function LojaPage() {
                         ))}
                       </div>
                     )}
+                    {formPedido.forma_pagamento === 'CASH' && (
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-stone-600">R$</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            value={trocoPara}
+                            onChange={(e) => setTrocoPara(e.target.value)}
+                            placeholder="Ex: 100"
+                            className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                          />
+                        </div>
+                        {trocoPara && Number(trocoPara) > totalPedido && (
+                          <p className="text-xs text-amber-700 mt-1.5 font-medium">
+                            Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
+                          </p>
+                        )}
+                        {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
+                          <p className="text-xs text-red-600 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+                        )}
+                        {!trocoPara && (
+                          <p className="text-[10px] text-amber-600 mt-1.5">Deixe vazio se não precisa de troco</p>
+                        )}
+                      </div>
+                    )}
                   </>
                 ) : (
-                  formasPresenciais.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {formasPresenciais.map((opt) => (
-                        <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                          <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
-                          <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )
+                  <>
+                    {formasPresenciais.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {formasPresenciais.map((opt) => (
+                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                            <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
+                            <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {formPedido.forma_pagamento === 'CASH' && (
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-stone-600">R$</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            value={trocoPara}
+                            onChange={(e) => setTrocoPara(e.target.value)}
+                            placeholder="Ex: 100"
+                            className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                          />
+                        </div>
+                        {trocoPara && Number(trocoPara) > totalPedido && (
+                          <p className="text-xs text-amber-700 mt-1.5 font-medium">
+                            Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
+                          </p>
+                        )}
+                        {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
+                          <p className="text-xs text-red-600 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+                        )}
+                        {!trocoPara && (
+                          <p className="text-[10px] text-amber-600 mt-1.5">Deixe vazio se não precisa de troco</p>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )
