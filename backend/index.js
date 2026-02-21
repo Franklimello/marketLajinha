@@ -29,9 +29,12 @@ app.use(helmet());
 app.disable('x-powered-by');
 
 // ── CORS ──
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'];
+const corsOriginsRaw = process.env.CORS_ORIGINS || '';
+const allowedOrigins = corsOriginsRaw === '*'
+  ? '*'
+  : corsOriginsRaw
+    ? corsOriginsRaw.split(',').map((o) => o.trim())
+    : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'];
 
 app.use(cors({
   origin: allowedOrigins,
@@ -62,6 +65,11 @@ app.use('/lojas', authLimiter);
 
 // ── Body parsing com limite ──
 app.use(express.json({ limit: '1mb' }));
+
+// ── Health check (antes das rotas) ──
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // ── Rotas ──
 app.use(routes);
