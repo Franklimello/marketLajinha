@@ -1,16 +1,70 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
 import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift } from 'react-icons/fi'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, FreeMode } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/free-mode'
 
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
+}
+
+function CarrosselDestaques({ produtos, onAdd }) {
+  const ref = useRef(null)
+  const intervaloRef = useRef(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || produtos.length <= 2) return
+
+    function scroll() {
+      if (!el) return
+      const maxScroll = el.scrollWidth - el.clientWidth
+      if (el.scrollLeft >= maxScroll - 2) {
+        el.scrollTo({ left: 0, behavior: 'smooth' })
+      } else {
+        el.scrollBy({ left: 130, behavior: 'smooth' })
+      }
+    }
+
+    intervaloRef.current = setInterval(scroll, 3000)
+    const pausar = () => clearInterval(intervaloRef.current)
+    const retomar = () => { intervaloRef.current = setInterval(scroll, 3000) }
+    el.addEventListener('pointerdown', pausar)
+    el.addEventListener('pointerup', retomar)
+    el.addEventListener('touchstart', pausar, { passive: true })
+    el.addEventListener('touchend', retomar)
+
+    return () => {
+      clearInterval(intervaloRef.current)
+      el.removeEventListener('pointerdown', pausar)
+      el.removeEventListener('pointerup', retomar)
+      el.removeEventListener('touchstart', pausar)
+      el.removeEventListener('touchend', retomar)
+    }
+  }, [produtos.length])
+
+  return (
+    <div className="mb-5">
+      <h2 className="text-base font-bold text-stone-900 mb-3">Destaques</h2>
+      <div ref={ref} className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+        {produtos.map((p) => {
+          const preco = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map(v => Number(v.preco))) : Number(p.preco)
+          return (
+            <button key={p.id} onClick={() => onAdd(p)} className="snap-start shrink-0 w-[120px] text-left">
+              <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
+                <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
+              </div>
+              <p className="text-xs font-semibold text-stone-900 mt-1.5 line-clamp-1">{p.nome}</p>
+              <p className="text-xs text-amber-700 font-bold">
+                {p.variacoes?.length > 0 && 'a partir de '}R$ {preco.toFixed(2).replace('.', ',')}
+              </p>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export default function LojaPage() {
@@ -705,36 +759,13 @@ export default function LojaPage() {
 
       <div className={`px-4 pt-4 ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Carrossel de destaques */}
-        {categoriaSel === null && produtos.dados.length > 0 && (
-          <div className="mb-5">
-            <h2 className="text-base font-bold text-stone-900 mb-3">Destaques</h2>
-            <Swiper
-              modules={[Autoplay, FreeMode]}
-              spaceBetween={10}
-              slidesPerView="auto"
-              freeMode
-              autoplay={{ delay: 3000, disableOnInteraction: false }}
-              className="-mx-1 px-1"
-            >
-              {produtos.dados.filter(p => p.imagem_url).slice(0, 10).map((p) => {
-                const preco = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map(v => Number(v.preco))) : Number(p.preco)
-                return (
-                  <SwiperSlide key={p.id} style={{ width: '120px' }}>
-                    <button onClick={() => addItemDireto(p)} className="w-full text-left">
-                      <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
-                        <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
-                      </div>
-                      <p className="text-xs font-semibold text-stone-900 mt-1.5 line-clamp-1">{p.nome}</p>
-                      <p className="text-xs text-amber-700 font-bold">
-                        {p.variacoes?.length > 0 && 'a partir de '}R$ {preco.toFixed(2).replace('.', ',')}
-                      </p>
-                    </button>
-                  </SwiperSlide>
-                )
-              })}
-            </Swiper>
-          </div>
-        )}
+        {categoriaSel === null && (() => {
+          const destaques = produtos.dados.filter(p => p.imagem_url).slice(0, 10)
+          if (destaques.length === 0) return null
+          return (
+            <CarrosselDestaques produtos={destaques} onAdd={addItemDireto} />
+          )
+        })()}
 
         {/* Combos em destaque */}
         {combos.length > 0 && categoriaSel === null && (
