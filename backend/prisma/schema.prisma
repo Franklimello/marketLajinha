@@ -22,6 +22,7 @@ model Lojas {
   horario_abertura      String    @default("")
   horario_fechamento    String    @default("")
   logo_url              String
+  banner_url            String    @default("")
   cor_primaria          String
   ativa                 Boolean
   aberta                Boolean
@@ -39,7 +40,11 @@ model Lojas {
   pedidos     Pedidos[]
   bairroTaxas BairroTaxa[]
   impressoras Impressora[]
-  cupons      Cupom[]
+  cupons          Cupom[]
+  motoboys        Motoboy[]
+  filaImpressao   FilaImpressao[]
+  combos          Combo[]
+  token_impressao String    @default("")
 
   @@index([ativa, cidade])
   @@index([categoria_negocio])
@@ -91,6 +96,7 @@ model Produtos {
   itens      ItensPedido[]
   variacoes  VariacaoProduto[]
   adicionais AdicionalProduto[]
+  comboItens ComboItem[]
 
   @@index([loja_id, ativo])
   @@index([loja_id, categoria])
@@ -172,6 +178,7 @@ model Pedidos {
   subtotal         Decimal        @default(0)
   desconto         Decimal        @default(0)
   total            Decimal
+  tipo_entrega     TipoEntrega    @default(ENTREGA)
   status           StatusPedido
   forma_pagamento  FormaPagamento
   observacao       String         @default("")
@@ -268,6 +275,76 @@ model CupomUso {
   @@index([cupom_id, cliente_id])
 }
 
+model Motoboy {
+  id         String   @id @default(cuid())
+  loja_id    String
+  nome       String
+  email      String
+  senha_hash String
+  ativo      Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+
+  @@unique([loja_id, email])
+  @@index([loja_id])
+}
+
+model FilaImpressao {
+  id           String              @id @default(cuid())
+  loja_id      String
+  pedido_id    String
+  setor        String
+  impressora_ip    String
+  impressora_porta Int             @default(9100)
+  largura      Int                 @default(80)
+  conteudo     String
+  status       StatusImpressao     @default(PENDING)
+  tentativas   Int                 @default(0)
+  erro         String              @default("")
+  created_at   DateTime            @default(now())
+  printed_at   DateTime?
+
+  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+
+  @@index([loja_id, status])
+  @@index([created_at])
+}
+
+model Combo {
+  id          String   @id @default(cuid())
+  loja_id     String
+  nome        String
+  descricao   String   @default("")
+  preco       Decimal
+  imagem_url  String   @default("")
+  ativo       Boolean  @default(true)
+  created_at  DateTime @default(now())
+
+  loja  Lojas       @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  itens ComboItem[]
+
+  @@index([loja_id, ativo])
+}
+
+model ComboItem {
+  id         String @id @default(cuid())
+  combo_id   String
+  produto_id String
+  quantidade Int    @default(1)
+
+  combo   Combo    @relation(fields: [combo_id], references: [id], onDelete: Cascade)
+  produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+
+  @@index([combo_id])
+}
+
+enum StatusImpressao {
+  PENDING
+  PRINTED
+  ERROR
+}
+
 enum TipoDesconto {
   PERCENTAGE
   FIXED
@@ -286,4 +363,9 @@ enum FormaPagamento {
   DEBIT
   CREDIT
   CASH
+}
+
+enum TipoEntrega {
+  ENTREGA
+  RETIRADA
 }

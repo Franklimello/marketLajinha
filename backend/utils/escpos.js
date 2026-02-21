@@ -138,8 +138,12 @@ function buildTicket(pedido, itens, setorNome, larguraMm = 80) {
   txt += CMD.BOLD_ON;
   txt += (pedido.nome_cliente || 'Cliente') + '\n';
   txt += CMD.BOLD_OFF;
-  if (pedido.endereco) txt += quebrarTexto(pedido.endereco, cols);
-  if (pedido.bairro) txt += `Bairro: ${pedido.bairro}\n`;
+  if (pedido.tipo_entrega === 'RETIRADA') {
+    txt += CMD.BOLD_ON + '*** RETIRADA NO BALCAO ***\n' + CMD.BOLD_OFF;
+  } else {
+    if (pedido.endereco) txt += quebrarTexto(pedido.endereco, cols);
+    if (pedido.bairro) txt += `Bairro: ${pedido.bairro}\n`;
+  }
   if (pedido.telefone_cliente) txt += `Tel: ${pedido.telefone_cliente}\n`;
 
   const pgto = { PIX: 'PIX', CREDIT: 'Credito', DEBIT: 'Debito', CASH: 'Dinheiro' };

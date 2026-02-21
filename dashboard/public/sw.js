@@ -77,7 +77,7 @@ self.addEventListener('fetch', (event) => {
   if (API_PATTERN.test(url.pathname)) {
     event.respondWith(
       fetch(event.request)
-        .then((r) => { if (r.ok) { caches.open(DYNAMIC_CACHE).then((c) => c.put(event.request, r.clone())); } return r; })
+        .then((r) => { if (r.ok) { const cl = r.clone(); caches.open(DYNAMIC_CACHE).then((c) => c.put(event.request, cl)); } return r; })
         .catch(() => caches.match(event.request).then((c) => c || new Response('{"erro":"Offline"}', { status: 503, headers: { 'Content-Type': 'application/json' } })))
     );
     return;
@@ -87,7 +87,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((r) => {
-        if (r.ok) { caches.open(STATIC_CACHE).then((c) => c.put(event.request, r.clone())); }
+        if (r.ok) { const cl = r.clone(); caches.open(STATIC_CACHE).then((c) => c.put(event.request, cl)); }
         return r;
       }).catch(() => new Response('', { status: 503 }));
     })

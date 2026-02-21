@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
-import { FiPrinter, FiPlus, FiTrash2, FiEdit2, FiZap, FiWifi, FiWifiOff } from 'react-icons/fi'
+import { FiPrinter, FiPlus, FiTrash2, FiEdit2, FiZap, FiWifi, FiWifiOff, FiKey, FiCopy, FiRefreshCw, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 
 const SETORES_SUGESTOES = ['COZINHA', 'BAR', 'PIZZARIA', 'CONFEITARIA', 'GERAL', 'BALCAO']
 
@@ -12,6 +12,17 @@ export default function Impressoras() {
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [testando, setTestando] = useState(null)
+  const [tokenImpressao, setTokenImpressao] = useState('')
+  const [tokenAberto, setTokenAberto] = useState(false)
+  const [copiado, setCopiado] = useState(false)
+  const [gerandoToken, setGerandoToken] = useState(false)
+
+  const carregarToken = useCallback(async () => {
+    try {
+      const res = await api.impressoras.obterToken()
+      setTokenImpressao(res.token_impressao || '')
+    } catch {}
+  }, [])
 
   const carregar = useCallback(async () => {
     try {
@@ -20,7 +31,7 @@ export default function Impressoras() {
     finally { setCarregando(false) }
   }, [])
 
-  useEffect(() => { carregar() }, [carregar])
+  useEffect(() => { carregar(); carregarToken() }, [carregar, carregarToken])
 
   function abrirNova() {
     setForm({ setor: '', nome: '', ip: '', porta: 9100, largura: 80 })
@@ -101,8 +112,9 @@ export default function Impressoras() {
 
       {/* Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
-        <strong>Como funciona:</strong> Quando um pedido é aprovado, os itens são separados por setor e cada impressora
-        recebe apenas os itens do seu setor. Defina o setor de cada produto no cadastro de produtos.
+        <strong>Como funciona:</strong> Quando um pedido chega, os itens são separados por setor (cozinha, bar, etc.)
+        e enviados para a impressora certa automaticamente. Configure as impressoras aqui e o programa de impressão no
+        computador da loja (veja abaixo).
       </div>
 
       {impressoras.length === 0 ? (
@@ -169,6 +181,109 @@ export default function Impressoras() {
           ))}
         </div>
       )}
+
+      {/* Token do Agente Local */}
+      <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+        <button
+          onClick={() => setTokenAberto(!tokenAberto)}
+          className="w-full flex items-center justify-between p-4 hover:bg-stone-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-50 rounded-lg">
+              <FiKey className="text-purple-600" size={18} />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-stone-900 text-sm">Agente de Impressão Local</p>
+              <p className="text-xs text-stone-500">Configure o programa que roda no PC da loja</p>
+            </div>
+          </div>
+          {tokenAberto ? <FiChevronUp className="text-stone-400" /> : <FiChevronDown className="text-stone-400" />}
+        </button>
+
+        {tokenAberto && (
+          <div className="border-t border-stone-100 p-4 space-y-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              <strong>Por que preciso disso?</strong> Como o servidor roda na nuvem (Railway), ele não consegue acessar
+              as impressoras na rede local da loja. O agente roda no PC da loja, busca os pedidos pendentes e envia
+              para as impressoras automaticamente.
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">Token de acesso</label>
+              {tokenImpressao ? (
+                <div className="flex gap-2">
+                  <code className="flex-1 px-3 py-2.5 bg-stone-100 rounded-lg text-xs font-mono text-stone-700 break-all select-all">
+                    {tokenImpressao}
+                  </code>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(tokenImpressao); setCopiado(true); setTimeout(() => setCopiado(false), 2000) }}
+                    className="px-3 py-2 bg-stone-100 rounded-lg text-stone-600 hover:bg-stone-200 transition-colors text-sm flex items-center gap-1.5"
+                  >
+                    <FiCopy size={14} />
+                    {copiado ? 'Copiado!' : 'Copiar'}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-stone-400 italic">Nenhum token gerado ainda.</p>
+              )}
+              <button
+                onClick={async () => {
+                  if (tokenImpressao && !confirm('Gerar novo token? O token atual será invalidado e o agente precisará ser reconfigurado.')) return
+                  setGerandoToken(true)
+                  try {
+                    const res = await api.impressoras.gerarToken()
+                    setTokenImpressao(res.token_impressao)
+                  } catch {} finally { setGerandoToken(false) }
+                }}
+                disabled={gerandoToken}
+                className="mt-2 flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+              >
+                <FiRefreshCw size={14} className={gerandoToken ? 'animate-spin' : ''} />
+                {tokenImpressao ? 'Gerar novo token' : 'Gerar token'}
+              </button>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-stone-700 mb-2">Como configurar (simples!)</p>
+              <ol className="text-sm text-stone-600 space-y-3">
+                <li className="flex gap-3 items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                  <div>
+                    <span className="font-medium text-stone-800">Copie o arquivo para o computador da loja</span>
+                    <p className="text-xs text-stone-400 mt-0.5">Salve o <strong>MarketLajinha-Impressao.exe</strong> na área de trabalho</p>
+                  </div>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                  <div>
+                    <span className="font-medium text-stone-800">Dê duplo clique no programa</span>
+                    <p className="text-xs text-stone-400 mt-0.5">A tela de configuração abre automaticamente no navegador</p>
+                  </div>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                  <div>
+                    <span className="font-medium text-stone-800">Cole o endereço do servidor e o token</span>
+                    <p className="text-xs text-stone-400 mt-0.5">Copie o token acima e cole na tela do programa</p>
+                  </div>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <span className="flex-shrink-0 w-6 h-6 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                  <div>
+                    <span className="font-medium text-stone-800">Clique em "Iniciar impressão"</span>
+                    <p className="text-xs text-stone-400 mt-0.5">Pronto! Os pedidos serão impressos automaticamente</p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            <div className="bg-stone-50 rounded-lg p-3 text-xs text-stone-500">
+              <strong className="text-stone-700">Importante:</strong> O programa precisa ficar aberto no computador da loja para as impressões funcionarem.
+              Não precisa instalar nada — é só abrir o <strong>MarketLajinha-Impressao.exe</strong>.
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Modal */}
       {modal && (

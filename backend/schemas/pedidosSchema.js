@@ -2,6 +2,7 @@ const { z } = require('zod');
 
 const statusPedidoEnum = z.enum(['PENDING', 'APPROVED', 'IN_ROUTE', 'DELIVERED', 'CANCELLED']);
 const formaPagamentoEnum = z.enum(['PIX', 'DEBIT', 'CREDIT', 'CASH']);
+const tipoEntregaEnum = z.enum(['ENTREGA', 'RETIRADA']);
 
 const schemaItemPedido = z.object({
   produto_id: z.string().cuid('ID do produto inválido'),
@@ -12,6 +13,7 @@ const schemaItemPedido = z.object({
 
 const schemaPedidos = z.object({
   loja_id: z.string().cuid(),
+  tipo_entrega: tipoEntregaEnum.optional().default('ENTREGA'),
   nome_cliente: z.string().optional().default(''),
   telefone_cliente: z.string().optional().default(''),
   endereco: z.string().optional().default(''),
@@ -31,4 +33,5 @@ module.exports = {
   schemaItemPedido,
   statusPedidoEnum,
   formaPagamentoEnum,
+  tipoEntregaEnum,
 };

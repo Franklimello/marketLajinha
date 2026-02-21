@@ -9,11 +9,14 @@ export default function MinhaLoja() {
   const [form, setForm] = useState(null)
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
+  const [bannerFile, setBannerFile] = useState(null)
+  const [bannerPreview, setBannerPreview] = useState(null)
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [toggling, setToggling] = useState(false)
   const fileInputRef = useRef(null)
+  const bannerInputRef = useRef(null)
 
   useEffect(() => {
     if (loja) {
@@ -28,6 +31,7 @@ export default function MinhaLoja() {
         horario_abertura: loja.horario_abertura || '',
         horario_fechamento: loja.horario_fechamento || '',
         logo_url: loja.logo_url || '',
+        banner_url: loja.banner_url || '',
         cor_primaria: loja.cor_primaria || '#f59e0b',
         taxa_entrega: loja.taxa_entrega ?? 0,
         tempo_entrega: loja.tempo_entrega || '',
@@ -40,6 +44,8 @@ export default function MinhaLoja() {
       })
       setLogoPreview(null)
       setLogoFile(null)
+      setBannerPreview(null)
+      setBannerFile(null)
     }
   }, [loja])
 
@@ -72,6 +78,22 @@ export default function MinhaLoja() {
     setLogoFile(file)
     setLogoPreview(URL.createObjectURL(file))
     setErro('')
+  }
+
+  function handleBannerChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setErro('Selecione um arquivo de imagem.'); return }
+    if (file.size > 5 * 1024 * 1024) { setErro('Imagem deve ter no máximo 5 MB.'); return }
+    setBannerFile(file)
+    setBannerPreview(URL.createObjectURL(file))
+    setErro('')
+  }
+
+  function removerNovoBanner() {
+    setBannerFile(null)
+    setBannerPreview(null)
+    if (bannerInputRef.current) bannerInputRef.current.value = ''
   }
 
   function removerNovaLogo() {
@@ -117,13 +139,21 @@ export default function MinhaLoja() {
       let logo_url = form.logo_url
       if (logoFile) {
         const ext = logoFile.name.split('.').pop()
-        const path = `lojas/${loja.id}/logo_${Date.now()}.${ext}`
-        logo_url = await uploadImagem(logoFile, path)
+        const p = `lojas/${loja.id}/logo_${Date.now()}.${ext}`
+        logo_url = await uploadImagem(logoFile, p)
       }
-      const atualizada = await api.lojas.atualizar(loja.id, { ...form, logo_url })
+      let banner_url = form.banner_url
+      if (bannerFile) {
+        const ext = bannerFile.name.split('.').pop()
+        const p = `lojas/${loja.id}/banner_${Date.now()}.${ext}`
+        banner_url = await uploadImagem(bannerFile, p)
+      }
+      const atualizada = await api.lojas.atualizar(loja.id, { ...form, logo_url, banner_url })
       atualizarLoja(atualizada)
       setLogoFile(null)
       setLogoPreview(null)
+      setBannerFile(null)
+      setBannerPreview(null)
       setSucesso('Loja atualizada com sucesso!')
       setTimeout(() => setSucesso(''), 3000)
     } catch (err) {
@@ -349,6 +379,32 @@ export default function MinhaLoja() {
             </div>
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">Banner da loja (foto de capa)</label>
+          <p className="text-xs text-stone-400 mb-3">Imagem horizontal que aparece no topo da página da sua loja. Ideal: 800x300px.</p>
+          {(bannerPreview || form.banner_url) ? (
+            <div className="relative">
+              <img src={bannerPreview || form.banner_url} alt="Banner" className="w-full h-36 object-cover rounded-xl border-2 border-stone-200" />
+              <div className="absolute bottom-2 right-2 flex gap-2">
+                <button type="button" onClick={() => bannerInputRef.current?.click()} className="px-3 py-1.5 bg-white/90 backdrop-blur text-stone-700 text-xs font-medium rounded-lg hover:bg-white shadow transition-colors flex items-center gap-1">
+                  <FiCamera className="text-[10px]" /> Trocar
+                </button>
+                {bannerFile && (
+                  <button type="button" onClick={removerNovoBanner} className="px-3 py-1.5 bg-red-500/90 text-white text-xs font-medium rounded-lg hover:bg-red-600 shadow transition-colors">
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => bannerInputRef.current?.click()} className="w-full h-36 border-2 border-dashed border-stone-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-amber-400 hover:bg-amber-50/50 transition-colors cursor-pointer">
+              <FiUpload className="text-xl text-stone-400" />
+              <span className="text-sm text-stone-400">Enviar imagem de capa</span>
+            </button>
+          )}
+          <input ref={bannerInputRef} type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

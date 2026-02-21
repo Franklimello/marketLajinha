@@ -154,9 +154,11 @@ export default function Pedidos() {
                       </span>
                     </div>
                     <p className="text-sm text-stone-400 mt-1">{formatDate(p.created_at)}</p>
-                    {p.endereco && (
-                      <p className="text-sm text-stone-500 mt-1 truncate">{p.endereco}</p>
-                    )}
+                    <p className="text-sm text-stone-500 mt-1 truncate">
+                      {p.tipo_entrega === 'RETIRADA'
+                        ? <span className="text-purple-600 font-medium">Retirada no balcão</span>
+                        : (p.endereco || '—')}
+                    </p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-bold text-stone-900">{formatCurrency(p.total)}</p>
@@ -254,9 +256,21 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus }) {
               <p className="font-medium text-stone-900">{pedido.telefone_cliente}</p>
             </div>
             <div className="col-span-2">
-              <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Endereço</p>
-              <p className="font-medium text-stone-900">{pedido.endereco || '—'}</p>
+              <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Tipo de entrega</p>
+              <p className="font-medium text-stone-900">
+                {pedido.tipo_entrega === 'RETIRADA' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm font-semibold">Retirada no balcão</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold">Entrega</span>
+                )}
+              </p>
             </div>
+            {pedido.tipo_entrega !== 'RETIRADA' && (
+              <div className="col-span-2">
+                <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Endereço</p>
+                <p className="font-medium text-stone-900">{pedido.endereco || '—'}</p>
+              </div>
+            )}
             {pedido.observacao && (
               <div className="col-span-2">
                 <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Observação</p>

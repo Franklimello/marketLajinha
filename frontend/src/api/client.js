@@ -36,6 +36,9 @@ export const api = {
         body: JSON.stringify({ valor, pedido_id: pedidoId }),
       }),
   },
+  combos: {
+    listarPorLoja: (lojaId) => request(`/combos/loja/${lojaId}`),
+  },
   pedidos: {
     criar: (data) => request('/pedidos', { method: 'POST', body: JSON.stringify(data) }),
     meus: () => request('/pedidos/meus'),

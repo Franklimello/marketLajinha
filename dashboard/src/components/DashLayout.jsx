@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag } from 'react-icons/fi'
+import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift } from 'react-icons/fi'
 import { useState } from 'react'
 
 const NAV = [
@@ -10,6 +10,8 @@ const NAV = [
   { to: '/bairros', icon: FiMapPin, label: 'Bairros e Taxas' },
   { to: '/cupons', icon: FiTag, label: 'Cupons' },
   { to: '/impressoras', icon: FiPrinter, label: 'Impressoras' },
+  { to: '/combos', icon: FiGift, label: 'Combos' },
+  { to: '/motoboys', icon: FiTruck, label: 'Motoboys' },
   { to: '/minha-loja', icon: FiShoppingBag, label: 'Minha Loja' },
   { to: '/configuracoes', icon: FiSettings, label: 'Configurações' },
 ]

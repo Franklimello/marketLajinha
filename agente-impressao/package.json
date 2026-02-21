@@ -1,0 +1,21 @@
+{
+  "name": "marketlajinha-impressao",
+  "version": "1.0.0",
+  "description": "Central de Impressão - MarketLajinha",
+  "main": "agent.js",
+  "bin": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "build": "pkg . --targets node18-win-x64 --output dist/MarketLajinha-Impressao.exe"
+  },
+  "pkg": {
+    "assets": [],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.2.2"
+  }
+}

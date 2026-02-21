@@ -7,6 +7,8 @@ import PedidosPage from '../pages/pedidos.jsx'
 import PerfilPage from '../pages/perfil.jsx'
 import LoginPage from '../pages/login.jsx'
 import CadastroPage from '../pages/cadastro.jsx'
+import MotoboyLogin from '../pages/motoboy/MotoboyLogin.jsx'
+import MotoboyPedidos from '../pages/motoboy/MotoboyPedidos.jsx'
 
 const router = createBrowserRouter([
   {
@@ -22,6 +24,8 @@ const router = createBrowserRouter([
       { path: '/cadastro', element: <CadastroPage /> },
     ],
   },
+  { path: '/motoboy', element: <MotoboyLogin /> },
+  { path: '/motoboy/pedidos', element: <MotoboyPedidos /> },
 ])
 
 export default router

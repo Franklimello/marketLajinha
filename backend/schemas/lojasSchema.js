@@ -11,6 +11,7 @@ const schemaLojas = z.object({
   horario_abertura: z.string().optional().default(''),
   horario_fechamento: z.string().optional().default(''),
   logo_url: z.string().url().optional().or(z.literal('')).default(''),
+  banner_url: z.string().url().optional().or(z.literal('')).default(''),
   taxa_entrega: z.number().min(0).optional().default(0),
   tempo_entrega: z.string().optional().default(''),
   pix_tipo: z.string().optional().default(''),

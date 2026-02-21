@@ -74,6 +74,22 @@ export const api = {
     excluir: (id) => request(`/impressoras/${id}`, { method: 'DELETE' }),
     testar: (id) => request(`/impressoras/${id}/testar`, { method: 'POST' }),
     imprimir: (pedidoId) => request(`/impressoras/imprimir/${pedidoId}`, { method: 'POST' }),
+    obterToken: () => request('/impressoras/token'),
+    gerarToken: () => request('/impressoras/token/gerar', { method: 'POST' }),
+  },
+  combos: {
+    listar: () => request('/combos'),
+    buscar: (id) => request(`/combos/${id}`),
+    criar: (data) => request('/combos', { method: 'POST', body: JSON.stringify(data) }),
+    atualizar: (id, data) => request(`/combos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    excluir: (id) => request(`/combos/${id}`, { method: 'DELETE' }),
+  },
+  motoboys: {
+    listar: () => request('/motoboys'),
+    buscar: (id) => request(`/motoboys/${id}`),
+    criar: (data) => request('/motoboys', { method: 'POST', body: JSON.stringify(data) }),
+    atualizar: (id, data) => request(`/motoboys/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    excluir: (id) => request(`/motoboys/${id}`, { method: 'DELETE' }),
   },
   admin: {
     stats: () => request('/admin/stats'),

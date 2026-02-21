@@ -122,7 +122,13 @@ async function criar(data) {
   const subtotal = itensComPreco.reduce(
     (acc, item) => acc + item.preco_unitario * item.quantidade, 0
   );
-  const taxaEntrega = Number(pedidoData.taxa_entrega) || 0;
+  const isRetirada = pedidoData.tipo_entrega === 'RETIRADA';
+  const taxaEntrega = isRetirada ? 0 : (Number(pedidoData.taxa_entrega) || 0);
+  if (isRetirada) {
+    pedidoData.taxa_entrega = 0;
+    pedidoData.endereco = pedidoData.endereco || '';
+    pedidoData.bairro = pedidoData.bairro || '';
+  }
 
   const codigoCupom = pedidoData.codigo_cupom || '';
   delete pedidoData.codigo_cupom;

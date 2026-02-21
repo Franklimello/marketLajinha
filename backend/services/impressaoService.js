@@ -1,6 +1,7 @@
 const { prisma } = require('../config/database');
 const impressorasService = require('./impressorasService');
-const { buildTicket, enviarParaImpressora } = require('../utils/escpos');
+const { buildTicket } = require('../utils/escpos');
+const crypto = require('crypto');
 
 async function imprimirPedidoPorSetor(pedidoId) {
   const pedido = await prisma.pedidos.findUnique({
@@ -32,25 +33,81 @@ async function imprimirPedidoPorSetor(pedidoId) {
     const impressora = await impressorasService.buscarPorSetor(pedido.loja_id, setor);
 
     if (!impressora) {
-      const msg = `[Impressão] Sem impressora para setor "${setor}" da loja ${pedido.loja_id}. ${itens.length} item(ns) não impresso(s).`;
-      console.warn(msg);
+      console.warn(`[Impressão] Sem impressora para setor "${setor}" da loja ${pedido.loja_id}.`);
       resultados.push({ setor, status: 'sem_impressora', itens: itens.length });
       continue;
     }
 
     const ticket = buildTicket(pedido, itens, setor, impressora.largura || 80);
 
-    try {
-      await enviarParaImpressora(impressora.ip, impressora.porta, ticket);
-      console.log(`[Impressão] Setor "${setor}" -> ${impressora.ip}:${impressora.porta} OK (${itens.length} itens)`);
-      resultados.push({ setor, status: 'impresso', impressora: `${impressora.ip}:${impressora.porta}`, itens: itens.length });
-    } catch (err) {
-      console.error(`[Impressão] Falha setor "${setor}" -> ${impressora.ip}:${impressora.porta}: ${err.message}`);
-      resultados.push({ setor, status: 'erro', erro: err.message, itens: itens.length });
-    }
+    await prisma.filaImpressao.create({
+      data: {
+        loja_id: pedido.loja_id,
+        pedido_id: pedido.id,
+        setor,
+        impressora_ip: impressora.ip,
+        impressora_porta: impressora.porta,
+        largura: impressora.largura || 80,
+        conteudo: ticket,
+        status: 'PENDING',
+      },
+    });
+
+    console.log(`[Impressão] Job enfileirado: setor "${setor}" -> ${impressora.ip}:${impressora.porta}`);
+    resultados.push({ setor, status: 'enfileirado', impressora: `${impressora.ip}:${impressora.porta}`, itens: itens.length });
   }
 
   return { sucesso: true, pedidoId, setores: resultados };
 }
 
-module.exports = { imprimirPedidoPorSetor };
+async function buscarFilaPendente(lojaId) {
+  return prisma.filaImpressao.findMany({
+    where: { loja_id: lojaId, status: 'PENDING' },
+    orderBy: { created_at: 'asc' },
+  });
+}
+
+async function marcarImpresso(jobId, lojaId) {
+  const job = await prisma.filaImpressao.findUnique({ where: { id: jobId } });
+  if (!job || job.loja_id !== lojaId) return null;
+  return prisma.filaImpressao.update({
+    where: { id: jobId },
+    data: { status: 'PRINTED', printed_at: new Date() },
+  });
+}
+
+async function marcarErro(jobId, lojaId, erro) {
+  const job = await prisma.filaImpressao.findUnique({ where: { id: jobId } });
+  if (!job || job.loja_id !== lojaId) return null;
+  return prisma.filaImpressao.update({
+    where: { id: jobId },
+    data: { status: 'ERROR', erro, tentativas: { increment: 1 } },
+  });
+}
+
+async function reenviar(jobId, lojaId) {
+  const job = await prisma.filaImpressao.findUnique({ where: { id: jobId } });
+  if (!job || job.loja_id !== lojaId) return null;
+  return prisma.filaImpressao.update({
+    where: { id: jobId },
+    data: { status: 'PENDING', erro: '' },
+  });
+}
+
+async function gerarTokenImpressao(lojaId) {
+  const token = crypto.randomBytes(32).toString('hex');
+  await prisma.lojas.update({ where: { id: lojaId }, data: { token_impressao: token } });
+  return token;
+}
+
+async function validarTokenImpressao(token) {
+  if (!token) return null;
+  const loja = await prisma.lojas.findFirst({ where: { token_impressao: token, ativa: true } });
+  return loja;
+}
+
+module.exports = {
+  imprimirPedidoPorSetor,
+  buscarFilaPendente, marcarImpresso, marcarErro, reenviar,
+  gerarTokenImpressao, validarTokenImpressao,
+};

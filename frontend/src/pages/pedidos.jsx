@@ -78,7 +78,10 @@ export default function PedidosPage() {
                   ))}
                 </div>
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-50">
-                  <span className="text-xs text-stone-400">{p.forma_pagamento}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-stone-400">{p.forma_pagamento}</span>
+                    {p.tipo_entrega === 'RETIRADA' && <span className="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-medium">Retirada</span>}
+                  </div>
                   <span className="text-sm font-bold text-amber-700">R$ {Number(p.total).toFixed(2).replace('.', ',')}</span>
                 </div>
               </div>

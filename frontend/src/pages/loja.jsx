@@ -3,7 +3,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
-import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag } from 'react-icons/fi'
+import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift } from 'react-icons/fi'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Autoplay, FreeMode } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/free-mode'
 
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
@@ -28,6 +32,7 @@ export default function LojaPage() {
 
   const [carrinho, setCarrinho] = useState({})
   const [etapa, setEtapa] = useState('cardapio')
+  const [tipoEntrega, setTipoEntrega] = useState('ENTREGA')
   const [bairros, setBairros] = useState([])
   const [enderecoSel, setEnderecoSel] = useState(null)
   const [formPedido, setFormPedido] = useState({
@@ -38,6 +43,8 @@ export default function LojaPage() {
   const [pixData, setPixData] = useState(null)
   const [pixCarregando, setPixCarregando] = useState(false)
   const [copiado, setCopiado] = useState(false)
+
+  const [combos, setCombos] = useState([])
 
   const [codigoCupom, setCodigoCupom] = useState('')
   const [cupomAplicado, setCupomAplicado] = useState(null)
@@ -50,7 +57,10 @@ export default function LojaPage() {
       .then(([lojaData, produtosData]) => {
         setLoja(lojaData)
         setProdutos(produtosData)
-        if (lojaData?.id) api.lojas.bairros(lojaData.id).then(setBairros).catch(() => {})
+        if (lojaData?.id) {
+          api.lojas.bairros(lojaData.id).then(setBairros).catch(() => {})
+          api.combos.listarPorLoja(lojaData.id).then(setCombos).catch(() => {})
+        }
       })
       .catch((e) => setErro(e.message))
       .finally(() => setCarregando(false))
@@ -108,7 +118,7 @@ export default function LojaPage() {
   const totalItens = itensCarrinho.reduce((s, [, i]) => s + i.qtd, 0)
   const subtotal = itensCarrinho.reduce((s, [, i]) => s + i.precoUnit * i.qtd, 0)
   const bairroSel2 = bairros.find((b) => b.nome === formPedido.bairro)
-  const taxaEntrega = bairroSel2 ? Number(bairroSel2.taxa) : (bairros.length === 0 && loja ? Number(loja.taxa_entrega || 0) : 0)
+  const taxaEntrega = tipoEntrega === 'RETIRADA' ? 0 : (bairroSel2 ? Number(bairroSel2.taxa) : (bairros.length === 0 && loja ? Number(loja.taxa_entrega || 0) : 0))
   const descontoCupom = cupomAplicado ? cupomAplicado.desconto : 0
   const totalPedido = Math.max(0, subtotal - descontoCupom + taxaEntrega)
 
@@ -134,23 +144,35 @@ export default function LojaPage() {
   function irParaCheckout() {
     if (!logado) { navigate(`/login?voltar=${encodeURIComponent(`/loja/${slug}`)}`); return }
     const enderecos = cliente?.enderecos || []
-    if (enderecos.length === 0) {
-      alert('Cadastre um endereço antes de finalizar o pedido.')
-      navigate('/perfil')
-      return
+
+    if (tipoEntrega === 'ENTREGA') {
+      if (enderecos.length === 0) {
+        alert('Cadastre um endereço antes de finalizar o pedido.')
+        navigate('/perfil')
+        return
+      }
+      const enderecoPadrao = enderecos.find((e) => e.padrao) || enderecos[0]
+      let endStr = `${enderecoPadrao.rua}, ${enderecoPadrao.numero}`
+      if (enderecoPadrao.complemento) endStr += ` - ${enderecoPadrao.complemento}`
+      if (enderecoPadrao.referencia) endStr += ` (${enderecoPadrao.referencia})`
+      setFormPedido((prev) => ({
+        ...prev,
+        nome_cliente: cliente?.nome || prev.nome_cliente,
+        telefone_cliente: cliente?.telefone || prev.telefone_cliente,
+        endereco: endStr,
+        bairro: enderecoPadrao.bairro,
+      }))
+      setEnderecoSel(enderecoPadrao)
+    } else {
+      setFormPedido((prev) => ({
+        ...prev,
+        nome_cliente: cliente?.nome || prev.nome_cliente,
+        telefone_cliente: cliente?.telefone || prev.telefone_cliente,
+        endereco: '',
+        bairro: '',
+      }))
+      setEnderecoSel(null)
     }
-    const enderecoPadrao = enderecos.find((e) => e.padrao) || enderecos[0]
-    let endStr = `${enderecoPadrao.rua}, ${enderecoPadrao.numero}`
-    if (enderecoPadrao.complemento) endStr += ` - ${enderecoPadrao.complemento}`
-    if (enderecoPadrao.referencia) endStr += ` (${enderecoPadrao.referencia})`
-    setFormPedido((prev) => ({
-      ...prev,
-      nome_cliente: cliente?.nome || prev.nome_cliente,
-      telefone_cliente: cliente?.telefone || prev.telefone_cliente,
-      endereco: endStr,
-      bairro: enderecoPadrao.bairro,
-    }))
-    setEnderecoSel(enderecoPadrao)
     setEtapa('checkout')
   }
 
@@ -166,6 +188,22 @@ export default function LojaPage() {
     }))
   }
 
+  function addComboAoCarrinho(combo) {
+    const chave = `combo__${combo.id}`
+    setCarrinho((prev) => ({
+      ...prev,
+      [chave]: {
+        produto: { id: combo.id, nome: combo.nome, preco: combo.preco, imagem_url: combo.imagem_url },
+        variacao: null, adicionais: [],
+        precoUnit: Number(combo.preco),
+        obs: combo.itens.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(', '),
+        qtd: (prev[chave]?.qtd || 0) + 1,
+        isCombo: true,
+        comboItens: combo.itens,
+      },
+    }))
+  }
+
   function qtdProduto(produtoId) {
     return itensCarrinho.filter(([, i]) => i.produto.id === produtoId).reduce((s, [, i]) => s + i.qtd, 0)
   }
@@ -178,6 +216,7 @@ export default function LojaPage() {
     try {
       const pedido = await api.pedidos.criar({
         loja_id: loja.id,
+        tipo_entrega: tipoEntrega,
         nome_cliente: formPedido.nome_cliente,
         telefone_cliente: formPedido.telefone_cliente,
         endereco: formPedido.endereco,
@@ -189,12 +228,22 @@ export default function LojaPage() {
           formPedido.observacao,
           ...itensCarrinho.filter(([, i]) => i.obs).map(([, i]) => `${i.produto.nome}: ${i.obs}`),
         ].filter(Boolean).join(' | '),
-        itens: itensCarrinho.map(([, i]) => ({
-          produto_id: i.produto.id,
-          quantidade: i.qtd,
-          variacao_id: i.variacao?.id || undefined,
-          adicionais_ids: i.adicionais?.map((a) => a.id) || [],
-        })),
+        itens: itensCarrinho.flatMap(([, i]) => {
+          if (i.isCombo && i.comboItens) {
+            return i.comboItens.map(ci => ({
+              produto_id: ci.produto_id,
+              quantidade: ci.quantidade * i.qtd,
+              variacao_id: undefined,
+              adicionais_ids: [],
+            }))
+          }
+          return [{
+            produto_id: i.produto.id,
+            quantidade: i.qtd,
+            variacao_id: i.variacao?.id || undefined,
+            adicionais_ids: i.adicionais?.map((a) => a.id) || [],
+          }]
+        }),
       })
       const pagarOnline = formPedido._tipoPag === 'online' && formPedido.forma_pagamento === 'PIX' && loja.pix_chave
       if (pagarOnline) {
@@ -229,7 +278,7 @@ export default function LojaPage() {
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><FiCheck className="text-green-600 text-2xl" /></div>
         <h2 className="text-xl font-bold text-stone-900 mb-2">Pedido enviado!</h2>
-        <p className="text-stone-500 text-sm mb-6">Seu pedido foi recebido por <strong>{loja.nome}</strong>.{formPedido.forma_pagamento !== 'PIX' && ' Realize o pagamento na entrega.'}</p>
+        <p className="text-stone-500 text-sm mb-6">Seu pedido foi recebido por <strong>{loja.nome}</strong>.{tipoEntrega === 'RETIRADA' ? ' Retire seu pedido no balcão da loja.' : (formPedido.forma_pagamento !== 'PIX' ? ' Realize o pagamento na entrega.' : '')}</p>
         <Link to="/" className="inline-block px-6 py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 text-sm">Voltar ao início</Link>
       </div>
     )
@@ -287,18 +336,22 @@ export default function LojaPage() {
           {itensCarrinho.map(([chave, i]) => (
             <div key={chave} className="py-1.5 border-b border-stone-50 last:border-0">
               <div className="flex justify-between text-sm">
-                <span className="text-stone-600">{i.qtd}x {i.produto.nome}</span>
+                <div className="flex items-center gap-1.5">
+                  {i.isCombo && <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1 py-0.5 rounded">COMBO</span>}
+                  <span className="text-stone-600">{i.qtd}x {i.produto.nome}</span>
+                </div>
                 <span className="text-stone-900 font-medium">R$ {(i.precoUnit * i.qtd).toFixed(2).replace('.', ',')}</span>
               </div>
+              {i.isCombo && i.comboItens && <p className="text-[10px] text-stone-400 ml-4">{i.comboItens.map(ci => `${ci.quantidade}x ${ci.produto?.nome}`).join(', ')}</p>}
               {i.variacao && <p className="text-[10px] text-stone-400 ml-4">Tamanho: {i.variacao.nome}</p>}
               {i.adicionais?.length > 0 && <p className="text-[10px] text-stone-400 ml-4">+ {i.adicionais.map((a) => a.nome).join(', ')}</p>}
-              {i.obs && <p className="text-[10px] text-stone-400 ml-4 italic">Obs: {i.obs}</p>}
+              {!i.isCombo && i.obs && <p className="text-[10px] text-stone-400 ml-4 italic">Obs: {i.obs}</p>}
             </div>
           ))}
           <div className="border-t border-stone-100 mt-2 pt-2 flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="font-medium">R$ {subtotal.toFixed(2).replace('.', ',')}</span></div>
           <div className="flex justify-between text-sm mt-1">
-            <span className="text-stone-500">Entrega {formPedido.bairro ? `(${formPedido.bairro})` : ''}</span>
-            <span className="font-medium">{taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis'}</span>
+            <span className="text-stone-500">{tipoEntrega === 'RETIRADA' ? 'Retirada no balcão' : `Entrega ${formPedido.bairro ? `(${formPedido.bairro})` : ''}`}</span>
+            <span className="font-medium">{tipoEntrega === 'RETIRADA' ? 'Grátis' : (taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis')}</span>
           </div>
           {descontoCupom > 0 && (
             <div className="flex justify-between text-sm mt-1">
@@ -307,6 +360,23 @@ export default function LojaPage() {
             </div>
           )}
           <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-amber-700">R$ {totalPedido.toFixed(2).replace('.', ',')}</span></div>
+        </div>
+
+        {/* Tipo de entrega */}
+        <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
+          <h3 className="text-sm font-semibold text-stone-700 mb-3 flex items-center gap-1"><FiTruck className="text-amber-600" /> Como deseja receber?</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => { setTipoEntrega('ENTREGA'); if (!enderecoSel) { const ends = cliente?.enderecos || []; if (ends.length) { const ep = ends.find(e => e.padrao) || ends[0]; selecionarEndereco(ep) } } }} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoEntrega === 'ENTREGA' ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+              <FiTruck className={`text-lg ${tipoEntrega === 'ENTREGA' ? 'text-amber-600' : 'text-stone-400'}`} />
+              <span className="text-sm font-semibold text-stone-900">Entrega</span>
+              <span className="text-[10px] text-stone-400">Receber em casa</span>
+            </button>
+            <button type="button" onClick={() => setTipoEntrega('RETIRADA')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoEntrega === 'RETIRADA' ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+              <FiShoppingBag className={`text-lg ${tipoEntrega === 'RETIRADA' ? 'text-amber-600' : 'text-stone-400'}`} />
+              <span className="text-sm font-semibold text-stone-900">Retirar no balcão</span>
+              <span className="text-[10px] text-stone-400">Buscar na loja</span>
+            </button>
+          </div>
         </div>
 
         {/* Cupom de desconto */}
@@ -349,28 +419,40 @@ export default function LojaPage() {
           )}
         </div>
 
-        {/* Endereço de entrega */}
-        <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1"><FiMapPin className="text-amber-600" /> Endereço de entrega</h3>
-            <Link to="/perfil" className="text-[10px] text-amber-600 font-medium hover:underline">Alterar</Link>
+        {/* Endereço de entrega (apenas para ENTREGA) */}
+        {tipoEntrega === 'ENTREGA' && (
+          <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1"><FiMapPin className="text-amber-600" /> Endereço de entrega</h3>
+              <Link to="/perfil" className="text-[10px] text-amber-600 font-medium hover:underline">Alterar</Link>
+            </div>
+            <div className="space-y-2">
+              {enderecosCliente.map((end) => {
+                const sel = enderecoSel?.id === end.id
+                return (
+                  <button key={end.id} type="button" onClick={() => selecionarEndereco(end)} className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${sel ? 'border-amber-500 bg-amber-50/50' : 'border-stone-200 hover:border-stone-300'}`}>
+                    <div className="flex items-center gap-2">
+                      {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
+                      {end.padrao && <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
+                    </div>
+                    <p className="text-sm text-stone-800 mt-0.5">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
+                    <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}</p>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <div className="space-y-2">
-            {enderecosCliente.map((end) => {
-              const sel = enderecoSel?.id === end.id
-              return (
-                <button key={end.id} type="button" onClick={() => selecionarEndereco(end)} className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${sel ? 'border-amber-500 bg-amber-50/50' : 'border-stone-200 hover:border-stone-300'}`}>
-                  <div className="flex items-center gap-2">
-                    {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
-                    {end.padrao && <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
-                  </div>
-                  <p className="text-sm text-stone-800 mt-0.5">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
-                  <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}</p>
-                </button>
-              )
-            })}
+        )}
+
+        {tipoEntrega === 'RETIRADA' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-sm text-amber-800 flex items-start gap-2">
+            <FiInfo className="text-amber-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">Retirada no balcão</p>
+              <p className="text-xs text-amber-600 mt-0.5">Retire seu pedido diretamente na loja. Sem taxa de entrega!</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <form onSubmit={handleCriarPedido} className="space-y-4">
           {/* Observação */}
@@ -389,7 +471,7 @@ export default function LojaPage() {
                 <span className="text-[10px] text-stone-400">PIX com QR Code</span>
               </button>
               <button type="button" onClick={() => escolherTipoPag('entrega')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'entrega' ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                <span className="text-sm font-semibold text-stone-900">Pagar na entrega</span>
+                <span className="text-sm font-semibold text-stone-900">{tipoEntrega === 'RETIRADA' ? 'Pagar na retirada' : 'Pagar na entrega'}</span>
                 <span className="text-[10px] text-stone-400">Presencial</span>
               </button>
             </div>
@@ -413,7 +495,7 @@ export default function LojaPage() {
             )}
           </div>
 
-          <button type="submit" disabled={enviando || totalItens === 0 || !enderecoSel || !formPedido.forma_pagamento} className="w-full py-3.5 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 text-sm">
+          <button type="submit" disabled={enviando || totalItens === 0 || (tipoEntrega === 'ENTREGA' && !enderecoSel) || !formPedido.forma_pagamento} className="w-full py-3.5 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 text-sm">
             {enviando ? 'Enviando...' : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`}
           </button>
         </form>
@@ -585,7 +667,7 @@ export default function LojaPage() {
 
       {/* Banner */}
       <div className="relative w-full h-44 bg-stone-200 overflow-hidden">
-        <img src={loja.logo_url || ''} alt="" className={`w-full h-full object-cover ${!aberta ? 'grayscale brightness-75' : ''}`} onError={(e) => { e.target.style.display = 'none' }} />
+        <img src={loja.banner_url || loja.logo_url || ''} alt="" className={`w-full h-full object-cover ${!aberta ? 'grayscale brightness-75' : ''}`} onError={(e) => { e.target.style.display = 'none' }} />
         <div className="absolute bottom-3 right-4 w-20 h-20 rounded-2xl overflow-hidden border-3 border-white shadow-lg bg-white">
           <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           <div className="w-full h-full items-center justify-center text-2xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
@@ -622,6 +704,92 @@ export default function LojaPage() {
       <div className="h-2 bg-stone-100" />
 
       <div className={`px-4 pt-4 ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
+        {/* Carrossel de destaques */}
+        {categoriaSel === null && produtos.dados.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-base font-bold text-stone-900 mb-3">Destaques</h2>
+            <Swiper
+              modules={[Autoplay, FreeMode]}
+              spaceBetween={10}
+              slidesPerView="auto"
+              freeMode
+              autoplay={{ delay: 3000, disableOnInteraction: false }}
+              className="-mx-1 px-1"
+            >
+              {produtos.dados.filter(p => p.imagem_url).slice(0, 10).map((p) => {
+                const preco = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map(v => Number(v.preco))) : Number(p.preco)
+                return (
+                  <SwiperSlide key={p.id} style={{ width: '120px' }}>
+                    <button onClick={() => addItemDireto(p)} className="w-full text-left">
+                      <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
+                        <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-xs font-semibold text-stone-900 mt-1.5 line-clamp-1">{p.nome}</p>
+                      <p className="text-xs text-amber-700 font-bold">
+                        {p.variacoes?.length > 0 && 'a partir de '}R$ {preco.toFixed(2).replace('.', ',')}
+                      </p>
+                    </button>
+                  </SwiperSlide>
+                )
+              })}
+            </Swiper>
+          </div>
+        )}
+
+        {/* Combos em destaque */}
+        {combos.length > 0 && categoriaSel === null && (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <FiGift className="text-amber-500" />
+              <h2 className="text-base font-bold text-stone-900">Combos</h2>
+              <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">OFERTA</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
+              {combos.map((c) => {
+                const original = c.itens.reduce((s, i) => s + Number(i.produto?.preco || 0) * i.quantidade, 0)
+                const economia = original - Number(c.preco)
+                const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
+                return (
+                  <div key={c.id} className="snap-start flex-shrink-0 w-64 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200 overflow-hidden">
+                    {c.imagem_url && (
+                      <img src={c.imagem_url} alt={c.nome} className="w-full h-28 object-cover" />
+                    )}
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
+                        {qtdNoCarrinho > 0 && <span className="w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">{qtdNoCarrinho}</span>}
+                      </div>
+                      <p className="text-[11px] text-stone-500 mb-2 line-clamp-2">
+                        {c.itens.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(' + ')}
+                      </p>
+                      {c.descricao && <p className="text-[10px] text-stone-400 mb-2 italic">{c.descricao}</p>}
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-lg font-extrabold text-amber-700">R$ {Number(c.preco).toFixed(2).replace('.', ',')}</span>
+                          </div>
+                          {economia > 0 && (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-xs text-stone-400 line-through">R$ {original.toFixed(2).replace('.', ',')}</span>
+                              <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">-R$ {economia.toFixed(2).replace('.', ',')}</span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => addComboAoCarrinho(c)}
+                          className="w-9 h-9 bg-amber-600 text-white rounded-full flex items-center justify-center hover:bg-amber-700 transition-colors shadow-md"
+                        >
+                          <FiPlus size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {categoriaSel === null ? (
           <>
             <h2 className="text-base font-bold text-stone-900 mb-3">Cardápio</h2>
