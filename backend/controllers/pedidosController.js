@@ -6,8 +6,9 @@ const { notificarCliente, notificarLoja } = require('../services/notificacaoServ
 
 async function listar(req, res, next) {
   try {
-    const pedidos = await pedidosService.listarPorLoja(req.user.loja_id);
-    res.json(pedidos);
+    const { pagina, limite } = req.query;
+    const resultado = await pedidosService.listarPorLoja(req.user.loja_id, pagina, limite);
+    res.json(resultado);
   } catch (e) {
     next(e);
   }
@@ -52,6 +53,10 @@ async function criar(req, res, next) {
 
     const pedido = await pedidosService.criar(dados);
 
+    imprimirPedidoPorSetor(pedido.id).catch((err) => {
+      console.error(`[Impressão Auto] Falha ao imprimir pedido ${pedido.id}:`, err.message);
+    });
+
     const qtdItens = dados.itens?.length || 0;
     notificarLoja(
       dados.loja_id,
@@ -73,12 +78,6 @@ async function atualizarStatus(req, res, next) {
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
     if (pedido.loja_id !== req.user.loja_id) return res.status(403).json({ erro: 'Pedido de outra loja.' });
     const atualizado = await pedidosService.atualizarStatus(req.params.id, req.validated.status);
-
-    if (req.validated.status === 'APPROVED') {
-      imprimirPedidoPorSetor(req.params.id).catch((err) => {
-        console.error(`[Impressão Auto] Falha ao imprimir pedido ${req.params.id}:`, err.message);
-      });
-    }
 
     if (pedido.cliente_id) {
       const nomeLoja = pedido.loja?.nome || '';

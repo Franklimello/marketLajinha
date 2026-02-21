@@ -26,7 +26,15 @@ async function authMiddleware(req, res, next) {
     });
     if (usuario) req.user = usuario;
   } catch (err) {
-    // Token inválido ou expirado
+    if (err.code === 'auth/id-token-expired') {
+      return res.status(401).json({ erro: 'Token expirado. Faça login novamente.' });
+    }
+    if (err.code === 'auth/id-token-revoked') {
+      return res.status(401).json({ erro: 'Token revogado. Faça login novamente.' });
+    }
+    if (err.code === 'auth/argument-error' || err.code === 'auth/invalid-id-token') {
+      return res.status(401).json({ erro: 'Token inválido.' });
+    }
   }
   next();
 }

@@ -96,28 +96,30 @@ async function criar(data) {
 async function atualizar(id, data) {
   const { variacoes, adicionais, ...produtoData } = data;
 
-  if (variacoes !== undefined) {
-    await prisma.variacaoProduto.deleteMany({ where: { produto_id: id } });
-    for (const v of variacoes) {
-      await prisma.variacaoProduto.create({
-        data: { nome: v.nome, preco: v.preco, produto_id: id },
-      });
+  return prisma.$transaction(async (tx) => {
+    if (variacoes !== undefined) {
+      await tx.variacaoProduto.deleteMany({ where: { produto_id: id } });
+      for (const v of variacoes) {
+        await tx.variacaoProduto.create({
+          data: { nome: v.nome, preco: v.preco, produto_id: id },
+        });
+      }
     }
-  }
 
-  if (adicionais !== undefined) {
-    await prisma.adicionalProduto.deleteMany({ where: { produto_id: id } });
-    for (const a of adicionais) {
-      await prisma.adicionalProduto.create({
-        data: { nome: a.nome, preco: a.preco, produto_id: id },
-      });
+    if (adicionais !== undefined) {
+      await tx.adicionalProduto.deleteMany({ where: { produto_id: id } });
+      for (const a of adicionais) {
+        await tx.adicionalProduto.create({
+          data: { nome: a.nome, preco: a.preco, produto_id: id },
+        });
+      }
     }
-  }
 
-  return prisma.produtos.update({
-    where: { id },
-    data: produtoData,
-    include: INCLUDE_COMPLETO,
+    return tx.produtos.update({
+      where: { id },
+      data: produtoData,
+      include: INCLUDE_COMPLETO,
+    });
   });
 }
 

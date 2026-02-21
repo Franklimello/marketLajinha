@@ -8,7 +8,7 @@ export default function Impressoras() {
   const [impressoras, setImpressoras] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [modal, setModal] = useState(null)
-  const [form, setForm] = useState({ setor: '', nome: '', ip: '', porta: 9100 })
+  const [form, setForm] = useState({ setor: '', nome: '', ip: '', porta: 9100, largura: 80 })
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [testando, setTestando] = useState(null)
@@ -23,13 +23,13 @@ export default function Impressoras() {
   useEffect(() => { carregar() }, [carregar])
 
   function abrirNova() {
-    setForm({ setor: '', nome: '', ip: '', porta: 9100 })
+    setForm({ setor: '', nome: '', ip: '', porta: 9100, largura: 80 })
     setErro('')
     setModal('nova')
   }
 
   function abrirEditar(imp) {
-    setForm({ setor: imp.setor, nome: imp.nome || '', ip: imp.ip, porta: imp.porta })
+    setForm({ setor: imp.setor, nome: imp.nome || '', ip: imp.ip, porta: imp.porta, largura: imp.largura || 80 })
     setErro('')
     setModal(imp.id)
   }
@@ -129,7 +129,7 @@ export default function Impressoras() {
                     {imp.ativa ? 'Ativa' : 'Inativa'}
                   </span>
                 </div>
-                <p className="text-sm text-stone-500 mt-0.5 font-mono">{imp.ip}:{imp.porta}</p>
+                <p className="text-sm text-stone-500 mt-0.5 font-mono">{imp.ip}:{imp.porta} · {imp.largura || 80}mm</p>
               </div>
 
               <div className="flex items-center gap-1">
@@ -238,6 +238,30 @@ export default function Impressoras() {
                     onChange={(e) => setForm((p) => ({ ...p, porta: parseInt(e.target.value) || 9100 }))}
                     className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 font-mono"
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Largura do papel</label>
+                <div className="flex gap-3">
+                  {[
+                    { value: 58, label: '58mm', desc: 'Bobina estreita (32 colunas)' },
+                    { value: 80, label: '80mm', desc: 'Bobina padrão (48 colunas)' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, largura: opt.value }))}
+                      className={`flex-1 p-3 rounded-xl border-2 text-left transition-colors ${
+                        form.largura === opt.value
+                          ? 'border-amber-500 bg-amber-50'
+                          : 'border-stone-200 hover:border-stone-300'
+                      }`}
+                    >
+                      <span className="text-sm font-bold text-stone-900">{opt.label}</span>
+                      <p className="text-[11px] text-stone-400 mt-0.5">{opt.desc}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
 

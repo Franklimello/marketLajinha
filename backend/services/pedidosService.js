@@ -8,12 +8,22 @@ const INCLUDE_ITENS = {
   },
 };
 
-async function listarPorLoja(lojaId) {
-  return prisma.pedidos.findMany({
-    where: { loja_id: lojaId },
-    orderBy: { created_at: 'desc' },
-    include: INCLUDE_ITENS,
-  });
+async function listarPorLoja(lojaId, pagina = 1, limite = 50) {
+  const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
+  const limiteNum = Math.min(100, Math.max(1, parseInt(limite, 10) || 50));
+
+  const [dados, total] = await Promise.all([
+    prisma.pedidos.findMany({
+      where: { loja_id: lojaId },
+      orderBy: { created_at: 'desc' },
+      skip: (paginaNum - 1) * limiteNum,
+      take: limiteNum,
+      include: INCLUDE_ITENS,
+    }),
+    prisma.pedidos.count({ where: { loja_id: lojaId } }),
+  ]);
+
+  return { dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / limiteNum) };
 }
 
 async function listarPorCliente(clienteId) {

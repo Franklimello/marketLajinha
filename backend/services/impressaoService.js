@@ -38,7 +38,7 @@ async function imprimirPedidoPorSetor(pedidoId) {
       continue;
     }
 
-    const ticket = buildTicket(pedido, itens, setor);
+    const ticket = buildTicket(pedido, itens, setor, impressora.largura || 80);
 
     try {
       await enviarParaImpressora(impressora.ip, impressora.porta, ticket);

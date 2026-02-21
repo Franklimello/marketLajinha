@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Lojas {
@@ -40,6 +40,9 @@ model Lojas {
   bairroTaxas BairroTaxa[]
   impressoras Impressora[]
   cupons      Cupom[]
+
+  @@index([ativa, cidade])
+  @@index([categoria_negocio])
 }
 
 model Usuarios {
@@ -52,6 +55,8 @@ model Usuarios {
 
   loja      Lojas          @relation(fields: [loja_id], references: [id], onDelete: Cascade)
   fcmTokens FcmTokenLoja[]
+
+  @@index([loja_id])
 }
 
 model FcmTokenLoja {
@@ -61,6 +66,8 @@ model FcmTokenLoja {
   created_at DateTime @default(now())
 
   usuario Usuarios @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+
+  @@index([usuario_id])
 }
 
 enum Role {
@@ -84,6 +91,9 @@ model Produtos {
   itens      ItensPedido[]
   variacoes  VariacaoProduto[]
   adicionais AdicionalProduto[]
+
+  @@index([loja_id, ativo])
+  @@index([loja_id, categoria])
 }
 
 model VariacaoProduto {
@@ -93,6 +103,8 @@ model VariacaoProduto {
   preco      Decimal
 
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+
+  @@index([produto_id])
 }
 
 model AdicionalProduto {
@@ -102,6 +114,8 @@ model AdicionalProduto {
   preco      Decimal
 
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+
+  @@index([produto_id])
 }
 
 model Clientes {
@@ -125,6 +139,8 @@ model FcmToken {
   created_at DateTime @default(now())
 
   cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  @@index([cliente_id])
 }
 
 model EnderecoCliente {
@@ -139,6 +155,8 @@ model EnderecoCliente {
   padrao     Boolean @default(false)
 
   cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  @@index([cliente_id])
 }
 
 model Pedidos {
@@ -164,6 +182,10 @@ model Pedidos {
   cupom     Cupom?        @relation(fields: [cupom_id], references: [id])
   itens     ItensPedido[]
   cupomUsos CupomUso[]
+
+  @@index([loja_id, status])
+  @@index([loja_id, created_at])
+  @@index([cliente_id])
 }
 
 model ItensPedido {
@@ -178,6 +200,9 @@ model ItensPedido {
 
   pedido  Pedidos  @relation(fields: [pedido_id], references: [id], onDelete: Cascade)
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+
+  @@index([pedido_id])
+  @@index([produto_id])
 }
 
 model BairroTaxa {
@@ -198,6 +223,7 @@ model Impressora {
   nome    String  @default("")
   ip      String
   porta   Int     @default(9100)
+  largura Int     @default(80)
   ativa   Boolean @default(true)
 
   loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
@@ -238,6 +264,8 @@ model CupomUso {
   cupom   Cupom    @relation(fields: [cupom_id], references: [id], onDelete: Cascade)
   cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
   pedido  Pedidos  @relation(fields: [pedido_id], references: [id], onDelete: Cascade)
+
+  @@index([cupom_id, cliente_id])
 }
 
 enum TipoDesconto {

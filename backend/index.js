@@ -4,26 +4,82 @@
  * Express + Prisma + Firebase Auth
  */
 require('dotenv').config();
+
+// ── Validação de variáveis obrigatórias ──
+const REQUIRED_ENV = ['DATABASE_URL'];
+const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  console.error(`FATAL: Variáveis de ambiente obrigatórias não definidas: ${missing.join(', ')}`);
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const routes = require('./routes');
 const { errorHandler } = require('./middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// ── Segurança HTTP ──
+app.use(helmet());
+app.disable('x-powered-by');
+
+// ── CORS ──
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'];
 
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
-  ],
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400,
 }));
-app.use(express.json());
+
+// ── Rate Limiting ──
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: IS_PROD ? 100 : 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas requisições. Tente novamente em alguns minutos.' },
+});
+app.use(limiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: IS_PROD ? 20 : 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas tentativas de autenticação. Tente novamente em 15 minutos.' },
+});
+app.use('/clientes/cadastro', authLimiter);
+app.use('/lojas', authLimiter);
+
+// ── Body parsing com limite ──
+app.use(express.json({ limit: '1mb' }));
+
+// ── Rotas ──
 app.use(routes);
+
+// ── Error handler ──
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Servidor marcket rodando em http://localhost:${PORT}`);
+// ── Graceful shutdown ──
+const server = app.listen(PORT, () => {
+  console.log(`Servidor marcket rodando em http://localhost:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}]`);
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM recebido. Encerrando...');
+  server.close(() => process.exit(0));
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT recebido. Encerrando...');
+  server.close(() => process.exit(0));
 });
