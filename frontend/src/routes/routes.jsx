@@ -25,6 +25,7 @@ const router = createBrowserRouter([
     ],
   },
   { path: '/motoboy', element: <MotoboyLogin /> },
+  { path: '/motoboy/login', element: <MotoboyLogin /> },
   { path: '/motoboy/pedidos', element: <MotoboyPedidos /> },
 ])
 
