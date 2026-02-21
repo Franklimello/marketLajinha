@@ -50,7 +50,7 @@ export default function Pedidos() {
     if (!silencioso) setCarregando(true)
     try {
       const res = await api.pedidos.listar()
-      const lista = Array.isArray(res) ? res : []
+      const lista = Array.isArray(res) ? res : (Array.isArray(res?.dados) ? res.dados : [])
 
       if (silencioso && lista.length > pedidosCountRef.current && pedidosCountRef.current > 0) {
         try { audioRef.current?.play() } catch {}
