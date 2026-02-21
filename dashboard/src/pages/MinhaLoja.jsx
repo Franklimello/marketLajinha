@@ -39,6 +39,7 @@ export default function MinhaLoja() {
         pix_chave: loja.pix_chave || '',
         pix_nome_titular: loja.pix_nome_titular || '',
         pix_cidade: loja.pix_cidade || '',
+        formas_pagamento: loja.formas_pagamento || 'PIX,CREDIT,DEBIT,CASH',
         aberta: loja.aberta ?? true,
         ativa: loja.ativa ?? true,
       })
@@ -313,6 +314,42 @@ export default function MinhaLoja() {
         <p className="text-xs text-stone-400">
           Defina os horários para abrir e fechar a loja automaticamente. Você ainda pode abrir ou fechar manualmente a qualquer momento usando o botão acima.
         </p>
+
+        <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Formas de pagamento aceitas</h2>
+        <p className="text-xs text-stone-400 mb-2">Selecione quais formas de pagamento sua loja aceita. Apenas as selecionadas aparecerão para o cliente.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { value: 'PIX', label: 'PIX', emoji: '📱' },
+            { value: 'CREDIT', label: 'Crédito', emoji: '💳' },
+            { value: 'DEBIT', label: 'Débito', emoji: '💳' },
+            { value: 'CASH', label: 'Dinheiro', emoji: '💵' },
+          ].map((opt) => {
+            const selecionadas = (form.formas_pagamento || '').split(',').filter(Boolean)
+            const ativo = selecionadas.includes(opt.value)
+            return (
+              <label
+                key={opt.value}
+                className={`flex items-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                  ativo ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={ativo}
+                  onChange={() => {
+                    const novas = ativo
+                      ? selecionadas.filter((s) => s !== opt.value)
+                      : [...selecionadas, opt.value]
+                    setForm((f) => ({ ...f, formas_pagamento: novas.join(',') }))
+                  }}
+                  className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
+                />
+                <span className="text-lg">{opt.emoji}</span>
+                <span className="text-sm font-medium text-stone-800">{opt.label}</span>
+              </label>
+            )
+          })}
+        </div>
 
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">PIX — Pagamento online</h2>
 

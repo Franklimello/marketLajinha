@@ -516,38 +516,65 @@ export default function LojaPage() {
           </div>
 
           {/* Pagamento */}
-          <div className="bg-white rounded-xl border border-stone-200 p-4">
-            <h3 className="text-sm font-semibold text-stone-700 mb-3">Como deseja pagar?</h3>
+          {(() => {
+            const formasAceitas = (loja.formas_pagamento || 'PIX,CREDIT,DEBIT,CASH').split(',').filter(Boolean)
+            const aceitaPix = formasAceitas.includes('PIX')
+            const formasPresenciais = [
+              { value: 'PIX', label: 'PIX' },
+              { value: 'CREDIT', label: 'Crédito' },
+              { value: 'DEBIT', label: 'Débito' },
+              { value: 'CASH', label: 'Dinheiro' },
+            ].filter((o) => formasAceitas.includes(o.value))
+            const temPixOnline = aceitaPix && loja.pix_chave
 
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <button type="button" onClick={() => escolherTipoPag('online')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'online' ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                <span className="text-sm font-semibold text-stone-900">Pagar online</span>
-                <span className="text-[10px] text-stone-400">PIX com QR Code</span>
-              </button>
-              <button type="button" onClick={() => escolherTipoPag('entrega')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'entrega' ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                <span className="text-sm font-semibold text-stone-900">{tipoEntrega === 'RETIRADA' ? 'Pagar na retirada' : 'Pagar na entrega'}</span>
-                <span className="text-[10px] text-stone-400">Presencial</span>
-              </button>
-            </div>
+            return (
+              <div className="bg-white rounded-xl border border-stone-200 p-4">
+                <h3 className="text-sm font-semibold text-stone-700 mb-3">Como deseja pagar?</h3>
 
-            {tipoPagamento === 'online' && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-700 flex items-center gap-2">
-                <FiCheck className="text-emerald-600 shrink-0" />
-                <span>Pagamento via <strong>PIX</strong> — você receberá o QR Code após confirmar.</span>
+                {temPixOnline ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <button type="button" onClick={() => escolherTipoPag('online')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'online' ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                        <span className="text-sm font-semibold text-stone-900">Pagar online</span>
+                        <span className="text-[10px] text-stone-400">PIX com QR Code</span>
+                      </button>
+                      <button type="button" onClick={() => escolherTipoPag('entrega')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'entrega' ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                        <span className="text-sm font-semibold text-stone-900">{tipoEntrega === 'RETIRADA' ? 'Pagar na retirada' : 'Pagar na entrega'}</span>
+                        <span className="text-[10px] text-stone-400">Presencial</span>
+                      </button>
+                    </div>
+                    {tipoPagamento === 'online' && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-700 flex items-center gap-2">
+                        <FiCheck className="text-emerald-600 shrink-0" />
+                        <span>Pagamento via <strong>PIX</strong> — você receberá o QR Code após confirmar.</span>
+                      </div>
+                    )}
+                    {tipoPagamento === 'entrega' && formasPresenciais.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {formasPresenciais.map((opt) => (
+                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                            <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
+                            <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  formasPresenciais.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {formasPresenciais.map((opt) => (
+                        <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                          <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
+                          <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )
+                )}
               </div>
-            )}
-
-            {tipoPagamento === 'entrega' && (
-              <div className="grid grid-cols-3 gap-2">
-                {[{ value: 'PIX', label: 'PIX' }, { value: 'CREDIT', label: 'Crédito' }, { value: 'DEBIT', label: 'Débito' }, { value: 'CASH', label: 'Dinheiro' }].map((opt) => (
-                  <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                    <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
-                    <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+            )
+          })()}
 
           <button type="submit" disabled={enviando || totalItens === 0 || (tipoEntrega === 'ENTREGA' && !enderecoSel) || !formPedido.forma_pagamento} className="w-full py-3.5 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 text-sm">
             {enviando ? 'Enviando...' : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`}

@@ -33,6 +33,7 @@ model Lojas {
   pix_chave             String    @default("")
   pix_nome_titular      String    @default("")
   pix_cidade            String    @default("")
+  formas_pagamento      String    @default("PIX,CREDIT,DEBIT,CASH")
   vencimento            DateTime  @default(now())
 
   produtos    Produtos[]

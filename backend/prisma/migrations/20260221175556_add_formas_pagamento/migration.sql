@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Lojas" ADD COLUMN     "formas_pagamento" TEXT NOT NULL DEFAULT 'PIX,CREDIT,DEBIT,CASH';
