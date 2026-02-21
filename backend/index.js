@@ -73,8 +73,8 @@ app.use(errorHandler);
 module.exports = app;
 
 // ── Graceful shutdown ──
-const server = app.listen(PORT, () => {
-  console.log(`Servidor marcket rodando em http://localhost:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}]`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}]`);
 });
 
 process.on('SIGTERM', () => {
