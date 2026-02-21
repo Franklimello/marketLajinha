@@ -157,7 +157,7 @@ async function criar(data) {
         desconto,
         cupom_id: cupomId,
         total,
-        status: 'PENDING',
+        status: 'APPROVED',
         itens: { create: itensComPreco },
       },
       include: INCLUDE_ITENS,

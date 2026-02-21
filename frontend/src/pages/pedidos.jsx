@@ -9,15 +9,14 @@ import { FiClock, FiCheck, FiTruck, FiX, FiPackage } from 'react-icons/fi'
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const STATUS_STEPS = [
-  { key: 'PENDING', label: 'Pedido recebido', icon: FiClock },
-  { key: 'APPROVED', label: 'Preparando', icon: FiPackage },
+  { key: 'APPROVED', label: 'Confirmado', icon: FiPackage },
   { key: 'IN_ROUTE', label: 'Saiu p/ entrega', icon: FiTruck },
   { key: 'DELIVERED', label: 'Entregue', icon: FiCheck },
 ]
 
 const STATUS_MAP = {
   PENDING: { label: 'Pendente', cor: 'bg-yellow-100 text-yellow-700', icon: FiClock },
-  APPROVED: { label: 'Preparando', cor: 'bg-blue-100 text-blue-700', icon: FiPackage },
+  APPROVED: { label: 'Confirmado', cor: 'bg-blue-100 text-blue-700', icon: FiPackage },
   IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-purple-100 text-purple-700', icon: FiTruck },
   DELIVERED: { label: 'Entregue', cor: 'bg-green-100 text-green-700', icon: FiCheck },
   CANCELLED: { label: 'Cancelado', cor: 'bg-red-100 text-red-700', icon: FiX },

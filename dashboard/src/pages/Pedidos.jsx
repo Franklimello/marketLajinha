@@ -9,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const STATUS_MAP = {
   PENDING: { label: 'Pendente', cor: 'bg-yellow-100 text-yellow-700' },
-  APPROVED: { label: 'Aprovado', cor: 'bg-blue-100 text-blue-700' },
+  APPROVED: { label: 'Confirmado', cor: 'bg-blue-100 text-blue-700' },
   IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-purple-100 text-purple-700' },
   DELIVERED: { label: 'Entregue', cor: 'bg-green-100 text-green-700' },
   CANCELLED: { label: 'Cancelado', cor: 'bg-red-100 text-red-700' },
