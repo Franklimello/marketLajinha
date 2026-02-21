@@ -39,6 +39,7 @@ model Lojas {
   pedidos     Pedidos[]
   bairroTaxas BairroTaxa[]
   impressoras Impressora[]
+  cupons      Cupom[]
 }
 
 model Usuarios {
@@ -49,7 +50,17 @@ model Usuarios {
   firebase_uid String   @unique
   role         Role
 
-  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  loja      Lojas          @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  fcmTokens FcmTokenLoja[]
+}
+
+model FcmTokenLoja {
+  id         String   @id @default(cuid())
+  usuario_id String
+  token      String   @unique
+  created_at DateTime @default(now())
+
+  usuario Usuarios @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
 }
 
 enum Role {
@@ -104,6 +115,7 @@ model Clientes {
   enderecos  EnderecoCliente[]
   pedidos    Pedidos[]
   fcmTokens  FcmToken[]
+  cupomUsos  CupomUso[]
 }
 
 model FcmToken {
@@ -133,20 +145,25 @@ model Pedidos {
   id               String         @id @default(cuid())
   loja_id          String
   cliente_id       String?
+  cupom_id         String?
   nome_cliente     String
   telefone_cliente String
   endereco         String
   bairro           String         @default("")
   taxa_entrega     Decimal        @default(0)
+  subtotal         Decimal        @default(0)
+  desconto         Decimal        @default(0)
   total            Decimal
   status           StatusPedido
   forma_pagamento  FormaPagamento
   observacao       String         @default("")
   created_at       DateTime       @default(now())
 
-  loja    Lojas         @relation(fields: [loja_id], references: [id], onDelete: Cascade)
-  cliente Clientes?     @relation(fields: [cliente_id], references: [id])
-  itens   ItensPedido[]
+  loja      Lojas         @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  cliente   Clientes?     @relation(fields: [cliente_id], references: [id])
+  cupom     Cupom?        @relation(fields: [cupom_id], references: [id])
+  itens     ItensPedido[]
+  cupomUsos CupomUso[]
 }
 
 model ItensPedido {
@@ -186,6 +203,46 @@ model Impressora {
   loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
 
   @@unique([loja_id, setor])
+}
+
+model Cupom {
+  id                String      @id @default(cuid())
+  loja_id           String
+  codigo            String
+  tipo_desconto     TipoDesconto
+  valor_desconto    Decimal
+  valor_minimo      Decimal?
+  max_usos          Int?
+  usos_count        Int         @default(0)
+  usos_por_cliente  Int?
+  data_inicio       DateTime
+  data_fim          DateTime
+  ativo             Boolean     @default(true)
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+
+  loja      Lojas       @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  pedidos   Pedidos[]
+  usos      CupomUso[]
+
+  @@unique([loja_id, codigo])
+}
+
+model CupomUso {
+  id         String   @id @default(cuid())
+  cupom_id   String
+  cliente_id String
+  pedido_id  String
+  usado_em   DateTime @default(now())
+
+  cupom   Cupom    @relation(fields: [cupom_id], references: [id], onDelete: Cascade)
+  cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+  pedido  Pedidos  @relation(fields: [pedido_id], references: [id], onDelete: Cascade)
+}
+
+enum TipoDesconto {
+  PERCENTAGE
+  FIXED
 }
 
 enum StatusPedido {

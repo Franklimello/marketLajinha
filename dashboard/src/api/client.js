@@ -57,6 +57,16 @@ export const api = {
       request(`/pedidos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     excluir: (id) => request(`/pedidos/${id}`, { method: 'DELETE' }),
   },
+  usuarios: {
+    salvarFcmToken: (token) => request('/usuarios/me/fcm-token', { method: 'POST', body: JSON.stringify({ token }) }),
+  },
+  cupons: {
+    listar: () => request('/cupons'),
+    buscar: (id) => request(`/cupons/${id}`),
+    criar: (data) => request('/cupons', { method: 'POST', body: JSON.stringify(data) }),
+    atualizar: (id, data) => request(`/cupons/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    excluir: (id) => request(`/cupons/${id}`, { method: 'DELETE' }),
+  },
   impressoras: {
     listar: () => request('/impressoras'),
     criar: (data) => request('/impressoras', { method: 'POST', body: JSON.stringify(data) }),

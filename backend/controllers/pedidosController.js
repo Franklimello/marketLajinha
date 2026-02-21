@@ -2,7 +2,7 @@ const pedidosService = require('../services/pedidosService');
 const clientesService = require('../services/clientesService');
 const { statusPedidoEnum, formaPagamentoEnum } = require('../schemas/pedidosSchema');
 const { imprimirPedidoPorSetor } = require('../services/impressaoService');
-const { notificarCliente } = require('../services/notificacaoService');
+const { notificarCliente, notificarLoja } = require('../services/notificacaoService');
 
 async function listar(req, res, next) {
   try {
@@ -51,6 +51,15 @@ async function criar(req, res, next) {
     }
 
     const pedido = await pedidosService.criar(dados);
+
+    const qtdItens = dados.itens?.length || 0;
+    notificarLoja(
+      dados.loja_id,
+      'Novo pedido!',
+      `${dados.nome_cliente || 'Cliente'} fez um pedido com ${qtdItens} item(ns).`,
+      { pedidoId: pedido.id, url: '/pedidos' }
+    ).catch((err) => console.error('[Notificação Loja] Falha:', err.message));
+
     res.status(201).json(pedido);
   } catch (e) {
     if (e.status === 400) return res.status(400).json({ erro: e.message });

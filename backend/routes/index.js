@@ -12,6 +12,7 @@ const bairrosRoutes = require('./bairrosRoutes');
 const clientesRoutes = require('./clientesRoutes');
 const adminRoutes = require('./adminRoutes');
 const impressorasRoutes = require('./impressorasRoutes');
+const cuponsRoutes = require('./cuponsRoutes');
 
 router.get('/health', (req, res) => res.json({ ok: true, mensagem: 'API marcket no ar.' }));
 
@@ -23,5 +24,6 @@ router.use('/pedidos', pedidosRoutes);
 router.use('/clientes', clientesRoutes);
 router.use('/admin', adminRoutes);
 router.use('/impressoras', impressorasRoutes);
+router.use('/cupons', cuponsRoutes);
 
 module.exports = router;

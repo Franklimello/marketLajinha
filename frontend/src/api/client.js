@@ -40,6 +40,9 @@ export const api = {
     criar: (data) => request('/pedidos', { method: 'POST', body: JSON.stringify(data) }),
     meus: () => request('/pedidos/meus'),
   },
+  cupons: {
+    aplicar: (data) => request('/cupons/aplicar', { method: 'POST', body: JSON.stringify(data) }),
+  },
   clientes: {
     me: () => request('/clientes/me'),
     cadastro: (data) => request('/clientes/cadastro', { method: 'POST', body: JSON.stringify(data) }),

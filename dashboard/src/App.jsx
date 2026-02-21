@@ -12,6 +12,7 @@ import Configuracoes from './pages/Configuracoes'
 import Bairros from './pages/Bairros'
 import Impressoras from './pages/Impressoras'
 import AdminSistema from './pages/AdminSistema'
+import Cupons from './pages/Cupons'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/pedidos/:id" element={<PedidoDetalhe />} />
             <Route path="/bairros" element={<Bairros />} />
             <Route path="/impressoras" element={<Impressoras />} />
+            <Route path="/cupons" element={<Cupons />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/admin" element={<AdminSistema />} />
           </Route>

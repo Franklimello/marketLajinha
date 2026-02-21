@@ -1,5 +1,6 @@
 const { prisma } = require('../config/database');
 const { calcularAbertaAgora } = require('./lojasService');
+const cuponsService = require('./cuponsService');
 
 const INCLUDE_ITENS = {
   itens: {
@@ -112,17 +113,54 @@ async function criar(data) {
     (acc, item) => acc + item.preco_unitario * item.quantidade, 0
   );
   const taxaEntrega = Number(pedidoData.taxa_entrega) || 0;
-  const total = subtotal + taxaEntrega;
 
-  return prisma.pedidos.create({
-    data: {
-      ...pedidoData,
-      taxa_entrega: taxaEntrega,
-      total,
-      status: 'PENDING',
-      itens: { create: itensComPreco },
-    },
-    include: INCLUDE_ITENS,
+  const codigoCupom = pedidoData.codigo_cupom || '';
+  delete pedidoData.codigo_cupom;
+
+  let desconto = 0;
+  let cupomId = null;
+  let cupomValidado = null;
+
+  if (codigoCupom) {
+    cupomValidado = await cuponsService.validarCupom(
+      data.loja_id, codigoCupom, subtotal, pedidoData.cliente_id || null
+    );
+    desconto = cupomValidado.desconto;
+    cupomId = cupomValidado.cupom_id;
+  }
+
+  const total = Math.max(0, Math.round((subtotal - desconto + taxaEntrega) * 100) / 100);
+
+  return prisma.$transaction(async (tx) => {
+    const pedido = await tx.pedidos.create({
+      data: {
+        ...pedidoData,
+        taxa_entrega: taxaEntrega,
+        subtotal,
+        desconto,
+        cupom_id: cupomId,
+        total,
+        status: 'PENDING',
+        itens: { create: itensComPreco },
+      },
+      include: INCLUDE_ITENS,
+    });
+
+    if (cupomId && pedidoData.cliente_id) {
+      await tx.cupom.update({
+        where: { id: cupomId },
+        data: { usos_count: { increment: 1 } },
+      });
+      await tx.cupomUso.create({
+        data: {
+          cupom_id: cupomId,
+          cliente_id: pedidoData.cliente_id,
+          pedido_id: pedido.id,
+        },
+      });
+    }
+
+    return pedido;
   });
 }
 

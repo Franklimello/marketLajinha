@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -6,10 +6,11 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth'
-import { auth, googleProvider } from '../config/firebase'
+import { auth, googleProvider, messaging, getFcmToken, onMessage } from '../config/firebase'
 import { api, setTokenGetter } from '../api/client'
 
 const AuthContext = createContext(null)
+const VAPID_KEY = 'BCRFH6ED5f585HBRYI1xT6Z_qcf8dzmD2ExUlVLkjIBOO8xsLT_n828jXPyR1vwc8DjcBe8PvFM_UQsaCxoHorU'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -24,6 +25,48 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
+  const registrarPushLoja = useCallback(async () => {
+    if (!messaging || !('serviceWorker' in navigator) || !('Notification' in window)) return
+    try {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') return
+
+      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      await navigator.serviceWorker.ready
+      if (!reg.active) {
+        await new Promise((resolve) => {
+          const sw = reg.installing || reg.waiting
+          if (!sw) return resolve()
+          sw.addEventListener('statechange', function handler() {
+            if (sw.state === 'activated') { sw.removeEventListener('statechange', handler); resolve() }
+          })
+        })
+      }
+
+      const fcmToken = await getFcmToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+      if (fcmToken) {
+        await api.usuarios.salvarFcmToken(fcmToken)
+      }
+    } catch (e) {
+      console.warn('Push loja registration failed:', e.message)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!messaging) return
+    const unsub = onMessage(messaging, (payload) => {
+      const { title, body } = payload.notification || {}
+      if (Notification.permission === 'granted') {
+        new Notification(title || 'MarketLajinha', {
+          body: body || '',
+          icon: '/vite.svg',
+          vibrate: [300, 100, 300, 100, 300],
+        })
+      }
+    })
+    return () => unsub?.()
+  }, [])
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
@@ -31,6 +74,7 @@ export function AuthProvider({ children }) {
         try {
           const minhaLoja = await api.lojas.minha()
           setLoja(minhaLoja)
+          if (minhaLoja) registrarPushLoja()
         } catch {
           setLoja(null)
         }
@@ -47,7 +91,7 @@ export function AuthProvider({ children }) {
       setLoading(false)
     })
     return () => unsub()
-  }, [])
+  }, [registrarPushLoja])
 
   const login = (email, senha) =>
     signInWithEmailAndPassword(auth, email, senha)

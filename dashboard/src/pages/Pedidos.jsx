@@ -296,6 +296,24 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus }) {
               <span className="text-stone-500">Data</span>
               <span className="font-medium text-stone-900">{formatDate(pedido.created_at)}</span>
             </div>
+            {Number(pedido.subtotal) > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-stone-500">Subtotal</span>
+                <span className="font-medium text-stone-900">{formatCurrency(pedido.subtotal)}</span>
+              </div>
+            )}
+            {Number(pedido.desconto) > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-green-600">Desconto (cupom)</span>
+                <span className="font-medium text-green-600">- {formatCurrency(pedido.desconto)}</span>
+              </div>
+            )}
+            {Number(pedido.taxa_entrega) > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-stone-500">Taxa entrega</span>
+                <span className="font-medium text-stone-900">{formatCurrency(pedido.taxa_entrega)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm border-t border-stone-200 pt-2 mt-2">
               <span className="font-semibold text-stone-900">Total</span>
               <span className="font-bold text-stone-900 text-lg">{formatCurrency(pedido.total)}</span>

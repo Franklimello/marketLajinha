@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
-import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin } from 'react-icons/fi'
+import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag } from 'react-icons/fi'
 
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
@@ -37,6 +37,11 @@ export default function LojaPage() {
   const [pixData, setPixData] = useState(null)
   const [pixCarregando, setPixCarregando] = useState(false)
   const [copiado, setCopiado] = useState(false)
+
+  const [codigoCupom, setCodigoCupom] = useState('')
+  const [cupomAplicado, setCupomAplicado] = useState(null)
+  const [cupomErro, setCupomErro] = useState('')
+  const [cupomCarregando, setCupomCarregando] = useState(false)
 
   useEffect(() => {
     if (!slug) return
@@ -103,7 +108,27 @@ export default function LojaPage() {
   const subtotal = itensCarrinho.reduce((s, [, i]) => s + i.precoUnit * i.qtd, 0)
   const bairroSel2 = bairros.find((b) => b.nome === formPedido.bairro)
   const taxaEntrega = bairroSel2 ? Number(bairroSel2.taxa) : (bairros.length === 0 && loja ? Number(loja.taxa_entrega || 0) : 0)
-  const totalPedido = subtotal + taxaEntrega
+  const descontoCupom = cupomAplicado ? cupomAplicado.desconto : 0
+  const totalPedido = Math.max(0, subtotal - descontoCupom + taxaEntrega)
+
+  async function handleAplicarCupom() {
+    if (!codigoCupom.trim()) return
+    setCupomErro('')
+    setCupomCarregando(true)
+    try {
+      const res = await api.cupons.aplicar({ loja_id: loja.id, codigo_cupom: codigoCupom.trim(), subtotal })
+      setCupomAplicado(res)
+    } catch (err) {
+      setCupomErro(err.message)
+      setCupomAplicado(null)
+    } finally { setCupomCarregando(false) }
+  }
+
+  function handleRemoverCupom() {
+    setCupomAplicado(null)
+    setCodigoCupom('')
+    setCupomErro('')
+  }
 
   function irParaCheckout() {
     if (!logado) { navigate(`/login?voltar=${encodeURIComponent(`/loja/${slug}`)}`); return }
@@ -158,6 +183,7 @@ export default function LojaPage() {
         bairro: formPedido.bairro,
         taxa_entrega: taxaEntrega,
         forma_pagamento: formPedido.forma_pagamento,
+        codigo_cupom: cupomAplicado ? codigoCupom.trim() : '',
         observacao: [
           formPedido.observacao,
           ...itensCarrinho.filter(([, i]) => i.obs).map(([, i]) => `${i.produto.nome}: ${i.obs}`),
@@ -176,12 +202,12 @@ export default function LojaPage() {
         try { setPixData(await api.lojas.gerarPix(loja.id, totalPedido, pedido.id)) }
         catch { setPixData(null) }
         finally { setPixCarregando(false) }
-      } else { setEtapa('confirmado'); setCarrinho({}) }
+      } else { setEtapa('confirmado'); setCarrinho({}); setCupomAplicado(null); setCodigoCupom('') }
     } catch (err) { alert(err.message) }
     finally { setEnviando(false) }
   }
 
-  function handleFinalizarPix() { setEtapa('confirmado'); setCarrinho({}); setPixData(null) }
+  function handleFinalizarPix() { setEtapa('confirmado'); setCarrinho({}); setPixData(null); setCupomAplicado(null); setCodigoCupom('') }
 
   async function copiarPayload() {
     if (!pixData?.payload) return
@@ -273,7 +299,53 @@ export default function LojaPage() {
             <span className="text-stone-500">Entrega {formPedido.bairro ? `(${formPedido.bairro})` : ''}</span>
             <span className="font-medium">{taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis'}</span>
           </div>
+          {descontoCupom > 0 && (
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-green-600">Desconto (cupom)</span>
+              <span className="font-medium text-green-600">- R$ {descontoCupom.toFixed(2).replace('.', ',')}</span>
+            </div>
+          )}
           <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-amber-700">R$ {totalPedido.toFixed(2).replace('.', ',')}</span></div>
+        </div>
+
+        {/* Cupom de desconto */}
+        <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
+          <h3 className="text-sm font-semibold text-stone-700 mb-2 flex items-center gap-1"><FiTag className="text-amber-600" /> Cupom de desconto</h3>
+          {cupomAplicado ? (
+            <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+              <div>
+                <p className="text-sm font-semibold text-green-800 font-mono">{codigoCupom.toUpperCase()}</p>
+                <p className="text-xs text-green-600 mt-0.5">
+                  {cupomAplicado.tipo_desconto === 'PERCENTAGE'
+                    ? `${cupomAplicado.valor_desconto}% de desconto`
+                    : `R$ ${cupomAplicado.valor_desconto.toFixed(2).replace('.', ',')} de desconto`}
+                  {' · '}Você economiza R$ {cupomAplicado.desconto.toFixed(2).replace('.', ',')}
+                </p>
+              </div>
+              <button onClick={handleRemoverCupom} className="text-red-500 hover:text-red-700 text-xs font-medium">Remover</button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={codigoCupom}
+                  onChange={(e) => { setCodigoCupom(e.target.value); setCupomErro('') }}
+                  placeholder="Digite o código"
+                  className="flex-1 px-3 py-2.5 border border-stone-300 rounded-lg text-sm uppercase font-mono placeholder:normal-case placeholder:font-sans focus:ring-2 focus:ring-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleAplicarCupom}
+                  disabled={cupomCarregando || !codigoCupom.trim()}
+                  className="px-4 py-2.5 bg-stone-900 text-white rounded-lg text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
+                >
+                  {cupomCarregando ? '...' : 'Aplicar'}
+                </button>
+              </div>
+              {cupomErro && <p className="text-red-500 text-xs mt-2">{cupomErro}</p>}
+            </div>
+          )}
         </div>
 
         {/* Endereço de entrega */}

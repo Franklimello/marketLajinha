@@ -19,6 +19,7 @@ const schemaPedidos = z.object({
   taxa_entrega: z.number().min(0).optional().default(0),
   forma_pagamento: formaPagamentoEnum,
   observacao: z.string().optional().default(''),
+  codigo_cupom: z.string().optional().default(''),
   itens: z.array(schemaItemPedido).min(1, 'O pedido precisa ter pelo menos 1 item'),
 });
 

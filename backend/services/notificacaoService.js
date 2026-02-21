@@ -96,4 +96,71 @@ async function notificarCliente(clienteId, status, pedidoId, nomeLoja) {
   }
 }
 
-module.exports = { salvarToken, removerToken, notificarCliente };
+async function salvarTokenLoja(usuarioId, token) {
+  return prisma.fcmTokenLoja.upsert({
+    where: { token },
+    update: { usuario_id: usuarioId },
+    create: { usuario_id: usuarioId, token },
+  });
+}
+
+async function removerTokenLoja(token) {
+  return prisma.fcmTokenLoja.deleteMany({ where: { token } });
+}
+
+async function notificarLoja(lojaId, titulo, corpo, dados = {}) {
+  if (!isFirebaseInitialized()) {
+    console.warn('[Notificação Loja] Firebase não inicializado.');
+    return;
+  }
+
+  const tokens = await prisma.fcmTokenLoja.findMany({
+    where: { usuario: { loja_id: lojaId } },
+    select: { token: true },
+  });
+
+  if (tokens.length === 0) {
+    console.log(`[Notificação Loja] Loja ${lojaId} sem tokens FCM.`);
+    return;
+  }
+
+  const tokensInvalidos = [];
+
+  for (const { token } of tokens) {
+    try {
+      await admin.messaging().send({
+        token,
+        notification: { title: titulo, body: corpo },
+        data: dados,
+        android: {
+          priority: 'high',
+          notification: { sound: 'default', channelId: 'pedidos', priority: 'high' },
+        },
+        webpush: {
+          headers: { Urgency: 'high' },
+          notification: {
+            icon: '/vite.svg',
+            badge: '/vite.svg',
+            vibrate: [300, 100, 300, 100, 300],
+            requireInteraction: true,
+          },
+        },
+      });
+    } catch (err) {
+      if (
+        err.code === 'messaging/registration-token-not-registered' ||
+        err.code === 'messaging/invalid-registration-token'
+      ) {
+        tokensInvalidos.push(token);
+      } else {
+        console.error(`[Notificação Loja] Erro: ${err.message}`);
+      }
+    }
+  }
+
+  if (tokensInvalidos.length > 0) {
+    await prisma.fcmTokenLoja.deleteMany({ where: { token: { in: tokensInvalidos } } });
+  }
+}
+
+module.exports = { salvarToken, removerToken, notificarCliente, salvarTokenLoja, removerTokenLoja, notificarLoja };

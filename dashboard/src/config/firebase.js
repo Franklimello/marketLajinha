@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { getMessaging, getToken as getFcmToken, onMessage } from 'firebase/messaging'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDF51FzoLyRU52X4-jXMW1evIr3DKw9vQ8',
@@ -16,6 +17,10 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const storage = getStorage(app)
 export const googleProvider = new GoogleAuthProvider()
+
+let messaging = null
+try { messaging = getMessaging(app) } catch { /* browser sem suporte */ }
+export { messaging, getFcmToken, onMessage }
 
 /**
  * Faz upload de um arquivo para o Firebase Storage e retorna a URL pública.
