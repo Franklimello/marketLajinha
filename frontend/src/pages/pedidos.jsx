@@ -4,7 +4,7 @@ import { io } from 'socket.io-client'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import SEO from '../componentes/SEO'
-import { FiClock, FiCheck, FiTruck, FiX, FiPackage, FiStar } from 'react-icons/fi'
+import { FiClock, FiCheck, FiTruck, FiX, FiPackage, FiStar, FiMessageCircle, FiSend } from 'react-icons/fi'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -112,6 +112,103 @@ function AvaliacaoInline({ pedidoId }) {
         />
       )}
       {erro && <p className="text-[10px] text-red-500 mt-1">{erro}</p>}
+    </div>
+  )
+}
+
+function ChatPedido({ pedidoId, socketRef }) {
+  const [aberto, setAberto] = useState(false)
+  const [mensagens, setMensagens] = useState([])
+  const [texto, setTexto] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [naoLidas, setNaoLidas] = useState(0)
+  const scrollRef = useRef(null)
+
+  useEffect(() => {
+    if (!aberto) return
+    api.chat.mensagens(pedidoId).then((msgs) => {
+      setMensagens(msgs)
+      setNaoLidas(0)
+      setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
+    }).catch(() => {})
+  }, [aberto, pedidoId])
+
+  useEffect(() => {
+    const socket = socketRef?.current
+    if (!socket) return
+    function onMsg(msg) {
+      if (msg.pedido_id !== pedidoId) return
+      setMensagens((prev) => [...prev, msg])
+      if (!aberto) setNaoLidas((n) => n + 1)
+      setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
+    }
+    socket.on('chat:nova_mensagem', onMsg)
+    return () => socket.off('chat:nova_mensagem', onMsg)
+  }, [pedidoId, aberto, socketRef])
+
+  async function enviar(e) {
+    e.preventDefault()
+    if (!texto.trim() || enviando) return
+    setEnviando(true)
+    try {
+      const msg = await api.chat.enviar(pedidoId, texto.trim())
+      setMensagens((prev) => [...prev, msg])
+      setTexto('')
+      setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
+    } catch {}
+    finally { setEnviando(false) }
+  }
+
+  return (
+    <div className="mt-2 pt-2 border-t border-stone-100">
+      <button
+        onClick={() => { setAberto(!aberto); if (!aberto) setNaoLidas(0) }}
+        className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-amber-600 transition-colors"
+      >
+        <FiMessageCircle size={13} />
+        <span>Falar com a loja</span>
+        {naoLidas > 0 && (
+          <span className="min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            {naoLidas}
+          </span>
+        )}
+      </button>
+
+      {aberto && (
+        <div className="mt-2 border border-stone-200 rounded-xl overflow-hidden">
+          <div ref={scrollRef} className="max-h-48 overflow-y-auto p-3 space-y-2 bg-stone-50">
+            {mensagens.length === 0 && (
+              <p className="text-[11px] text-stone-400 text-center py-3">Nenhuma mensagem ainda. Envie uma dúvida!</p>
+            )}
+            {mensagens.map((m) => (
+              <div key={m.id} className={`flex ${m.remetente === 'CLIENTE' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs ${
+                  m.remetente === 'CLIENTE'
+                    ? 'bg-amber-500 text-white rounded-br-sm'
+                    : 'bg-white text-stone-800 border border-stone-200 rounded-bl-sm'
+                }`}>
+                  <p>{m.conteudo}</p>
+                  <p className={`text-[9px] mt-0.5 ${m.remetente === 'CLIENTE' ? 'text-amber-100' : 'text-stone-400'}`}>
+                    {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={enviar} className="flex border-t border-stone-200 bg-white">
+            <input
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              placeholder="Digite sua mensagem..."
+              className="flex-1 px-3 py-2 text-xs border-0 focus:ring-0 outline-none"
+              maxLength={500}
+            />
+            <button type="submit" disabled={enviando || !texto.trim()} className="px-3 text-amber-600 hover:text-amber-700 disabled:text-stone-300">
+              <FiSend size={14} />
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   )
 }
@@ -248,6 +345,7 @@ export default function PedidosPage() {
                   </div>
                 </div>
                 {p.status === 'DELIVERED' && <AvaliacaoInline pedidoId={p.id} />}
+                {p.status !== 'CANCELLED' && <ChatPedido pedidoId={p.id} socketRef={socketRef} />}
               </div>
             )
           })}

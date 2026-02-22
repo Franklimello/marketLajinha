@@ -48,6 +48,7 @@ model Lojas {
   motoboys        Motoboy[]
   filaImpressao   FilaImpressao[]
   combos          Combo[]
+  mensagens       Mensagem[]
   token_impressao String    @default("")
 
   @@index([ativa, cidade])
@@ -198,6 +199,7 @@ model Pedidos {
   itens     ItensPedido[]
   cupomUsos CupomUso[]
   avaliacao Avaliacao?
+  mensagens Mensagem[]
 
   @@index([loja_id, status])
   @@index([loja_id, created_at])
@@ -378,6 +380,27 @@ model ComboItem {
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
 
   @@index([combo_id])
+}
+
+model Mensagem {
+  id         String          @id @default(cuid())
+  pedido_id  String
+  loja_id    String
+  remetente  RemetenteMensagem
+  conteudo   String
+  lido       Boolean         @default(false)
+  created_at DateTime        @default(now())
+
+  pedido Pedidos @relation(fields: [pedido_id], references: [id], onDelete: Cascade)
+  loja   Lojas   @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+
+  @@index([pedido_id, created_at])
+  @@index([loja_id, lido])
+}
+
+enum RemetenteMensagem {
+  CLIENTE
+  LOJA
 }
 
 enum StatusImpressao {

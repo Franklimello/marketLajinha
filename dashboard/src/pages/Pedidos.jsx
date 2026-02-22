@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
-import { FiClock, FiCheckCircle, FiXCircle, FiSearch, FiFilter, FiPrinter, FiRefreshCw, FiMessageCircle } from 'react-icons/fi'
+import { FiClock, FiCheckCircle, FiXCircle, FiSearch, FiFilter, FiPrinter, FiRefreshCw, FiMessageCircle, FiSend } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -39,6 +39,7 @@ export default function Pedidos() {
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [busca, setBusca] = useState('')
   const [pedidoAberto, setPedidoAberto] = useState(null)
+  const [naoLidasMap, setNaoLidasMap] = useState({})
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
   const [wsConectado, setWsConectado] = useState(false)
   const audioRef = useRef(null)
@@ -96,6 +97,19 @@ export default function Pedidos() {
       setPedidos((prev) => prev.map((p) => p.id === pedidoAtualizado.id ? pedidoAtualizado : p))
       setUltimaAtualizacao(new Date())
     })
+
+    socket.on('chat:nova_mensagem', (msg) => {
+      if (msg.remetente === 'CLIENTE') {
+        setNaoLidasMap((prev) => ({ ...prev, [msg.pedido_id]: (prev[msg.pedido_id] || 0) + 1 }))
+        try { audioRef.current?.play() } catch {}
+      }
+    })
+
+    api.chat.naoLidas().then((res) => {
+      const map = {}
+      for (const item of res.porPedido || []) map[item.pedido_id] = item.count
+      setNaoLidasMap(map)
+    }).catch(() => {})
 
     return () => {
       clearInterval(intervaloRef.current)
@@ -211,7 +225,7 @@ export default function Pedidos() {
             return (
               <div
                 key={p.id}
-                onClick={() => setPedidoAberto(p)}
+                onClick={() => { setPedidoAberto(p); setNaoLidasMap((prev) => ({ ...prev, [p.id]: 0 })) }}
                 className="bg-white rounded-xl border border-stone-200 p-4 hover:border-amber-300 hover:shadow-sm transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-4">
@@ -221,6 +235,11 @@ export default function Pedidos() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${st.cor}`}>
                         {st.label}
                       </span>
+                      {(naoLidasMap[p.id] || 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                          <FiMessageCircle size={11} /> {naoLidasMap[p.id]}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-stone-400 mt-1">{formatDate(p.created_at)}</p>
                     <p className="text-sm text-stone-500 mt-1 truncate">
@@ -262,13 +281,92 @@ export default function Pedidos() {
           pedido={pedidoAberto}
           onFechar={() => setPedidoAberto(null)}
           onMudarStatus={mudarStatus}
+          socketRef={socketRef}
         />
       )}
     </div>
   )
 }
 
-function ModalDetalhePedido({ pedido, onFechar, onMudarStatus }) {
+function ChatLoja({ pedidoId, socketRef }) {
+  const [mensagens, setMensagens] = useState([])
+  const [texto, setTexto] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const scrollRef = useRef(null)
+
+  useEffect(() => {
+    api.chat.mensagens(pedidoId).then((msgs) => {
+      setMensagens(msgs)
+      setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
+    }).catch(() => {})
+  }, [pedidoId])
+
+  useEffect(() => {
+    const socket = socketRef?.current
+    if (!socket) return
+    function onMsg(msg) {
+      if (msg.pedido_id !== pedidoId) return
+      setMensagens((prev) => [...prev, msg])
+      setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
+    }
+    socket.on('chat:nova_mensagem', onMsg)
+    return () => socket.off('chat:nova_mensagem', onMsg)
+  }, [pedidoId, socketRef])
+
+  async function enviar(e) {
+    e.preventDefault()
+    if (!texto.trim() || enviando) return
+    setEnviando(true)
+    try {
+      const msg = await api.chat.enviar(pedidoId, texto.trim())
+      setMensagens((prev) => [...prev, msg])
+      setTexto('')
+      setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
+    } catch {}
+    finally { setEnviando(false) }
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-stone-400 uppercase tracking-wide mb-2">Chat com o cliente</p>
+      <div className="border border-stone-200 rounded-xl overflow-hidden">
+        <div ref={scrollRef} className="max-h-56 overflow-y-auto p-3 space-y-2 bg-stone-50">
+          {mensagens.length === 0 && (
+            <p className="text-xs text-stone-400 text-center py-4">Nenhuma mensagem neste pedido.</p>
+          )}
+          {mensagens.map((m) => (
+            <div key={m.id} className={`flex ${m.remetente === 'LOJA' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
+                m.remetente === 'LOJA'
+                  ? 'bg-amber-500 text-white rounded-br-sm'
+                  : 'bg-white text-stone-800 border border-stone-200 rounded-bl-sm'
+              }`}>
+                <p>{m.conteudo}</p>
+                <p className={`text-[10px] mt-0.5 ${m.remetente === 'LOJA' ? 'text-amber-100' : 'text-stone-400'}`}>
+                  {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <form onSubmit={enviar} className="flex border-t border-stone-200 bg-white">
+          <input
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Responder cliente..."
+            className="flex-1 px-3 py-2.5 text-sm border-0 focus:ring-0 outline-none"
+            maxLength={500}
+          />
+          <button type="submit" disabled={enviando || !texto.trim()} className="px-4 text-amber-600 hover:text-amber-700 disabled:text-stone-300">
+            <FiSend size={16} />
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const [imprimindo, setImprimindo] = useState(false)
 
@@ -433,6 +531,9 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus }) {
               <span className="font-bold text-stone-900 text-lg">{formatCurrency(pedido.total)}</span>
             </div>
           </div>
+
+          {/* Chat */}
+          <ChatLoja pedidoId={pedido.id} socketRef={socketRef} />
 
           {/* Alterar status */}
           <div>

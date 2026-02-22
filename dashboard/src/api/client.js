@@ -91,6 +91,11 @@ export const api = {
     atualizar: (id, data) => request(`/motoboys/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     excluir: (id) => request(`/motoboys/${id}`, { method: 'DELETE' }),
   },
+  chat: {
+    mensagens: (pedidoId) => request(`/chat/${pedidoId}/mensagens`),
+    enviar: (pedidoId, conteudo) => request(`/chat/${pedidoId}/mensagens/loja`, { method: 'POST', body: JSON.stringify({ conteudo }) }),
+    naoLidas: () => request('/chat/nao-lidas'),
+  },
   admin: {
     stats: () => request('/admin/stats'),
     listarLojas: () => request('/admin/lojas'),

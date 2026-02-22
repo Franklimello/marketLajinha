@@ -51,6 +51,10 @@ export const api = {
     listarPorLoja: (lojaId, pagina = 1) => request(`/avaliacoes/loja/${lojaId}?pagina=${pagina}`),
     mediaPorLoja: (lojaId) => request(`/avaliacoes/loja/${lojaId}/media`),
   },
+  chat: {
+    mensagens: (pedidoId) => request(`/chat/${pedidoId}/mensagens`),
+    enviar: (pedidoId, conteudo) => request(`/chat/${pedidoId}/mensagens/cliente`, { method: 'POST', body: JSON.stringify({ conteudo }) }),
+  },
   clientes: {
     me: () => request('/clientes/me'),
     cadastro: (data) => request('/clientes/cadastro', { method: 'POST', body: JSON.stringify(data) }),
