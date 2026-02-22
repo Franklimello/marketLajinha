@@ -179,6 +179,8 @@ model Pedidos {
   telefone_cliente String
   endereco         String
   bairro           String         @default("")
+  complemento      String         @default("")
+  referencia       String         @default("")
   taxa_entrega     Decimal        @default(0)
   subtotal         Decimal        @default(0)
   desconto         Decimal        @default(0)

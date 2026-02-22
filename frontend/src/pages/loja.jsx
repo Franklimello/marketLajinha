@@ -91,7 +91,8 @@ export default function LojaPage() {
   const [enderecoSel, setEnderecoSel] = useState(null)
   const [formPedido, setFormPedido] = useState({
     nome_cliente: '', telefone_cliente: '', endereco: '',
-    bairro: '', forma_pagamento: 'PIX', observacao: '',
+    bairro: '', complemento: '', referencia: '',
+    forma_pagamento: 'PIX', observacao: '',
   })
   const [trocoPara, setTrocoPara] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -224,15 +225,14 @@ export default function LojaPage() {
         return
       }
       const enderecoPadrao = enderecos.find((e) => e.padrao) || enderecos[0]
-      let endStr = `${enderecoPadrao.rua}, ${enderecoPadrao.numero}`
-      if (enderecoPadrao.complemento) endStr += ` - ${enderecoPadrao.complemento}`
-      if (enderecoPadrao.referencia) endStr += ` (${enderecoPadrao.referencia})`
       setFormPedido((prev) => ({
         ...prev,
         nome_cliente: cliente?.nome || prev.nome_cliente,
         telefone_cliente: cliente?.telefone || prev.telefone_cliente,
-        endereco: endStr,
+        endereco: `${enderecoPadrao.rua}, ${enderecoPadrao.numero}`,
         bairro: enderecoPadrao.bairro,
+        complemento: enderecoPadrao.complemento || '',
+        referencia: enderecoPadrao.referencia || '',
       }))
       setEnderecoSel(enderecoPadrao)
     } else {
@@ -242,6 +242,8 @@ export default function LojaPage() {
         telefone_cliente: cliente?.telefone || prev.telefone_cliente,
         endereco: '',
         bairro: '',
+        complemento: '',
+        referencia: '',
       }))
       setEnderecoSel(null)
     }
@@ -250,13 +252,12 @@ export default function LojaPage() {
 
   function selecionarEndereco(end) {
     setEnderecoSel(end)
-    let endereco = `${end.rua}, ${end.numero}`
-    if (end.complemento) endereco += ` - ${end.complemento}`
-    if (end.referencia) endereco += ` (${end.referencia})`
     setFormPedido((prev) => ({
       ...prev,
-      endereco,
+      endereco: `${end.rua}, ${end.numero}`,
       bairro: end.bairro,
+      complemento: end.complemento || '',
+      referencia: end.referencia || '',
     }))
   }
 
@@ -293,6 +294,8 @@ export default function LojaPage() {
         telefone_cliente: formPedido.telefone_cliente,
         endereco: formPedido.endereco,
         bairro: formPedido.bairro,
+        complemento: formPedido.complemento,
+        referencia: formPedido.referencia,
         taxa_entrega: taxaEntrega,
         forma_pagamento: formPedido.forma_pagamento,
         codigo_cupom: cupomAplicado ? codigoCupom.trim() : '',

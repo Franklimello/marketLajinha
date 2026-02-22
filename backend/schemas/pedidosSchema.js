@@ -18,6 +18,8 @@ const schemaPedidos = z.object({
   telefone_cliente: z.string().optional().default(''),
   endereco: z.string().optional().default(''),
   bairro: z.string().optional().default(''),
+  complemento: z.string().optional().default(''),
+  referencia: z.string().optional().default(''),
   taxa_entrega: z.number().min(0).optional().default(0),
   forma_pagamento: formaPagamentoEnum,
   observacao: z.string().optional().default(''),

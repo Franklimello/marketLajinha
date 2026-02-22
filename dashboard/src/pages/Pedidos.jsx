@@ -226,7 +226,7 @@ export default function Pedidos() {
                     <p className="text-sm text-stone-500 mt-1 truncate">
                       {p.tipo_entrega === 'RETIRADA'
                         ? <span className="text-purple-600 font-medium">Retirada no balcão</span>
-                        : (p.endereco || '—')}
+                        : <>{p.endereco || '—'}{p.bairro ? ` · ${p.bairro}` : ''}</>}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -349,7 +349,18 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus }) {
             {pedido.tipo_entrega !== 'RETIRADA' && (
               <div className="col-span-2">
                 <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Endereço</p>
-                <p className="font-medium text-stone-900">{pedido.endereco || '—'}</p>
+                <div className="bg-stone-50 rounded-lg p-3 space-y-1">
+                  <p className="font-medium text-stone-900">{pedido.endereco || '—'}</p>
+                  {pedido.bairro && (
+                    <p className="text-sm text-stone-600"><span className="text-stone-400">Bairro:</span> {pedido.bairro}</p>
+                  )}
+                  {pedido.complemento && (
+                    <p className="text-sm text-stone-600"><span className="text-stone-400">Complemento:</span> {pedido.complemento}</p>
+                  )}
+                  {pedido.referencia && (
+                    <p className="text-sm text-stone-600"><span className="text-stone-400">Referência:</span> {pedido.referencia}</p>
+                  )}
+                </div>
               </div>
             )}
             {pedido.agendado_para && (
