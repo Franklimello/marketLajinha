@@ -1,7 +1,8 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift } from 'react-icons/fi'
+import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare } from 'react-icons/fi'
 import { useState } from 'react'
+import { usePWA } from '../hooks/usePWA'
 
 const NAV = [
   { to: '/', icon: FiGrid, label: 'Dashboard' },
@@ -21,6 +22,8 @@ export default function DashLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuAberto, setMenuAberto] = useState(false)
+  const { canInstall, isIOS, installed, showIOSGuide, promptInstall, dismissIOSGuide } = usePWA()
+  const showInstallBtn = canInstall || (isIOS && !installed)
 
   if (loading) {
     return (
@@ -145,6 +148,15 @@ export default function DashLayout() {
             <FiMenu className="text-xl" />
           </button>
           <div className="flex items-center gap-2">
+            {showInstallBtn && (
+              <button
+                onClick={promptInstall}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+              >
+                <FiDownload size={14} />
+                <span className="hidden sm:inline">Instalar App</span>
+              </button>
+            )}
             {loja ? (
               <span
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -167,6 +179,44 @@ export default function DashLayout() {
           <Outlet />
         </main>
       </div>
+
+      {showIOSGuide && (
+        <div className="fixed inset-0 z-9999 flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={dismissIOSGuide}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-stone-900">Instalar Painel</h3>
+              <button onClick={dismissIOSGuide} className="p-1 text-stone-400 hover:text-stone-600"><FiX size={20} /></button>
+            </div>
+            <p className="text-sm text-stone-600 mb-5">Para instalar no seu iPhone/iPad:</p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-amber-700">1</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-stone-800">Toque no botão Compartilhar</p>
+                  <p className="text-xs text-stone-500 mt-0.5 flex items-center gap-1">O ícone <FiShare className="inline" size={14} /> na barra do Safari</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-amber-700">2</span>
+                </div>
+                <p className="text-sm font-medium text-stone-800">Adicionar à Tela de Início</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-amber-700">3</span>
+                </div>
+                <p className="text-sm font-medium text-stone-800">Confirme tocando "Adicionar"</p>
+              </div>
+            </div>
+            <button onClick={dismissIOSGuide} className="mt-6 w-full py-3 bg-amber-600 text-white rounded-xl font-semibold text-sm hover:bg-amber-700 transition-colors">
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
