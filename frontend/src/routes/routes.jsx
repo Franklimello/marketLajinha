@@ -1,14 +1,28 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import App from '../App.jsx'
 import HomePage from '../pages/home.jsx'
-import LojaPage from '../pages/loja.jsx'
-import BuscaPage from '../pages/busca.jsx'
-import PedidosPage from '../pages/pedidos.jsx'
-import PerfilPage from '../pages/perfil.jsx'
-import LoginPage from '../pages/login.jsx'
-import CadastroPage from '../pages/cadastro.jsx'
-import MotoboyLogin from '../pages/motoboy/MotoboyLogin.jsx'
-import MotoboyPedidos from '../pages/motoboy/MotoboyPedidos.jsx'
+
+const LojaPage = lazy(() => import('../pages/loja.jsx'))
+const BuscaPage = lazy(() => import('../pages/busca.jsx'))
+const PedidosPage = lazy(() => import('../pages/pedidos.jsx'))
+const PerfilPage = lazy(() => import('../pages/perfil.jsx'))
+const LoginPage = lazy(() => import('../pages/login.jsx'))
+const CadastroPage = lazy(() => import('../pages/cadastro.jsx'))
+const MotoboyLogin = lazy(() => import('../pages/motoboy/MotoboyLogin.jsx'))
+const MotoboyPedidos = lazy(() => import('../pages/motoboy/MotoboyPedidos.jsx'))
+
+function Lazy({ children }) {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-20">
+        <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      {children}
+    </Suspense>
+  )
+}
 
 const router = createBrowserRouter([
   {
@@ -16,17 +30,17 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { path: '/', element: <HomePage /> },
-      { path: '/loja/:slug', element: <LojaPage /> },
-      { path: '/busca', element: <BuscaPage /> },
-      { path: '/pedidos', element: <PedidosPage /> },
-      { path: '/perfil', element: <PerfilPage /> },
-      { path: '/login', element: <LoginPage /> },
-      { path: '/cadastro', element: <CadastroPage /> },
+      { path: '/loja/:slug', element: <Lazy><LojaPage /></Lazy> },
+      { path: '/busca', element: <Lazy><BuscaPage /></Lazy> },
+      { path: '/pedidos', element: <Lazy><PedidosPage /></Lazy> },
+      { path: '/perfil', element: <Lazy><PerfilPage /></Lazy> },
+      { path: '/login', element: <Lazy><LoginPage /></Lazy> },
+      { path: '/cadastro', element: <Lazy><CadastroPage /></Lazy> },
     ],
   },
-  { path: '/motoboy', element: <MotoboyLogin /> },
-  { path: '/motoboy/login', element: <MotoboyLogin /> },
-  { path: '/motoboy/pedidos', element: <MotoboyPedidos /> },
+  { path: '/motoboy', element: <Lazy><MotoboyLogin /></Lazy> },
+  { path: '/motoboy/login', element: <Lazy><MotoboyLogin /></Lazy> },
+  { path: '/motoboy/pedidos', element: <Lazy><MotoboyPedidos /></Lazy> },
 ])
 
 export default router

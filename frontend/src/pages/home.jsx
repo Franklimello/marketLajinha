@@ -34,6 +34,7 @@ function LojaCard({ loja, idx }) {
   const taxa = loja.taxa_entrega ?? 0
   const [imgLoaded, setImgLoaded] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const isAboveFold = idx < 4
 
   return (
     <Link
@@ -48,7 +49,9 @@ function LojaCard({ loja, idx }) {
           <img
             src={loja.logo_url}
             alt={loja.nome}
-            loading="lazy"
+            loading={isAboveFold ? 'eager' : 'lazy'}
+            fetchPriority={isAboveFold ? 'high' : 'auto'}
+            decoding={isAboveFold ? 'sync' : 'async'}
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             className={`w-16 h-16 rounded-xl object-cover bg-stone-200 transition-opacity duration-300 ${!aberta ? 'grayscale' : ''} ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
