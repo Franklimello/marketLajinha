@@ -285,7 +285,8 @@ model Motoboy {
   ativo      Boolean  @default(true)
   created_at DateTime @default(now())
 
-  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  loja           Lojas           @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  passwordResets PasswordReset[]
 
   @@unique([loja_id, email])
   @@index([loja_id])
@@ -310,6 +311,20 @@ model FilaImpressao {
 
   @@index([loja_id, status])
   @@index([created_at])
+}
+
+model PasswordReset {
+  id         String   @id @default(cuid())
+  motoboy_id String
+  token      String   @unique
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  motoboy Motoboy @relation(fields: [motoboy_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([motoboy_id])
 }
 
 model Combo {

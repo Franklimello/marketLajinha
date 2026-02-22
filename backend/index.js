@@ -65,6 +65,15 @@ const authLimiter = rateLimit({
 app.use('/clientes/cadastro', authLimiter);
 app.use('/lojas', authLimiter);
 
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: IS_PROD ? 5 : 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas tentativas. Aguarde 15 minutos.' },
+});
+app.use('/auth/forgot-password', forgotLimiter);
+
 // ── Body parsing com limite ──
 app.use(express.json({ limit: '1mb' }));
 

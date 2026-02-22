@@ -26,6 +26,7 @@
     "firebase-admin": "^13.0.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.1",
     "pg": "^8.18.0",
     "prisma": "^7.4.0",
     "qrcode": "^1.5.4",
