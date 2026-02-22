@@ -34,6 +34,7 @@ model Lojas {
   pix_nome_titular      String    @default("")
   pix_cidade            String    @default("")
   formas_pagamento      String    @default("PIX,CREDIT,DEBIT,CASH")
+  horarios_semana       String    @default("[]")
   pedido_minimo         Decimal   @default(0)
   vencimento            DateTime  @default(now())
 

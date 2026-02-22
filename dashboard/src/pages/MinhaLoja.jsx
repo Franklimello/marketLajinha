@@ -18,6 +18,25 @@ export default function MinhaLoja() {
   const fileInputRef = useRef(null)
   const bannerInputRef = useRef(null)
 
+  const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
+  const HORARIOS_SEMANA_PADRAO = DIAS_SEMANA.map((_, i) => ({
+    dia: i,
+    aberto: false,
+    abertura: '08:00',
+    fechamento: '18:00',
+  }))
+
+  function parseHorariosSemana(raw) {
+    try {
+      const parsed = JSON.parse(raw || '[]')
+      if (Array.isArray(parsed) && parsed.length === 7) return parsed
+    } catch {}
+    return HORARIOS_SEMANA_PADRAO
+  }
+
+  const [horarios, setHorarios] = useState(HORARIOS_SEMANA_PADRAO)
+
   useEffect(() => {
     if (loja) {
       setForm({
@@ -28,8 +47,6 @@ export default function MinhaLoja() {
         endereco: loja.endereco || '',
         telefone: loja.telefone || '',
         horario_funcionamento: loja.horario_funcionamento || '',
-        horario_abertura: loja.horario_abertura || '',
-        horario_fechamento: loja.horario_fechamento || '',
         logo_url: loja.logo_url || '',
         banner_url: loja.banner_url || '',
         cor_primaria: loja.cor_primaria || '#f59e0b',
@@ -44,6 +61,7 @@ export default function MinhaLoja() {
         aberta: loja.aberta ?? true,
         ativa: loja.ativa ?? true,
       })
+      setHorarios(parseHorariosSemana(loja.horarios_semana))
       setLogoPreview(null)
       setLogoFile(null)
       setBannerPreview(null)
@@ -148,7 +166,7 @@ export default function MinhaLoja() {
         const p = `lojas/${loja.id}/banner_${Date.now()}.webp`
         banner_url = await uploadImagem(bannerFile, p)
       }
-      const atualizada = await api.lojas.atualizar(loja.id, { ...form, logo_url, banner_url })
+      const atualizada = await api.lojas.atualizar(loja.id, { ...form, logo_url, banner_url, horarios_semana: JSON.stringify(horarios) })
       atualizarLoja(atualizada)
       setLogoFile(null)
       setLogoPreview(null)
@@ -189,11 +207,20 @@ export default function MinhaLoja() {
               {forcadoManual && (
                 <p className="text-xs text-stone-400">Modo manual ativo</p>
               )}
-              {!forcadoManual && loja.horario_abertura && loja.horario_fechamento && (
-                <p className="text-xs text-stone-400">
-                  Horário automático: {loja.horario_abertura} - {loja.horario_fechamento}
-                </p>
-              )}
+              {!forcadoManual && (() => {
+                const hoje = horarios[new Date().getDay()]
+                if (hoje?.aberto && hoje.abertura && hoje.fechamento) {
+                  return (
+                    <p className="text-xs text-stone-400">
+                      Horário automático hoje: {hoje.abertura} - {hoje.fechamento}
+                    </p>
+                  )
+                }
+                if (hoje && !hoje.aberto) {
+                  return <p className="text-xs text-stone-400">Hoje: fechado (horário automático)</p>
+                }
+                return null
+              })()}
             </div>
           </div>
           <div className="flex gap-2">
@@ -217,13 +244,13 @@ export default function MinhaLoja() {
           </div>
         </div>
 
-        {forcadoManual && loja.horario_abertura && loja.horario_fechamento && (
+        {forcadoManual && horarios.some(h => h.aberto) && (
           <button
             onClick={handleVoltarAutomatico}
             disabled={toggling}
             className="flex items-center gap-2 text-sm text-amber-600 hover:text-amber-700 hover:underline disabled:opacity-50"
           >
-            <FiClock className="text-xs" /> Voltar ao horário automático ({loja.horario_abertura} - {loja.horario_fechamento})
+            <FiClock className="text-xs" /> Voltar ao horário automático da semana
           </button>
         )}
       </div>
@@ -291,33 +318,91 @@ export default function MinhaLoja() {
           </div>
         </div>
 
-        <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Horário de funcionamento automático</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Horário de abertura</label>
-            <input
-              name="horario_abertura"
-              type="time"
-              value={form.horario_abertura}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Horário de fechamento</label>
-            <input
-              name="horario_fechamento"
-              type="time"
-              value={form.horario_fechamento}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
-            />
-          </div>
-        </div>
-        <p className="text-xs text-stone-400">
-          Defina os horários para abrir e fechar a loja automaticamente. Você ainda pode abrir ou fechar manualmente a qualquer momento usando o botão acima.
+        <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Horário de funcionamento por dia</h2>
+        <p className="text-xs text-stone-400 mb-3">
+          Configure os dias e horários que a loja abre e fecha automaticamente. Você ainda pode abrir ou fechar manualmente a qualquer momento.
         </p>
+
+        <div className="space-y-2">
+          {horarios.map((h, idx) => {
+            const isHoje = new Date().getDay() === idx
+            return (
+              <div
+                key={idx}
+                className={`flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-lg border transition-colors ${
+                  isHoje ? 'border-amber-300 bg-amber-50/50' : 'border-stone-200 bg-stone-50/50'
+                }`}
+              >
+                <label className="flex items-center gap-2 min-w-[120px] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={h.aberto}
+                    onChange={(e) => {
+                      const novo = [...horarios]
+                      novo[idx] = { ...novo[idx], aberto: e.target.checked }
+                      setHorarios(novo)
+                    }}
+                    className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
+                  />
+                  <span className={`text-sm font-medium ${h.aberto ? 'text-stone-900' : 'text-stone-400'}`}>
+                    {DIAS_SEMANA[idx]}
+                  </span>
+                  {isHoje && <span className="text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded-full font-medium">Hoje</span>}
+                </label>
+
+                {h.aberto ? (
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
+                    <input
+                      type="time"
+                      value={h.abertura || '08:00'}
+                      onChange={(e) => {
+                        const novo = [...horarios]
+                        novo[idx] = { ...novo[idx], abertura: e.target.value }
+                        setHorarios(novo)
+                      }}
+                      className="px-2 py-1.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm w-[110px]"
+                    />
+                    <span className="text-stone-400 text-xs">até</span>
+                    <input
+                      type="time"
+                      value={h.fechamento || '18:00'}
+                      onChange={(e) => {
+                        const novo = [...horarios]
+                        novo[idx] = { ...novo[idx], fechamento: e.target.value }
+                        setHorarios(novo)
+                      }}
+                      className="px-2 py-1.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm w-[110px]"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs text-stone-400 italic">Fechado</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-2">
+          <button
+            type="button"
+            onClick={() => setHorarios(h => h.map(d => ({ ...d, aberto: true })))}
+            className="text-xs text-amber-600 hover:text-amber-700 hover:underline"
+          >
+            Abrir todos os dias
+          </button>
+          <span className="text-stone-300">|</span>
+          <button
+            type="button"
+            onClick={() => {
+              const ref = horarios.find(d => d.aberto)
+              if (!ref) return
+              setHorarios(h => h.map(d => d.aberto ? { ...d, abertura: ref.abertura, fechamento: ref.fechamento } : d))
+            }}
+            className="text-xs text-amber-600 hover:text-amber-700 hover:underline"
+          >
+            Copiar horário para todos os abertos
+          </button>
+        </div>
 
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Formas de pagamento aceitas</h2>
         <p className="text-xs text-stone-400 mb-2">Selecione quais formas de pagamento sua loja aceita. Apenas as selecionadas aparecerão para o cliente.</p>

@@ -1,37 +1,65 @@
 const { prisma } = require('../config/database');
 const { cacheOuBuscar, invalidarCache } = require('../config/redis');
 
+function parseHorariosSemana(loja) {
+  try {
+    const parsed = JSON.parse(loja.horarios_semana || '[]');
+    return Array.isArray(parsed) && parsed.length === 7 ? parsed : null;
+  } catch { return null; }
+}
+
+function checarHorario(abertura, fechamento) {
+  if (!abertura || !fechamento) return true;
+  const agora = new Date();
+  const horaAtual = agora.getHours() * 60 + agora.getMinutes();
+  const [hAb, mAb] = abertura.split(':').map(Number);
+  const [hFe, mFe] = fechamento.split(':').map(Number);
+  const minAb = hAb * 60 + (mAb || 0);
+  const minFe = hFe * 60 + (mFe || 0);
+  if (minFe > minAb) return horaAtual >= minAb && horaAtual < minFe;
+  return horaAtual >= minAb || horaAtual < minFe;
+}
+
 /**
- * Verifica se a loja está aberta agora com base nos horários configurados.
- * Se forcar_status=true, usa o campo `aberta` diretamente (controle manual).
- * Se horarios estão definidos, calcula pelo relógio.
- * Se não tem horários, usa o campo `aberta`.
+ * Verifica se a loja está aberta agora.
+ * Prioridade: forcar_status > horarios_semana > horario_abertura/fechamento > campo aberta.
  */
 function calcularAbertaAgora(loja) {
   if (loja.forcar_status) return loja.aberta;
 
+  const semana = parseHorariosSemana(loja);
+  if (semana) {
+    const diaAtual = new Date().getDay();
+    const hoje = semana[diaAtual];
+    if (!hoje || !hoje.aberto) return false;
+    return checarHorario(hoje.abertura, hoje.fechamento);
+  }
+
   const ab = loja.horario_abertura;
   const fe = loja.horario_fechamento;
   if (!ab || !fe) return loja.aberta;
+  return checarHorario(ab, fe);
+}
 
-  const agora = new Date();
-  const horaAtual = agora.getHours() * 60 + agora.getMinutes();
-
-  const [hAb, mAb] = ab.split(':').map(Number);
-  const [hFe, mFe] = fe.split(':').map(Number);
-  const minAb = hAb * 60 + (mAb || 0);
-  const minFe = hFe * 60 + (mFe || 0);
-
-  if (minFe > minAb) {
-    return horaAtual >= minAb && horaAtual < minFe;
+function horarioHoje(loja) {
+  const semana = parseHorariosSemana(loja);
+  if (!semana) {
+    if (loja.horario_abertura && loja.horario_fechamento) {
+      return { aberto: true, abertura: loja.horario_abertura, fechamento: loja.horario_fechamento };
+    }
+    return null;
   }
-  // Caso cruza meia-noite (ex: 20:00 às 02:00)
-  return horaAtual >= minAb || horaAtual < minFe;
+  return semana[new Date().getDay()] || null;
 }
 
 function adicionarAbertaAgora(loja) {
   if (!loja) return loja;
-  return { ...loja, aberta_agora: calcularAbertaAgora(loja) };
+  const hoje = horarioHoje(loja);
+  return {
+    ...loja,
+    aberta_agora: calcularAbertaAgora(loja),
+    horario_hoje: hoje,
+  };
 }
 
 function adicionarAbertaAgoraLista(lojas) {
@@ -114,10 +142,14 @@ async function buscarPorUsuario(lojaId) {
 }
 
 async function buscarPorSlug(slug) {
-  return prisma.lojas.findFirst({
+  const loja = await prisma.lojas.findFirst({
     where: { slug, ativa: true },
     include: { _count: { select: { produtos: true } } },
   });
+  if (loja) {
+    try { loja.horarios_semana_parsed = JSON.parse(loja.horarios_semana || '[]'); } catch { loja.horarios_semana_parsed = []; }
+  }
+  return loja;
 }
 
 async function criar(data, firebaseDecoded, bodyAdmin = {}) {

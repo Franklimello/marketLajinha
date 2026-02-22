@@ -933,7 +933,24 @@ export default function LojaPage() {
     produtosPorCategoria[cat].push(p)
   })
   const categorias = Object.keys(produtosPorCategoria)
-  const horaFecha = loja.horario_fechamento || null
+  const DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+  const DIAS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  let horariosSemana = []
+  try { horariosSemana = JSON.parse(loja.horarios_semana || '[]') } catch {}
+  const temSemana = Array.isArray(horariosSemana) && horariosSemana.length === 7
+  const horarioHoje = temSemana ? horariosSemana[new Date().getDay()] : null
+  const horaFecha = horarioHoje?.fechamento || loja.horario_fechamento || null
+
+  const openingHoursSpec = temSemana
+    ? horariosSemana.filter(h => h.aberto).map(h => ({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: DIAS_EN[h.dia],
+        opens: h.abertura,
+        closes: h.fechamento,
+      }))
+    : loja.horario_abertura && loja.horario_fechamento
+      ? { '@type': 'OpeningHoursSpecification', dayOfWeek: DIAS_EN, opens: loja.horario_abertura, closes: loja.horario_fechamento }
+      : undefined
 
   const lojaJsonLd = loja ? {
     '@context': 'https://schema.org',
@@ -943,12 +960,7 @@ export default function LojaPage() {
     address: { '@type': 'PostalAddress', addressLocality: loja.cidade || '', streetAddress: loja.endereco || '' },
     url: `https://marketlajinha.com.br/loja/${loja.slug}`,
     servesCuisine: loja.categoria_negocio || '',
-    openingHoursSpecification: loja.horario_abertura && loja.horario_fechamento ? {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      opens: loja.horario_abertura,
-      closes: loja.horario_fechamento,
-    } : undefined,
+    openingHoursSpecification: openingHoursSpec,
   } : null
 
   return (
@@ -985,7 +997,21 @@ export default function LojaPage() {
             <p><strong>Cidade:</strong> {loja.cidade}</p>
             {loja.endereco && <p><strong>Endereço:</strong> {loja.endereco}</p>}
             {loja.telefone && <p><strong>Telefone:</strong> {loja.telefone}</p>}
-            {loja.horario_funcionamento && <p><strong>Funcionamento:</strong> {loja.horario_funcionamento}</p>}
+            {temSemana ? (
+              <div>
+                <strong>Horários:</strong>
+                <div className="mt-1 space-y-0.5">
+                  {horariosSemana.map((h, i) => (
+                    <div key={i} className={`flex justify-between ${new Date().getDay() === i ? 'text-stone-800 font-semibold' : ''}`}>
+                      <span>{DIAS_SEMANA_PT[i]}</span>
+                      <span>{h.aberto ? `${h.abertura} - ${h.fechamento}` : 'Fechado'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : loja.horario_funcionamento ? (
+              <p><strong>Funcionamento:</strong> {loja.horario_funcionamento}</p>
+            ) : null}
           </div>
         )}
       </div>
@@ -1040,7 +1066,25 @@ export default function LojaPage() {
         </div>
       )}
 
-      {!aberta && <div className="mx-4 mb-4 bg-stone-100 border border-stone-200 rounded-xl p-3.5 text-center"><p className="text-stone-600 font-medium text-sm">Loja fechada no momento</p><p className="text-stone-400 text-xs mt-0.5">{loja.horario_abertura ? `Abre às ${loja.horario_abertura}` : 'Volte mais tarde'}</p></div>}
+      {!aberta && (
+        <div className="mx-4 mb-4 bg-stone-100 border border-stone-200 rounded-xl p-3.5 text-center">
+          <p className="text-stone-600 font-medium text-sm">Loja fechada no momento</p>
+          <p className="text-stone-400 text-xs mt-0.5">
+            {(() => {
+              if (temSemana) {
+                if (horarioHoje?.aberto) return `Abre hoje às ${horarioHoje.abertura}`
+                const diaAtual = new Date().getDay()
+                for (let i = 1; i <= 7; i++) {
+                  const prox = horariosSemana[(diaAtual + i) % 7]
+                  if (prox?.aberto) return `Abre ${DIAS_SEMANA_PT[(diaAtual + i) % 7]} às ${prox.abertura}`
+                }
+                return 'Volte mais tarde'
+              }
+              return loja.horario_abertura ? `Abre às ${loja.horario_abertura}` : 'Volte mais tarde'
+            })()}
+          </p>
+        </div>
+      )}
 
       <div className="h-2 bg-stone-100" />
 

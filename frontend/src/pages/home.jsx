@@ -96,6 +96,9 @@ function LojaCard({ loja, idx }) {
             </>
           )}
         </div>
+        {!aberta && loja.horario_hoje?.aberto && (
+          <p className="text-[10px] text-stone-400 mt-0.5">Abre hoje às {loja.horario_hoje.abertura}</p>
+        )}
       </div>
     </Link>
   )

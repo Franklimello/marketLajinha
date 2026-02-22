@@ -19,6 +19,7 @@ const schemaLojas = z.object({
   pix_nome_titular: z.string().optional().default(''),
   pix_cidade: z.string().optional().default(''),
   formas_pagamento: z.string().optional().default('PIX,CREDIT,DEBIT,CASH'),
+  horarios_semana: z.string().optional().default('[]'),
   pedido_minimo: z.number().min(0).optional().default(0),
   cor_primaria: z.string().optional().default('#000000'),
   ativa: z.boolean().optional().default(true),
