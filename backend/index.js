@@ -21,6 +21,7 @@ const rateLimit = require('express-rate-limit');
 const routes = require('./routes');
 const { errorHandler } = require('./middleware');
 const { initSocket } = require('./config/socket');
+const { getRedis } = require('./config/redis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -100,12 +101,11 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}] (WebSocket ativo)`);
 });
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM recebido. Encerrando...');
+function gracefulShutdown(signal) {
+  console.log(`${signal} recebido. Encerrando...`);
+  const r = getRedis();
+  if (r) r.quit().catch(() => {});
   server.close(() => process.exit(0));
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT recebido. Encerrando...');
-  server.close(() => process.exit(0));
-});
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

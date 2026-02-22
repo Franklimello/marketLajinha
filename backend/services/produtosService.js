@@ -1,4 +1,5 @@
 const { prisma } = require('../config/database');
+const { cacheOuBuscar, invalidarCache } = require('../config/redis');
 
 const ITENS_POR_PAGINA = 12;
 
@@ -29,26 +30,30 @@ async function listar(filtros = {}, pagina = 1) {
 }
 
 async function listarPorLoja(lojaIdOuSlug, pagina = 1) {
-  const loja = await prisma.lojas.findFirst({
-    where: { OR: [{ id: lojaIdOuSlug }, { slug: lojaIdOuSlug }], ativa: true },
-  });
-  if (!loja) return { loja: null, dados: [], total: 0, pagina: 1, total_paginas: 0 };
-
   const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
-  const [dados, total] = await Promise.all([
-    prisma.produtos.findMany({
-      where: { loja_id: loja.id, ativo: true },
-      skip: (paginaNum - 1) * ITENS_POR_PAGINA,
-      take: ITENS_POR_PAGINA,
-      orderBy: { nome: 'asc' },
-      include: INCLUDE_COMPLETO,
-    }),
-    prisma.produtos.count({ where: { loja_id: loja.id, ativo: true } }),
-  ]);
-  return {
-    loja: { id: loja.id, nome: loja.nome, slug: loja.slug },
-    dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / ITENS_POR_PAGINA),
-  };
+  const cacheKey = `produtos:loja:${lojaIdOuSlug}:p${paginaNum}`;
+
+  return cacheOuBuscar(cacheKey, async () => {
+    const loja = await prisma.lojas.findFirst({
+      where: { OR: [{ id: lojaIdOuSlug }, { slug: lojaIdOuSlug }], ativa: true },
+    });
+    if (!loja) return { loja: null, dados: [], total: 0, pagina: 1, total_paginas: 0 };
+
+    const [dados, total] = await Promise.all([
+      prisma.produtos.findMany({
+        where: { loja_id: loja.id, ativo: true },
+        skip: (paginaNum - 1) * ITENS_POR_PAGINA,
+        take: ITENS_POR_PAGINA,
+        orderBy: { nome: 'asc' },
+        include: INCLUDE_COMPLETO,
+      }),
+      prisma.produtos.count({ where: { loja_id: loja.id, ativo: true } }),
+    ]);
+    return {
+      loja: { id: loja.id, nome: loja.nome, slug: loja.slug },
+      dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / ITENS_POR_PAGINA),
+    };
+  }, 45);
 }
 
 async function buscarPorId(id) {
@@ -90,13 +95,15 @@ async function criar(data) {
     }
   }
 
-  return prisma.produtos.findUnique({ where: { id: produto.id }, include: INCLUDE_COMPLETO });
+  const resultado = await prisma.produtos.findUnique({ where: { id: produto.id }, include: INCLUDE_COMPLETO });
+  await invalidarCache(`produtos:loja:${rest.loja_id}:*`);
+  return resultado;
 }
 
 async function atualizar(id, data) {
   const { variacoes, adicionais, ...produtoData } = data;
 
-  return prisma.$transaction(async (tx) => {
+  const resultado = await prisma.$transaction(async (tx) => {
     if (variacoes !== undefined) {
       await tx.variacaoProduto.deleteMany({ where: { produto_id: id } });
       for (const v of variacoes) {
@@ -121,10 +128,14 @@ async function atualizar(id, data) {
       include: INCLUDE_COMPLETO,
     });
   });
+  await invalidarCache('produtos:loja:*');
+  return resultado;
 }
 
 async function excluir(id) {
-  return prisma.produtos.delete({ where: { id } });
+  const produto = await prisma.produtos.delete({ where: { id } });
+  await invalidarCache('produtos:loja:*');
+  return produto;
 }
 
 module.exports = { listar, listarPorLoja, buscarPorId, criar, atualizar, excluir, ITENS_POR_PAGINA };

@@ -40,8 +40,25 @@ export default function HomePage() {
 
   if (carregando) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      <div className="max-w-lg mx-auto px-4">
+        <div className="h-12 skeleton rounded-xl mb-5" />
+        <div className="flex gap-4 overflow-hidden mb-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5 shrink-0">
+              <div className="w-14 h-14 rounded-full skeleton" />
+              <div className="w-10 h-2 skeleton rounded" />
+            </div>
+          ))}
+        </div>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-2 py-3.5">
+            <div className="w-16 h-16 rounded-xl skeleton shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 skeleton rounded w-3/4" />
+              <div className="h-3 skeleton rounded w-1/2" />
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -125,7 +142,7 @@ export default function HomePage() {
 
       {/* Store list */}
       <div className="space-y-1">
-        {lojasFiltradas.map((loja) => {
+        {lojasFiltradas.map((loja, idx) => {
           const aberta = loja.aberta_agora ?? loja.aberta
           const taxa = loja.taxa_entrega ?? 0
 
@@ -133,9 +150,10 @@ export default function HomePage() {
             <Link
               key={loja.id}
               to={`/loja/${loja.slug}`}
-              className={`flex items-center gap-4 px-2 py-3.5 rounded-xl transition-colors hover:bg-stone-50 active:bg-stone-100 ${
+              className={`flex items-center gap-4 px-2 py-3.5 rounded-xl transition-all duration-200 hover:bg-stone-50 active:scale-[0.98] animate-fade-in-up ${
                 !aberta ? 'opacity-50' : ''
               }`}
+              style={{ animationDelay: `${idx * 50}ms` }}
             >
               {/* Logo */}
               <div className="relative flex-shrink-0">
@@ -165,9 +183,13 @@ export default function HomePage() {
                 </h3>
 
                 <div className="flex items-center gap-1.5 mt-1 text-xs text-stone-500">
-                  <FiStar className="text-amber-500 fill-amber-500 text-[11px]" />
-                  <span className="font-medium text-stone-700">4,9</span>
-                  <span className="text-stone-300">&bull;</span>
+                  {(loja.nota_media ?? 0) > 0 && (
+                    <>
+                      <FiStar className="text-amber-500 fill-amber-500 text-[11px]" />
+                      <span className="font-medium text-stone-700">{Number(loja.nota_media).toFixed(1).replace('.', ',')}</span>
+                      <span className="text-stone-300">&bull;</span>
+                    </>
+                  )}
                   <svg className="w-3.5 h-3.5 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <path d="M8 12h4l2-2" />

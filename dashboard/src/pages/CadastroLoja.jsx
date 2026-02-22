@@ -102,9 +102,8 @@ export default function CadastroLoja() {
 
       let logo_url = form.logo_url
       if (logoFile) {
-        const ext = logoFile.name.split('.').pop()
-        const path = `lojas/${form.slug}/logo_${Date.now()}.${ext}`
-        logo_url = await uploadImagem(logoFile, path)
+        const path = `lojas/${form.slug}/logo_${Date.now()}.webp`
+        logo_url = await uploadImagem(logoFile, path, { isLogo: true })
       }
 
       const dadosLoja = {

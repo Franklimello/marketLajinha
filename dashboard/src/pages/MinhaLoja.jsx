@@ -140,14 +140,12 @@ export default function MinhaLoja() {
     try {
       let logo_url = form.logo_url
       if (logoFile) {
-        const ext = logoFile.name.split('.').pop()
-        const p = `lojas/${loja.id}/logo_${Date.now()}.${ext}`
-        logo_url = await uploadImagem(logoFile, p)
+        const p = `lojas/${loja.id}/logo_${Date.now()}.webp`
+        logo_url = await uploadImagem(logoFile, p, { isLogo: true })
       }
       let banner_url = form.banner_url
       if (bannerFile) {
-        const ext = bannerFile.name.split('.').pop()
-        const p = `lojas/${loja.id}/banner_${Date.now()}.${ext}`
+        const p = `lojas/${loja.id}/banner_${Date.now()}.webp`
         banner_url = await uploadImagem(bannerFile, p)
       }
       const atualizada = await api.lojas.atualizar(loja.id, { ...form, logo_url, banner_url })

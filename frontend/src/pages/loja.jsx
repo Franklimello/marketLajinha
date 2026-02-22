@@ -333,7 +333,33 @@ export default function LojaPage() {
   }
 
   // ---- Loading/Error ----
-  if (carregando) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (carregando) return (
+    <div className="max-w-lg mx-auto px-4 pt-4">
+      <div className="skeleton h-40 rounded-2xl mb-4" />
+      <div className="flex items-center gap-3 mb-5">
+        <div className="skeleton w-14 h-14 rounded-xl shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="skeleton h-5 rounded w-2/3" />
+          <div className="skeleton h-3 rounded w-1/2" />
+        </div>
+      </div>
+      <div className="flex gap-2 mb-5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton h-8 rounded-full flex-1" />
+        ))}
+      </div>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 py-3">
+          <div className="skeleton w-20 h-20 rounded-xl shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="skeleton h-4 rounded w-3/4" />
+            <div className="skeleton h-3 rounded w-full" />
+            <div className="skeleton h-4 rounded w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
   if (erro || !loja) return <div className="flex flex-col items-center justify-center py-20 gap-4"><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-amber-600 hover:underline text-sm">Voltar</Link></div>
 
   const aberta = loja.aberta_agora ?? loja.aberta

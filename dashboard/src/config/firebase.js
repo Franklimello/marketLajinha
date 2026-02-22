@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { getMessaging, getToken as getFcmToken, onMessage } from 'firebase/messaging'
+import imageCompression from 'browser-image-compression'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDF51FzoLyRU52X4-jXMW1evIr3DKw9vQ8',
@@ -22,14 +23,38 @@ let messaging = null
 try { messaging = getMessaging(app) } catch { /* browser sem suporte */ }
 export { messaging, getFcmToken, onMessage }
 
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.5,
+  maxWidthOrHeight: 1200,
+  useWebWorker: true,
+  fileType: 'image/webp',
+}
+
+const LOGO_OPTIONS = {
+  maxSizeMB: 0.2,
+  maxWidthOrHeight: 512,
+  useWebWorker: true,
+  fileType: 'image/webp',
+}
+
 /**
- * Faz upload de um arquivo para o Firebase Storage e retorna a URL pública.
+ * Comprime e faz upload de uma imagem para o Firebase Storage.
+ * Converte automaticamente para WebP, redimensiona e comprime.
  * @param {File} file
- * @param {string} path - ex: "lojas/cuid123/logo.jpg"
+ * @param {string} path - ex: "lojas/cuid123/logo.webp"
+ * @param {{ isLogo?: boolean }} opts
  * @returns {Promise<string>} download URL
  */
-export async function uploadImagem(file, path) {
-  const storageRef = ref(storage, path)
-  await uploadBytes(storageRef, file)
+export async function uploadImagem(file, path, opts = {}) {
+  const options = opts.isLogo ? LOGO_OPTIONS : COMPRESSION_OPTIONS
+  let compressed = file
+  try {
+    compressed = await imageCompression(file, options)
+  } catch {
+    console.warn('[Upload] Compressão falhou, usando original.')
+  }
+  const webpPath = path.replace(/\.[^.]+$/, '.webp')
+  const storageRef = ref(storage, webpPath)
+  await uploadBytes(storageRef, compressed)
   return getDownloadURL(storageRef)
 }

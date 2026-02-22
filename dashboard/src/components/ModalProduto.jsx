@@ -89,8 +89,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     try {
       let imagem_url = form.imagem_url
       if (imagemFile) {
-        const ext = imagemFile.name.split('.').pop()
-        const path = `produtos/${lojaId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const path = `produtos/${lojaId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
         imagem_url = await uploadImagem(imagemFile, path)
       }
 

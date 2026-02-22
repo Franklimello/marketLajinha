@@ -140,7 +140,18 @@ async function resetSenhaLojista(req, res, next) {
   }
 }
 
+async function flushCache(req, res, next) {
+  try {
+    const { invalidarCache } = require('../config/redis');
+    await invalidarCache('lojas:*');
+    await invalidarCache('produtos:*');
+    res.json({ mensagem: 'Cache limpo com sucesso.' });
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   listarTodasLojas, buscarLoja, bloquearLoja, desbloquearLoja, excluirLoja, estatisticas,
-  listarMotoboys, resetSenhaMotoboy, listarLojistas, resetSenhaLojista,
+  listarMotoboys, resetSenhaMotoboy, listarLojistas, resetSenhaLojista, flushCache,
 };

@@ -149,7 +149,24 @@ export default function PedidosPage() {
   }, [cliente?.id])
 
   if (authCarregando || carregando) {
-    return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>
+    return (
+      <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-stone-200 p-4 space-y-3">
+            <div className="flex justify-between">
+              <div className="skeleton h-5 rounded w-1/3" />
+              <div className="skeleton h-5 rounded-full w-20" />
+            </div>
+            <div className="skeleton h-3 rounded w-2/3" />
+            <div className="skeleton h-3 rounded w-1/2" />
+            <div className="flex justify-between">
+              <div className="skeleton h-4 rounded w-1/4" />
+              <div className="skeleton h-4 rounded w-1/4" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   if (!logado) {

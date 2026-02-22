@@ -27,4 +27,6 @@ router.patch('/motoboys/:id/reset-senha', adminController.resetSenhaMotoboy);
 router.get('/lojistas', adminController.listarLojistas);
 router.patch('/lojistas/:id/reset-senha', adminController.resetSenhaLojista);
 
+router.post('/cache/flush', adminController.flushCache);
+
 module.exports = router;
