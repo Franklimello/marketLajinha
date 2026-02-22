@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { FiStar, FiSearch, FiX, FiMessageCircle } from 'react-icons/fi'
+import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { api } from '../api/client'
 import SEO from '../componentes/SEO'
 
 const SUPORTE_WHATSAPP = '5519997050303'
 const SUPORTE_NOME = 'Franklim'
+const SUPORTE_INSTAGRAM = 'https://www.instagram.com/franklimello30/'
 
 const CATEGORIAS = [
   { nome: 'Pizza', emoji: '🍕' },
@@ -315,28 +316,50 @@ export default function HomePage() {
         <p className="text-sm text-white/85 mt-1 leading-relaxed">
           Cadastre sua loja no MarketLajinha e comece a vender online para toda a cidade!
         </p>
-        <a
-          href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no MarketLajinha.')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 mt-3 px-4 py-2.5 bg-white text-amber-700 font-semibold text-sm rounded-xl hover:bg-amber-50 transition-colors"
-        >
-          <FaWhatsapp className="text-green-600 text-lg" />
-          Falar com {SUPORTE_NOME}
-        </a>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <a
+            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no MarketLajinha.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-amber-700 font-semibold text-sm rounded-xl hover:bg-amber-50 transition-colors"
+          >
+            <FaWhatsapp className="text-green-600 text-lg" />
+            WhatsApp
+          </a>
+          <a
+            href={SUPORTE_INSTAGRAM}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/20 text-white font-semibold text-sm rounded-xl hover:bg-white/30 transition-colors"
+          >
+            <FiInstagram className="text-lg" />
+            Instagram
+          </a>
+        </div>
       </div>
 
       {/* Suporte */}
-      <div className="text-center pb-4">
+      <div className="text-center pb-4 space-y-1">
         <p className="text-[10px] text-stone-300">Precisa de ajuda?</p>
-        <a
-          href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com o MarketLajinha.')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-amber-600 transition-colors mt-0.5"
-        >
-          <FiMessageCircle size={11} /> Suporte via WhatsApp
-        </a>
+        <div className="flex items-center justify-center gap-3">
+          <a
+            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com o MarketLajinha.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-green-600 transition-colors"
+          >
+            <FaWhatsapp size={11} /> WhatsApp
+          </a>
+          <span className="text-stone-200">·</span>
+          <a
+            href={SUPORTE_INSTAGRAM}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-pink-600 transition-colors"
+          >
+            <FiInstagram size={11} /> Instagram
+          </a>
+        </div>
       </div>
     </div>
   )
