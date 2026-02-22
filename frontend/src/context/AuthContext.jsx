@@ -26,6 +26,17 @@ export function AuthProvider({ children }) {
   const [cliente, setCliente] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [token, setToken] = useState(null)
+  const [pedidosAtivos, setPedidosAtivos] = useState(0)
+
+  async function contarPedidosAtivos(t) {
+    try {
+      const pedidos = await apiFetch('/pedidos/meus', t)
+      const ativos = (pedidos || []).filter(
+        (p) => p.status === 'PENDING' || p.status === 'APPROVED' || p.status === 'IN_ROUTE'
+      )
+      setPedidosAtivos(ativos.length)
+    } catch { setPedidosAtivos(0) }
+  }
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -36,13 +47,17 @@ export function AuthProvider({ children }) {
         try {
           const c = await apiFetch('/clientes/me', t)
           setCliente(c)
-          if (c) registrarPush(t)
+          if (c) {
+            registrarPush(t)
+            contarPedidosAtivos(t)
+          }
         } catch {
           setCliente(null)
         }
       } else {
         setToken(null)
         setCliente(null)
+        setPedidosAtivos(0)
       }
       setCarregando(false)
     })
@@ -145,6 +160,7 @@ export function AuthProvider({ children }) {
       cadastrarCliente, atualizarPerfil, recarregarCliente, logout, registrarPush,
       logado: !!firebaseUser,
       perfilCompleto: !!cliente,
+      pedidosAtivos, setPedidosAtivos,
     }}>
       {children}
     </AuthContext.Provider>

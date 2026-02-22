@@ -117,15 +117,26 @@ function AvaliacaoInline({ pedidoId }) {
 }
 
 export default function PedidosPage() {
-  const { logado, carregando: authCarregando, cliente } = useAuth()
+  const { logado, carregando: authCarregando, cliente, setPedidosAtivos } = useAuth()
   const [pedidos, setPedidos] = useState([])
   const [carregando, setCarregando] = useState(true)
   const socketRef = useRef(null)
 
+  function atualizarBadge(lista) {
+    const ativos = (lista || []).filter(
+      (p) => p.status === 'PENDING' || p.status === 'APPROVED' || p.status === 'IN_ROUTE'
+    )
+    setPedidosAtivos(ativos.length)
+  }
+
   const carregar = useCallback(async () => {
     if (authCarregando) return
     if (!logado) { setCarregando(false); return }
-    try { setPedidos(await api.pedidos.meus()) } catch { /* ignore */ }
+    try {
+      const lista = await api.pedidos.meus()
+      setPedidos(lista)
+      atualizarBadge(lista)
+    } catch { /* ignore */ }
     finally { setCarregando(false) }
   }, [logado, authCarregando])
 
@@ -142,7 +153,11 @@ export default function PedidosPage() {
     })
 
     socket.on('pedido:atualizado', (pedidoAtualizado) => {
-      setPedidos((prev) => prev.map((p) => p.id === pedidoAtualizado.id ? { ...pedidoAtualizado, loja: p.loja } : p))
+      setPedidos((prev) => {
+        const nova = prev.map((p) => p.id === pedidoAtualizado.id ? { ...pedidoAtualizado, loja: p.loja } : p)
+        atualizarBadge(nova)
+        return nova
+      })
     })
 
     return () => { socket.disconnect() }
@@ -171,9 +186,11 @@ export default function PedidosPage() {
 
   if (!logado) {
     return (
-      <div className="max-w-sm mx-auto px-4 py-12 text-center">
-        <p className="text-stone-500 text-sm mb-4">Faça login para ver seus pedidos</p>
-        <Link to="/login" className="inline-block px-6 py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 text-sm">Entrar</Link>
+      <div className="max-w-sm mx-auto px-4 py-16 text-center">
+        <div className="text-5xl mb-4">🔐</div>
+        <h2 className="text-lg font-bold text-stone-900 mb-1">Seus pedidos ficam aqui</h2>
+        <p className="text-stone-400 text-sm mb-5">Entre na sua conta para acompanhar pedidos em tempo real</p>
+        <Link to="/login" className="inline-block px-6 py-2.5 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 text-sm transition-colors">Entrar na conta</Link>
       </div>
     )
   }
@@ -184,9 +201,11 @@ export default function PedidosPage() {
       <h1 className="text-xl font-bold text-stone-900 mb-4">Meus pedidos</h1>
 
       {pedidos.length === 0 ? (
-        <div className="bg-white rounded-xl border border-stone-200 p-8 text-center">
-          <p className="text-stone-400 text-sm">Você ainda não fez nenhum pedido.</p>
-          <Link to="/" className="mt-3 inline-block text-sm text-amber-600 font-medium hover:underline">Ver lojas</Link>
+        <div className="py-12 text-center">
+          <div className="text-5xl mb-4">📦</div>
+          <h2 className="text-base font-bold text-stone-900 mb-1">Nenhum pedido ainda</h2>
+          <p className="text-stone-400 text-sm mb-5">Que tal explorar os restaurantes e fazer seu primeiro pedido?</p>
+          <Link to="/" className="inline-block px-5 py-2.5 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 text-sm transition-colors">Explorar lojas</Link>
         </div>
       ) : (
         <div className="space-y-3">

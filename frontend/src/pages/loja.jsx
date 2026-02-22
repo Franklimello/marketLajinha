@@ -111,6 +111,14 @@ export default function LojaPage() {
   const [cupomAplicado, setCupomAplicado] = useState(null)
   const [cupomErro, setCupomErro] = useState('')
   const [cupomCarregando, setCupomCarregando] = useState(false)
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef(null)
+
+  function mostrarToast(msg) {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(msg)
+    toastTimer.current = setTimeout(() => setToast(null), 2000)
+  }
 
   useEffect(() => {
     if (!slug) return
@@ -155,6 +163,7 @@ export default function LojaPage() {
         qtd: (prev[chave]?.qtd || 0) + qtdDetalhe,
       },
     }))
+    mostrarToast(`${qtdDetalhe}x ${p.nome} adicionado`)
     setProdutoDetalhe(null)
     setQtdDetalhe(1)
     setObsDetalhe('')
@@ -1155,6 +1164,15 @@ export default function LojaPage() {
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
             <span className="font-bold">R$ {subtotal.toFixed(2).replace('.', ',')}</span>
           </button>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-60 animate-fade-in-up">
+          <div className="bg-stone-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2">
+            <FiShoppingBag className="text-amber-400 shrink-0" />
+            {toast}
+          </div>
         </div>
       )}
     </div>
