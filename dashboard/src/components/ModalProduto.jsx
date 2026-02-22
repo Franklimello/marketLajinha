@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api/client'
 import { uploadImagem } from '../config/firebase'
-import { FiUpload, FiCamera, FiPlus, FiTrash2 } from 'react-icons/fi'
+import { FiUpload, FiCamera, FiImage, FiPlus, FiTrash2 } from 'react-icons/fi'
 
 export default function ModalProduto({ lojaId, produto, categoriaInicial, categoriasExistentes = [], onFechar, onSalvo }) {
   const [form, setForm] = useState({
@@ -17,6 +17,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   const [novaCategoria, setNovaCategoria] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState('info')
   const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
 
   useEffect(() => {
     if (produto) {
@@ -64,6 +65,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     setImagemFile(null)
     setImagemPreview(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   // Variações
@@ -152,27 +154,30 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                   {imagemExibida ? (
                     <div className="relative">
                       <img src={imagemExibida} alt="Preview" className="w-24 h-24 rounded-xl object-cover border-2 border-stone-200" />
-                      <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 w-7 h-7 bg-amber-500 text-white rounded-full flex items-center justify-center hover:bg-amber-600 shadow">
-                        <FiCamera className="text-xs" />
-                      </button>
+                      <button type="button" onClick={removerImagem} className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow text-xs">&times;</button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-24 h-24 border-2 border-dashed border-stone-300 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-amber-400 hover:bg-amber-50/50 cursor-pointer">
-                      <FiUpload className="text-lg text-stone-400" />
-                      <span className="text-xs text-stone-400">Enviar</span>
-                    </button>
+                    <div className="w-24 h-24 border-2 border-dashed border-stone-300 rounded-xl flex items-center justify-center">
+                      <FiUpload className="text-xl text-stone-300" />
+                    </div>
                   )}
-                  <div className="flex-1 text-sm text-stone-500 pt-1">
-                    <p>JPG, PNG ou WebP (máx. 5 MB)</p>
+                  <div className="flex-1 pt-0.5">
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs font-medium text-stone-700 transition-colors">
+                        <FiImage className="text-sm" /> Galeria
+                      </button>
+                      <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-medium text-amber-700 transition-colors">
+                        <FiCamera className="text-sm" /> Câmera
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-stone-400 mt-1.5">JPG, PNG ou WebP (máx. 5 MB)</p>
                     {imagemFile && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">Nova imagem</span>
-                        <button type="button" onClick={removerImagem} className="text-xs text-red-500 hover:underline">Cancelar</button>
-                      </div>
+                      <span className="inline-block text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full mt-1">Nova imagem selecionada</span>
                     )}
                   </div>
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
               </div>
 
               <div>
