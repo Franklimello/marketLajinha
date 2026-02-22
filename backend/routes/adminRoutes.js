@@ -22,4 +22,9 @@ router.patch('/lojas/:id/bloquear', adminController.bloquearLoja);
 router.patch('/lojas/:id/desbloquear', adminController.desbloquearLoja);
 router.delete('/lojas/:id', adminController.excluirLoja);
 
+router.get('/motoboys', adminController.listarMotoboys);
+router.patch('/motoboys/:id/reset-senha', adminController.resetSenhaMotoboy);
+router.get('/lojistas', adminController.listarLojistas);
+router.patch('/lojistas/:id/reset-senha', adminController.resetSenhaLojista);
+
 module.exports = router;

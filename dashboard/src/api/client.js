@@ -98,5 +98,9 @@ export const api = {
     bloquearLoja: (id) => request(`/admin/lojas/${id}/bloquear`, { method: 'PATCH' }),
     desbloquearLoja: (id) => request(`/admin/lojas/${id}/desbloquear`, { method: 'PATCH' }),
     excluirLoja: (id) => request(`/admin/lojas/${id}`, { method: 'DELETE' }),
+    listarMotoboys: () => request('/admin/motoboys'),
+    resetSenhaMotoboy: (id, novaSenha) => request(`/admin/motoboys/${id}/reset-senha`, { method: 'PATCH', body: JSON.stringify({ novaSenha }) }),
+    listarLojistas: () => request('/admin/lojistas'),
+    resetSenhaLojista: (id, novaSenha) => request(`/admin/lojistas/${id}/reset-senha`, { method: 'PATCH', body: JSON.stringify({ novaSenha }) }),
   },
 }

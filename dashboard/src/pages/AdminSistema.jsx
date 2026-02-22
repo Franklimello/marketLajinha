@@ -3,7 +3,8 @@ import { api } from '../api/client'
 import {
   FiShield, FiTrash2, FiLock, FiUnlock, FiSearch,
   FiUsers, FiPackage, FiClipboard, FiShoppingBag,
-  FiChevronDown, FiChevronUp, FiAlertTriangle, FiEye
+  FiChevronDown, FiChevronUp, FiAlertTriangle, FiEye,
+  FiKey, FiRefreshCw
 } from 'react-icons/fi'
 
 export default function AdminSistema() {
@@ -325,7 +326,195 @@ export default function AdminSistema() {
           </div>
         </div>
       )}
+      {/* Seção Reset de Senhas */}
+      <ResetSenhas />
     </div>
+  )
+}
+
+function ResetSenhas() {
+  const [aba, setAba] = useState('motoboys')
+  const [motoboys, setMotoboys] = useState([])
+  const [lojistas, setLojistas] = useState([])
+  const [carregando, setCarregando] = useState(false)
+  const [busca, setBusca] = useState('')
+  const [resetModal, setResetModal] = useState(null)
+  const [novaSenha, setNovaSenha] = useState('')
+  const [processando, setProcessando] = useState(false)
+  const [sucesso, setSucesso] = useState('')
+
+  async function carregar() {
+    setCarregando(true)
+    try {
+      if (aba === 'motoboys') {
+        setMotoboys(await api.admin.listarMotoboys())
+      } else {
+        setLojistas(await api.admin.listarLojistas())
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => { carregar() }, [aba])
+
+  async function handleReset() {
+    if (!novaSenha) return
+    setProcessando(true)
+    setSucesso('')
+    try {
+      if (resetModal.tipo === 'motoboy') {
+        const r = await api.admin.resetSenhaMotoboy(resetModal.id, novaSenha)
+        setSucesso(r.mensagem)
+      } else {
+        const r = await api.admin.resetSenhaLojista(resetModal.id, novaSenha)
+        setSucesso(r.mensagem)
+      }
+      setNovaSenha('')
+      setTimeout(() => { setResetModal(null); setSucesso('') }, 2000)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setProcessando(false)
+    }
+  }
+
+  const lista = aba === 'motoboys' ? motoboys : lojistas
+  const filtrados = lista.filter(
+    (u) =>
+      u.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+      u.email?.toLowerCase().includes(busca.toLowerCase()) ||
+      u.loja?.nome?.toLowerCase().includes(busca.toLowerCase())
+  )
+
+  return (
+    <>
+      <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-stone-200 bg-stone-50 flex items-center gap-3">
+          <div className="p-1.5 bg-amber-100 rounded-lg">
+            <FiKey className="text-amber-600 text-sm" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-stone-700 text-sm">Recuperar Senhas</h2>
+            <p className="text-[10px] text-stone-400">Redefina a senha de lojistas e motoboys</p>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {/* Abas */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setAba('motoboys'); setBusca('') }}
+              className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${aba === 'motoboys' ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+            >
+              Motoboys
+            </button>
+            <button
+              onClick={() => { setAba('lojistas'); setBusca('') }}
+              className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${aba === 'lojistas' ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+            >
+              Lojistas
+            </button>
+          </div>
+
+          {/* Busca */}
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
+            <input
+              type="text"
+              placeholder="Buscar por nome, email ou loja..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+          </div>
+
+          {/* Lista */}
+          {carregando ? (
+            <div className="text-center py-6 text-stone-400 text-sm">Carregando...</div>
+          ) : filtrados.length === 0 ? (
+            <div className="text-center py-6 text-stone-400 text-sm">Nenhum resultado.</div>
+          ) : (
+            <div className="divide-y divide-stone-100 max-h-72 overflow-y-auto">
+              {filtrados.map((u) => (
+                <div key={u.id} className="flex items-center gap-3 py-2.5">
+                  <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-xs font-bold text-stone-500">
+                    {u.nome?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-stone-800 truncate">{u.nome || u.email}</p>
+                    <p className="text-[11px] text-stone-400 truncate">{u.email} • {u.loja?.nome || '—'}</p>
+                  </div>
+                  <button
+                    onClick={() => { setResetModal({ id: u.id, nome: u.nome || u.email, tipo: aba === 'motoboys' ? 'motoboy' : 'lojista' }); setNovaSenha(''); setSucesso('') }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                  >
+                    <FiRefreshCw className="text-[10px]" /> Resetar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal reset */}
+      {resetModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !processando && setResetModal(null)}>
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <FiKey className="text-xl text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-stone-900">Redefinir Senha</h3>
+                <p className="text-xs text-stone-400">{resetModal.nome}</p>
+              </div>
+            </div>
+
+            {sucesso ? (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-3 text-center font-medium">
+                {sucesso}
+              </div>
+            ) : (
+              <>
+                <label className="block text-xs font-medium text-stone-600 mb-1.5">Nova senha</label>
+                <input
+                  type="text"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  placeholder={resetModal.tipo === 'motoboy' ? 'Mínimo 4 caracteres' : 'Mínimo 6 caracteres'}
+                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 mb-1"
+                  autoFocus
+                />
+                <p className="text-[10px] text-stone-400 mb-4">
+                  Informe a nova senha ao {resetModal.tipo === 'motoboy' ? 'motoboy' : 'lojista'} após redefinir.
+                </p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setResetModal(null)}
+                    disabled={processando}
+                    className="flex-1 px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    disabled={processando || !novaSenha}
+                    className="flex-1 px-4 py-2 text-sm rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 transition-colors disabled:opacity-50"
+                  >
+                    {processando ? 'Salvando...' : 'Redefinir'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
