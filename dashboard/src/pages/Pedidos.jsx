@@ -352,6 +352,14 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus }) {
                 <p className="font-medium text-stone-900">{pedido.endereco || '—'}</p>
               </div>
             )}
+            {pedido.agendado_para && (
+              <div className="col-span-2">
+                <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Agendado para</p>
+                <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 font-medium">
+                  {new Date(pedido.agendado_para).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            )}
             {pedido.observacao && (
               <div className="col-span-2">
                 <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Observação</p>

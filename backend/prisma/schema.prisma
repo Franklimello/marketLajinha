@@ -34,9 +34,11 @@ model Lojas {
   pix_nome_titular      String    @default("")
   pix_cidade            String    @default("")
   formas_pagamento      String    @default("PIX,CREDIT,DEBIT,CASH")
+  pedido_minimo         Decimal   @default(0)
   vencimento            DateTime  @default(now())
 
   produtos    Produtos[]
+  avaliacoes  Avaliacao[]
   usuarios    Usuarios[]
   pedidos     Pedidos[]
   bairroTaxas BairroTaxa[]
@@ -137,6 +139,7 @@ model Clientes {
   pedidos    Pedidos[]
   fcmTokens  FcmToken[]
   cupomUsos  CupomUso[]
+  avaliacoes Avaliacao[]
 }
 
 model FcmToken {
@@ -183,6 +186,7 @@ model Pedidos {
   status           StatusPedido
   forma_pagamento  FormaPagamento
   observacao       String         @default("")
+  agendado_para    DateTime?
   created_at       DateTime       @default(now())
 
   loja      Lojas         @relation(fields: [loja_id], references: [id], onDelete: Cascade)
@@ -190,8 +194,26 @@ model Pedidos {
   cupom     Cupom?        @relation(fields: [cupom_id], references: [id])
   itens     ItensPedido[]
   cupomUsos CupomUso[]
+  avaliacao Avaliacao?
 
   @@index([loja_id, status])
+  @@index([loja_id, created_at])
+  @@index([cliente_id])
+}
+
+model Avaliacao {
+  id         String   @id @default(cuid())
+  loja_id    String
+  cliente_id String
+  pedido_id  String   @unique
+  nota       Int
+  comentario String   @default("")
+  created_at DateTime @default(now())
+
+  loja    Lojas    @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+  pedido  Pedidos  @relation(fields: [pedido_id], references: [id], onDelete: Cascade)
+
   @@index([loja_id, created_at])
   @@index([cliente_id])
 }

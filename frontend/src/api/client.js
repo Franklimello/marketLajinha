@@ -46,6 +46,11 @@ export const api = {
   cupons: {
     aplicar: (data) => request('/cupons/aplicar', { method: 'POST', body: JSON.stringify(data) }),
   },
+  avaliacoes: {
+    criar: (data) => request('/avaliacoes', { method: 'POST', body: JSON.stringify(data) }),
+    listarPorLoja: (lojaId, pagina = 1) => request(`/avaliacoes/loja/${lojaId}?pagina=${pagina}`),
+    mediaPorLoja: (lojaId) => request(`/avaliacoes/loja/${lojaId}/media`),
+  },
   clientes: {
     me: () => request('/clientes/me'),
     cadastro: (data) => request('/clientes/cadastro', { method: 'POST', body: JSON.stringify(data) }),

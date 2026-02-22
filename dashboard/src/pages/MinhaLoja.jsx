@@ -34,6 +34,7 @@ export default function MinhaLoja() {
         banner_url: loja.banner_url || '',
         cor_primaria: loja.cor_primaria || '#f59e0b',
         taxa_entrega: loja.taxa_entrega ?? 0,
+        pedido_minimo: loja.pedido_minimo ?? 0,
         tempo_entrega: loja.tempo_entrega || '',
         pix_tipo: loja.pix_tipo || '',
         pix_chave: loja.pix_chave || '',
@@ -58,7 +59,7 @@ export default function MinhaLoja() {
     const { name, value, type, checked } = e.target
     setForm((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : name === 'taxa_entrega' ? parseFloat(value) || 0 : value,
+      [name]: type === 'checkbox' ? checked : (name === 'taxa_entrega' || name === 'pedido_minimo') ? parseFloat(value) || 0 : value,
     }))
     if (name === 'nome') {
       const slug = value
@@ -284,6 +285,11 @@ export default function MinhaLoja() {
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Tempo de entrega</label>
             <input name="tempo_entrega" value={form.tempo_entrega} onChange={handleChange} placeholder="ex: 40 - 60 min" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Pedido mínimo (R$)</label>
+            <input name="pedido_minimo" type="number" min="0" step="0.01" value={form.pedido_minimo} onChange={handleChange} placeholder="0 = sem mínimo" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <p className="text-[10px] text-stone-400 mt-1">Deixe 0 se não quiser valor mínimo. O cliente verá o valor no cardápio.</p>
           </div>
         </div>
 

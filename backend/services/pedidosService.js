@@ -61,7 +61,8 @@ async function criar(data) {
     err.status = 404;
     throw err;
   }
-  if (!calcularAbertaAgora(lojaCompleta)) {
+  const isAgendado = data.agendado_para && data.agendado_para !== '';
+  if (!isAgendado && !calcularAbertaAgora(lojaCompleta)) {
     const err = new Error('Esta loja está fechada no momento. Tente novamente no horário de funcionamento.');
     err.status = 400;
     throw err;
@@ -123,6 +124,14 @@ async function criar(data) {
   const subtotal = itensComPreco.reduce(
     (acc, item) => acc + item.preco_unitario * item.quantidade, 0
   );
+
+  const pedidoMinimo = Number(lojaCompleta.pedido_minimo) || 0;
+  if (pedidoMinimo > 0 && subtotal < pedidoMinimo) {
+    const err = new Error(`Pedido mínimo é R$ ${pedidoMinimo.toFixed(2).replace('.', ',')}. Seu subtotal: R$ ${subtotal.toFixed(2).replace('.', ',')}.`);
+    err.status = 400;
+    throw err;
+  }
+
   const isRetirada = pedidoData.tipo_entrega === 'RETIRADA';
   const taxaEntrega = isRetirada ? 0 : (Number(pedidoData.taxa_entrega) || 0);
   if (isRetirada) {
@@ -130,6 +139,9 @@ async function criar(data) {
     pedidoData.endereco = pedidoData.endereco || '';
     pedidoData.bairro = pedidoData.bairro || '';
   }
+
+  const agendadoPara = isAgendado ? new Date(data.agendado_para) : null;
+  delete pedidoData.agendado_para;
 
   const codigoCupom = pedidoData.codigo_cupom || '';
   delete pedidoData.codigo_cupom;
@@ -157,7 +169,8 @@ async function criar(data) {
         desconto,
         cupom_id: cupomId,
         total,
-        status: 'APPROVED',
+        agendado_para: agendadoPara,
+        status: agendadoPara ? 'PENDING' : 'APPROVED',
         itens: { create: itensComPreco },
       },
       include: INCLUDE_ITENS,

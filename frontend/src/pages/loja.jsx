@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
-import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift } from 'react-icons/fi'
+import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift, FiStar, FiCalendar } from 'react-icons/fi'
 
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
@@ -100,6 +100,12 @@ export default function LojaPage() {
   const [copiado, setCopiado] = useState(false)
 
   const [combos, setCombos] = useState([])
+  const [notaMedia, setNotaMedia] = useState({ media: 0, total: 0 })
+  const [avaliacoes, setAvaliacoes] = useState([])
+  const [showAvaliacoes, setShowAvaliacoes] = useState(false)
+  const [agendado, setAgendado] = useState(false)
+  const [agendadoPara, setAgendadoPara] = useState('')
+  const [pedidoCriado, setPedidoCriado] = useState(null)
 
   const [codigoCupom, setCodigoCupom] = useState('')
   const [cupomAplicado, setCupomAplicado] = useState(null)
@@ -115,6 +121,8 @@ export default function LojaPage() {
         if (lojaData?.id) {
           api.lojas.bairros(lojaData.id).then(setBairros).catch(() => {})
           api.combos.listarPorLoja(lojaData.id).then(setCombos).catch(() => {})
+          api.avaliacoes.mediaPorLoja(lojaData.id).then(setNotaMedia).catch(() => {})
+          api.avaliacoes.listarPorLoja(lojaData.id).then((r) => setAvaliacoes(r.dados || [])).catch(() => {})
         }
       })
       .catch((e) => setErro(e.message))
@@ -279,9 +287,11 @@ export default function LojaPage() {
         taxa_entrega: taxaEntrega,
         forma_pagamento: formPedido.forma_pagamento,
         codigo_cupom: cupomAplicado ? codigoCupom.trim() : '',
+        agendado_para: agendado && agendadoPara ? new Date(agendadoPara).toISOString() : null,
         observacao: [
           formPedido.observacao,
           formPedido.forma_pagamento === 'CASH' && trocoPara ? `Troco para R$ ${Number(trocoPara).toFixed(2).replace('.', ',')}` : '',
+          agendado && agendadoPara ? `Agendado para ${new Date(agendadoPara).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '',
           ...itensCarrinho.filter(([, i]) => i.obs).map(([, i]) => `${i.produto.nome}: ${i.obs}`),
         ].filter(Boolean).join(' | '),
         itens: itensCarrinho.flatMap(([, i]) => {
@@ -301,6 +311,7 @@ export default function LojaPage() {
           }]
         }),
       })
+      setPedidoCriado(pedido)
       const pagarOnline = formPedido._tipoPag === 'online' && formPedido.forma_pagamento === 'PIX' && loja.pix_chave
       if (pagarOnline) {
         setEtapa('pix')
@@ -330,12 +341,95 @@ export default function LojaPage() {
 
   // ---- Confirmado ----
   if (etapa === 'confirmado') {
+    const PAGAMENTO_LABELS = { PIX: 'PIX', CREDIT: 'Cartão de Crédito', DEBIT: 'Cartão de Débito', CASH: 'Dinheiro' }
     return (
-      <div className="max-w-lg mx-auto px-4 py-12 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><FiCheck className="text-green-600 text-2xl" /></div>
-        <h2 className="text-xl font-bold text-stone-900 mb-2">Pedido enviado!</h2>
-        <p className="text-stone-500 text-sm mb-6">Seu pedido foi recebido por <strong>{loja.nome}</strong>.{tipoEntrega === 'RETIRADA' ? ' Retire seu pedido no balcão da loja.' : (formPedido.forma_pagamento !== 'PIX' ? ' Realize o pagamento na entrega.' : '')}</p>
-        <Link to="/" className="inline-block px-6 py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 text-sm">Voltar ao início</Link>
+      <div className="max-w-lg mx-auto px-4 py-8">
+        <div className="text-center mb-6">
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-bounce-slow">
+              <FiCheck className="text-green-600 text-3xl" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center shadow">
+              <span className="text-white text-xs">🎉</span>
+            </div>
+          </div>
+          <h2 className="text-2xl font-extrabold text-stone-900">Pedido confirmado!</h2>
+          <p className="text-stone-500 text-sm mt-1">
+            {tipoEntrega === 'RETIRADA'
+              ? 'Retire seu pedido no balcão da loja.'
+              : pedidoCriado?.agendado_para
+                ? `Agendado para ${new Date(pedidoCriado.agendado_para).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                : 'Acompanhe o status em "Meus Pedidos"'}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm mb-4">
+          <div className="flex items-center gap-3 p-4 bg-stone-50 border-b border-stone-100">
+            {loja.logo_url && <img src={loja.logo_url} alt="" className="w-10 h-10 rounded-lg object-cover" />}
+            <div>
+              <p className="font-bold text-stone-900 text-sm">{loja.nome}</p>
+              <p className="text-[11px] text-stone-400">Pedido #{pedidoCriado?.id?.slice(-6).toUpperCase() || '...'}</p>
+            </div>
+          </div>
+
+          <div className="p-4 space-y-2">
+            {pedidoCriado?.itens?.map((item, i) => (
+              <div key={i} className="flex justify-between text-sm">
+                <span className="text-stone-600">{item.quantidade}x {item.produto?.nome || 'Item'}</span>
+                <span className="font-medium text-stone-800">R$ {(Number(item.preco_unitario) * item.quantidade).toFixed(2).replace('.', ',')}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="px-4 pb-4 space-y-1.5">
+            <div className="flex justify-between text-xs text-stone-400 pt-2 border-t border-stone-100">
+              <span>Subtotal</span>
+              <span>R$ {Number(pedidoCriado?.subtotal || 0).toFixed(2).replace('.', ',')}</span>
+            </div>
+            {Number(pedidoCriado?.taxa_entrega || 0) > 0 && (
+              <div className="flex justify-between text-xs text-stone-400">
+                <span>Entrega</span>
+                <span>R$ {Number(pedidoCriado.taxa_entrega).toFixed(2).replace('.', ',')}</span>
+              </div>
+            )}
+            {Number(pedidoCriado?.desconto || 0) > 0 && (
+              <div className="flex justify-between text-xs text-green-600">
+                <span>Desconto</span>
+                <span>- R$ {Number(pedidoCriado.desconto).toFixed(2).replace('.', ',')}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-base font-bold text-stone-900 pt-2 border-t border-stone-100">
+              <span>Total</span>
+              <span className="text-amber-700">R$ {Number(pedidoCriado?.total || 0).toFixed(2).replace('.', ',')}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-stone-50 rounded-xl p-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide">Entrega</p>
+            <p className="text-sm font-semibold text-stone-800 mt-0.5">{tipoEntrega === 'RETIRADA' ? 'Retirada' : 'Delivery'}</p>
+          </div>
+          <div className="bg-stone-50 rounded-xl p-3 text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wide">Pagamento</p>
+            <p className="text-sm font-semibold text-stone-800 mt-0.5">{PAGAMENTO_LABELS[formPedido.forma_pagamento] || formPedido.forma_pagamento}</p>
+          </div>
+        </div>
+
+        {loja.tempo_entrega && tipoEntrega !== 'RETIRADA' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 mb-6">
+            <FiClock className="text-amber-600 text-lg shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Tempo estimado: {loja.tempo_entrega}</p>
+              <p className="text-[11px] text-amber-600">Fique de olho nos status do seu pedido</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <Link to="/pedidos" className="flex-1 py-3 bg-amber-600 text-white font-semibold rounded-xl text-center hover:bg-amber-700 text-sm">Acompanhar pedido</Link>
+          <Link to="/" className="flex-1 py-3 border-2 border-stone-200 text-stone-700 font-semibold rounded-xl text-center hover:bg-stone-50 text-sm">Voltar ao início</Link>
+        </div>
       </div>
     )
   }
@@ -511,6 +605,28 @@ export default function LojaPage() {
         )}
 
         <form onSubmit={handleCriarPedido} className="space-y-4">
+          {/* Agendar pedido */}
+          <div className="bg-white rounded-xl border border-stone-200 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1"><FiCalendar className="text-amber-600" /> Agendar para depois?</h3>
+              <button type="button" onClick={() => { setAgendado(!agendado); if (agendado) setAgendadoPara('') }} className={`relative w-11 h-6 rounded-full transition-colors ${agendado ? 'bg-amber-500' : 'bg-stone-300'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${agendado ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            {agendado && (
+              <div className="mt-3">
+                <input
+                  type="datetime-local"
+                  value={agendadoPara}
+                  onChange={(e) => setAgendadoPara(e.target.value)}
+                  min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                />
+                <p className="text-[10px] text-stone-400 mt-1">Mínimo 30 min a partir de agora. A loja receberá o pedido como agendado.</p>
+              </div>
+            )}
+          </div>
+
           {/* Observação */}
           <div className="bg-white rounded-xl border border-stone-200 p-4">
             <label className="block text-xs font-medium text-stone-600 mb-1">Observação</label>
@@ -638,8 +754,14 @@ export default function LojaPage() {
             )
           })()}
 
-          <button type="submit" disabled={enviando || totalItens === 0 || (tipoEntrega === 'ENTREGA' && !enderecoSel) || !formPedido.forma_pagamento} className="w-full py-3.5 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 text-sm">
-            {enviando ? 'Enviando...' : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`}
+          {Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+              <p className="text-xs text-red-600 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — adicione mais R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}.</p>
+            </div>
+          )}
+
+          <button type="submit" disabled={enviando || totalItens === 0 || (tipoEntrega === 'ENTREGA' && !enderecoSel) || !formPedido.forma_pagamento || (agendado && !agendadoPara) || (Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo))} className="w-full py-3.5 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 text-sm">
+            {enviando ? 'Enviando...' : agendado ? `Agendar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}` : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`}
           </button>
         </form>
       </div>
@@ -835,12 +957,53 @@ export default function LojaPage() {
 
       <div className="px-4 pb-4">
         <div className="flex items-stretch justify-between bg-white rounded-xl border border-stone-100 divide-x divide-stone-100">
-          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs text-stone-500"><FiTruck className="text-amber-500 text-[11px]" /><span className="font-semibold text-stone-800">{taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(2).replace('.', ',')}`}</span></div><span className="text-[10px] text-stone-400">entrega</span></div>
+          <button onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)} className="flex-1 flex flex-col items-center py-3 gap-0.5">
+            <div className="flex items-center gap-1 text-xs"><FiStar className="text-amber-500 text-[11px]" /><span className="font-semibold text-stone-800">{notaMedia.media > 0 ? notaMedia.media.toFixed(1) : 'Novo'}</span></div>
+            <span className="text-[10px] text-stone-400">{notaMedia.total > 0 ? `${notaMedia.total} avaliação${notaMedia.total !== 1 ? 'ões' : ''}` : 'sem notas'}</span>
+          </button>
           <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><FiClock className="text-amber-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
-          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">R$ 0</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
-          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs text-stone-500"><FiDollarSign className="text-amber-500 text-[11px]" /></div><span className="text-[10px] text-stone-400">pagamento</span></div>
+          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
+          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><FiTruck className="text-amber-500 text-[11px]" /><span className="font-semibold text-stone-800">{taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(0)}`}</span></div><span className="text-[10px] text-stone-400">entrega</span></div>
         </div>
       </div>
+
+      {/* Avaliações */}
+      {showAvaliacoes && avaliacoes.length > 0 && (
+        <div className="px-4 pb-4">
+          <div className="bg-white rounded-xl border border-stone-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-stone-900">Avaliações</h3>
+              <div className="flex items-center gap-1">
+                <FiStar className="text-amber-500 text-sm fill-amber-500" />
+                <span className="text-sm font-bold text-stone-900">{notaMedia.media.toFixed(1)}</span>
+                <span className="text-xs text-stone-400">({notaMedia.total})</span>
+              </div>
+            </div>
+            <div className="space-y-3 max-h-48 overflow-y-auto">
+              {avaliacoes.map((a) => (
+                <div key={a.id} className="border-b border-stone-50 pb-2 last:border-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-stone-700">{a.cliente?.nome || 'Cliente'}</span>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <FiStar key={n} className={`text-[10px] ${n <= a.nota ? 'text-amber-500 fill-amber-500' : 'text-stone-300'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  {a.comentario && <p className="text-xs text-stone-500 mt-1">{a.comentario}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pedido mínimo */}
+      {Number(loja.pedido_minimo || 0) > 0 && totalItens > 0 && subtotal < Number(loja.pedido_minimo) && (
+        <div className="mx-4 mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+          <p className="text-xs text-amber-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — faltam R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}</p>
+        </div>
+      )}
 
       {!aberta && <div className="mx-4 mb-4 bg-stone-100 border border-stone-200 rounded-xl p-3.5 text-center"><p className="text-stone-600 font-medium text-sm">Loja fechada no momento</p><p className="text-stone-400 text-xs mt-0.5">{loja.horario_abertura ? `Abre às ${loja.horario_abertura}` : 'Volte mais tarde'}</p></div>}
 
@@ -963,7 +1126,7 @@ export default function LojaPage() {
         <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-2">
           <button onClick={irParaCheckout} className="w-full max-w-lg mx-auto flex items-center justify-between bg-amber-600 text-white px-5 py-3.5 rounded-xl shadow-lg hover:bg-amber-700 transition-colors">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
-            <span className="font-semibold text-sm">Ver carrinho</span>
+            <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
             <span className="font-bold">R$ {subtotal.toFixed(2).replace('.', ',')}</span>
           </button>
         </div>

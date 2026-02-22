@@ -72,9 +72,21 @@ async function listar(filtros = {}) {
 }
 
 async function listarAtivas() {
-  return prisma.lojas.findMany({
+  const lojas = await prisma.lojas.findMany({
     where: { ativa: true },
-    include: { _count: { select: { produtos: true } } },
+    include: {
+      _count: { select: { produtos: true } },
+      avaliacoes: { select: { nota: true } },
+    },
+  });
+
+  return lojas.map((loja) => {
+    const notas = loja.avaliacoes || [];
+    const media = notas.length > 0
+      ? Math.round((notas.reduce((s, a) => s + a.nota, 0) / notas.length) * 10) / 10
+      : 0;
+    const { avaliacoes, ...rest } = loja;
+    return { ...rest, nota_media: media, total_avaliacoes: notas.length };
   });
 }
 

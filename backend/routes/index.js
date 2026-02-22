@@ -16,6 +16,7 @@ const cuponsRoutes = require('./cuponsRoutes');
 const motoboyRoutes = require('./motoboyRoutes');
 const combosRoutes = require('./combosRoutes');
 const authRoutes = require('./authRoutes');
+const avaliacoesRoutes = require('./avaliacoesRoutes');
 
 router.get('/health', (req, res) => res.json({ ok: true, mensagem: 'API marcket no ar.' }));
 
@@ -31,5 +32,6 @@ router.use('/cupons', cuponsRoutes);
 router.use('/motoboys', motoboyRoutes);
 router.use('/combos', combosRoutes);
 router.use('/auth', authRoutes);
+router.use('/avaliacoes', avaliacoesRoutes);
 
 module.exports = router;

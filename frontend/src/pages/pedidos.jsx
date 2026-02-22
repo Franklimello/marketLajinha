@@ -4,7 +4,7 @@ import { io } from 'socket.io-client'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import SEO from '../componentes/SEO'
-import { FiClock, FiCheck, FiTruck, FiX, FiPackage } from 'react-icons/fi'
+import { FiClock, FiCheck, FiTruck, FiX, FiPackage, FiStar } from 'react-icons/fi'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -55,6 +55,63 @@ function StatusTracker({ status }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function AvaliacaoInline({ pedidoId }) {
+  const [nota, setNota] = useState(0)
+  const [comentario, setComentario] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function enviar() {
+    if (nota === 0) return
+    setEnviando(true)
+    setErro('')
+    try {
+      await api.avaliacoes.criar({ pedido_id: pedidoId, nota, comentario })
+      setEnviado(true)
+    } catch (e) {
+      if (e.message.includes('já avaliou')) setEnviado(true)
+      else setErro(e.message)
+    } finally { setEnviando(false) }
+  }
+
+  if (enviado) return (
+    <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2 mt-2">
+      <FiCheck /> Avaliação enviada!
+    </div>
+  )
+
+  return (
+    <div className="mt-2 pt-2 border-t border-stone-100">
+      <p className="text-xs text-stone-500 mb-1.5">Avalie este pedido:</p>
+      <div className="flex items-center gap-3">
+        <div className="flex gap-0.5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} onClick={() => setNota(n)} className="p-0.5">
+              <FiStar className={`text-lg ${n <= nota ? 'text-amber-500 fill-amber-500' : 'text-stone-300'}`} />
+            </button>
+          ))}
+        </div>
+        {nota > 0 && (
+          <button onClick={enviar} disabled={enviando} className="text-xs font-medium text-amber-600 hover:text-amber-700 disabled:opacity-50">
+            {enviando ? '...' : 'Enviar'}
+          </button>
+        )}
+      </div>
+      {nota > 0 && (
+        <input
+          type="text"
+          value={comentario}
+          onChange={(e) => setComentario(e.target.value)}
+          placeholder="Comentário (opcional)"
+          className="w-full mt-1.5 px-3 py-1.5 border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-amber-500"
+        />
+      )}
+      {erro && <p className="text-[10px] text-red-500 mt-1">{erro}</p>}
     </div>
   )
 }
@@ -151,8 +208,10 @@ export default function PedidosPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-stone-400">{p.forma_pagamento}</span>
                     {p.tipo_entrega === 'RETIRADA' && <span className="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-medium">Retirada</span>}
+                    {p.agendado_para && <span className="text-[9px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full font-medium">Agendado</span>}
                   </div>
                 </div>
+                {p.status === 'DELIVERED' && <AvaliacaoInline pedidoId={p.id} />}
               </div>
             )
           })}
