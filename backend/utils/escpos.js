@@ -141,8 +141,21 @@ function buildTicket(pedido, itens, setorNome, larguraMm = 80) {
   if (pedido.tipo_entrega === 'RETIRADA') {
     txt += CMD.BOLD_ON + '*** RETIRADA NO BALCAO ***\n' + CMD.BOLD_OFF;
   } else {
+    txt += CMD.ALIGN_LEFT;
+    txt += linha('-', cols);
+    txt += CMD.BOLD_ON;
+    txt += 'ENDERECO DE ENTREGA\n';
+    txt += CMD.BOLD_OFF;
     if (pedido.endereco) txt += quebrarTexto(pedido.endereco, cols);
-    if (pedido.bairro) txt += `Bairro: ${pedido.bairro}\n`;
+    if (pedido.bairro) txt += CMD.BOLD_ON + `Bairro: ${pedido.bairro}\n` + CMD.BOLD_OFF;
+    if (pedido.complemento) txt += `Complemento: ${pedido.complemento}\n`;
+    if (pedido.referencia) {
+      txt += CMD.BOLD_ON;
+      txt += `>> Ref: ${pedido.referencia}\n`;
+      txt += CMD.BOLD_OFF;
+    }
+    txt += linha('-', cols);
+    txt += CMD.ALIGN_CENTER;
   }
   if (pedido.telefone_cliente) txt += `Tel: ${pedido.telefone_cliente}\n`;
 
