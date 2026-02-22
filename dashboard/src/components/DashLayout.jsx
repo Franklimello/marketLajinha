@@ -1,6 +1,9 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare } from 'react-icons/fi'
+import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiHeadphones } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
+
+const SUPORTE_WHATSAPP = '5519997050303'
 import { useState } from 'react'
 import { usePWA } from '../hooks/usePWA'
 
@@ -107,7 +110,16 @@ export default function DashLayout() {
         )}
       </div>
 
-      <div className="p-3 border-t border-stone-200">
+      <div className="p-3 border-t border-stone-200 space-y-1">
+        <a
+          href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de suporte no painel MarketLajinha.')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-green-50 hover:text-green-600 transition-colors w-full"
+        >
+          <FaWhatsapp className="text-lg" />
+          Suporte
+        </a>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-red-50 hover:text-red-600 transition-colors w-full"

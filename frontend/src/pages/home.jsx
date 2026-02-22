@@ -1,8 +1,12 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { FiStar, FiSearch, FiX } from 'react-icons/fi'
+import { FiStar, FiSearch, FiX, FiMessageCircle } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 import { api } from '../api/client'
 import SEO from '../componentes/SEO'
+
+const SUPORTE_WHATSAPP = '5519997050303'
+const SUPORTE_NOME = 'Franklim'
 
 const CATEGORIAS = [
   { nome: 'Pizza', emoji: '🍕' },
@@ -304,6 +308,36 @@ export default function HomePage() {
           )}
         </div>
       )}
+
+      {/* CTA Cadastrar loja */}
+      <div className="mt-8 mb-4 bg-linear-to-br from-amber-500 to-orange-500 rounded-2xl p-5 text-white animate-fade-in-up">
+        <h3 className="text-lg font-bold">Tem um negócio?</h3>
+        <p className="text-sm text-white/85 mt-1 leading-relaxed">
+          Cadastre sua loja no MarketLajinha e comece a vender online para toda a cidade!
+        </p>
+        <a
+          href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no MarketLajinha.')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 mt-3 px-4 py-2.5 bg-white text-amber-700 font-semibold text-sm rounded-xl hover:bg-amber-50 transition-colors"
+        >
+          <FaWhatsapp className="text-green-600 text-lg" />
+          Falar com {SUPORTE_NOME}
+        </a>
+      </div>
+
+      {/* Suporte */}
+      <div className="text-center pb-4">
+        <p className="text-[10px] text-stone-300">Precisa de ajuda?</p>
+        <a
+          href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com o MarketLajinha.')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-amber-600 transition-colors mt-0.5"
+        >
+          <FiMessageCircle size={11} /> Suporte via WhatsApp
+        </a>
+      </div>
     </div>
   )
 }
