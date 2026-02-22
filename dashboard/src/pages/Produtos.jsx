@@ -122,25 +122,25 @@ export default function Produtos() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Cardápio</h1>
-          <p className="text-stone-500 text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-stone-900">Cardápio</h1>
+          <p className="text-stone-500 text-sm mt-0.5">
             {todosProdutos.length} produto(s) em {categorias.length} categoria(s)
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setModalCategoria(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 text-stone-700 font-medium rounded-lg hover:bg-stone-50 transition-colors text-sm"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white border border-stone-200 text-stone-700 font-medium rounded-lg hover:bg-stone-50 transition-colors text-xs sm:text-sm"
           >
-            <FiPlus /> Nova categoria
+            <FiPlus /> Categoria
           </button>
           <button
             onClick={() => abrirNovoProduto('')}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors text-sm"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors text-xs sm:text-sm"
           >
-            <FiPlus /> Novo produto
+            <FiPlus /> Produto
           </button>
         </div>
       </div>
@@ -219,45 +219,46 @@ export default function Produtos() {
                 {aberta && (
                   <div className="border-t border-stone-100 divide-y divide-stone-50">
                     {produtos.map((p) => (
-                      <div key={p.id} className="flex items-center gap-4 px-4 py-3 hover:bg-stone-50/50 transition-colors group">
+                      <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors">
                         {p.imagem_url ? (
-                          <img src={p.imagem_url} alt={p.nome} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                          <img src={p.imagem_url} alt={p.nome} className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0" />
                         ) : (
-                          <div className="w-16 h-16 rounded-lg bg-stone-100 flex items-center justify-center flex-shrink-0">
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
                             <FiPackage className="text-stone-300" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-stone-900">{p.nome}</h3>
+                            <h3 className="font-medium text-stone-900 text-sm sm:text-base truncate">{p.nome}</h3>
                             {!p.ativo && (
-                              <span className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full">Inativo</span>
+                              <span className="text-[10px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full shrink-0">Inativo</span>
                             )}
                           </div>
                           {p.descricao && (
-                            <p className="text-sm text-stone-400 mt-0.5 line-clamp-2">{p.descricao}</p>
+                            <p className="text-xs sm:text-sm text-stone-400 mt-0.5 line-clamp-1 sm:line-clamp-2">{p.descricao}</p>
                           )}
+                          <p className="font-bold text-stone-900 text-sm mt-0.5 sm:hidden">{formatCurrency(p.preco)}</p>
                         </div>
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right shrink-0 hidden sm:block">
                           <p className="font-bold text-stone-900">{formatCurrency(p.preco)}</p>
                           {p.estoque > 0 && (
                             <p className="text-xs text-stone-400">Est: {p.estoque}</p>
                           )}
                         </div>
-                        <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-0.5 shrink-0">
                           <button
                             onClick={() => abrirEditar(p)}
                             className="p-2 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                             title="Editar"
                           >
-                            <FiEdit2 />
+                            <FiEdit2 className="text-base" />
                           </button>
                           <button
                             onClick={() => handleExcluir(p.id)}
                             className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Excluir"
                           >
-                            <FiTrash2 />
+                            <FiTrash2 className="text-base" />
                           </button>
                         </div>
                       </div>
