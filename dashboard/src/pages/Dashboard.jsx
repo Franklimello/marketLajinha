@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
@@ -58,11 +58,7 @@ export default function Dashboard() {
     }).finally(() => setCarregando(false))
   }, [loja])
 
-  if (carregando) {
-    return <div className="flex items-center justify-center py-20 text-stone-400">Carregando...</div>
-  }
-
-  const indicadores = useMemo(() => {
+  const indicadores = (() => {
     const hoje = new Date()
     const inicio7Dias = new Date()
     inicio7Dias.setDate(hoje.getDate() - 6)
@@ -147,7 +143,7 @@ export default function Dashboard() {
       horaPico,
       topProdutos,
     }
-  }, [pedidos])
+  })()
 
   const cards = [
     { label: 'Pedidos hoje', valor: indicadores.pedidosHoje.length, icon: FiClipboard, cor: 'text-amber-600 bg-amber-50' },
@@ -167,6 +163,10 @@ export default function Dashboard() {
     { key: 'DELIVERED', label: 'Entregues', cor: 'bg-green-100 text-green-700' },
     { key: 'CANCELLED', label: 'Cancelados', cor: 'bg-red-100 text-red-700' },
   ]
+
+  if (carregando) {
+    return <div className="flex items-center justify-center py-20 text-stone-400">Carregando...</div>
+  }
 
   return (
     <div className="space-y-6">
