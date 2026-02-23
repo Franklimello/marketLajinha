@@ -5,6 +5,7 @@ import { FaWhatsapp } from 'react-icons/fa'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
+import { usePrefetchLoja } from '../hooks/usePrefetch'
 import SEO from '../componentes/SEO'
 
 const SUPORTE_WHATSAPP = '5519997050303'
@@ -42,10 +43,14 @@ const LojaCard = memo(function LojaCard({ loja, idx }) {
   const [imgLoaded, setImgLoaded] = useState(false)
   const [imgError, setImgError] = useState(false)
   const isAboveFold = idx < 4
+  const prefetch = usePrefetchLoja(loja.slug)
 
   return (
     <Link
+      ref={prefetch.ref}
       to={`/loja/${loja.slug}`}
+      onMouseEnter={prefetch.onMouseEnter}
+      onTouchStart={prefetch.onTouchStart}
       className={`flex items-center gap-4 px-2 py-3.5 rounded-xl transition-all duration-200 hover:bg-stone-50 active:scale-[0.98] animate-fade-in-up ${
         !aberta ? 'opacity-50' : ''
       }`}
@@ -123,7 +128,7 @@ export default function HomePage() {
 
   useEffect(() => {
     api.lojas
-      .listarAtivas()
+      .home()
       .then(setLojas)
       .catch((e) => setErro(e.message))
       .finally(() => setCarregando(false))

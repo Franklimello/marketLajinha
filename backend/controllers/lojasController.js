@@ -20,6 +20,16 @@ async function listarAtivas(req, res, next) {
   }
 }
 
+async function home(req, res, next) {
+  try {
+    const lojas = await lojasService.listarAtivasHome();
+    res.set('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
+    res.json(lojasService.adicionarAbertaAgoraLista(lojas));
+  } catch (e) {
+    next(e);
+  }
+}
+
 async function buscarPorId(req, res, next) {
   try {
     const loja = await lojasService.buscarPorId(req.params.id);
@@ -162,6 +172,7 @@ async function gerarPix(req, res, next) {
 module.exports = {
   listar,
   listarAtivas,
+  home,
   buscarMinhaLoja,
   buscarPorId,
   buscarPorSlug,

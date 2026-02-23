@@ -14,7 +14,7 @@ export default function BuscaPage() {
 
   useEffect(() => {
     api.lojas
-      .listarAtivas()
+      .home()
       .then(setLojas)
       .catch(() => {})
       .finally(() => setCarregando(false))

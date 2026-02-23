@@ -123,21 +123,26 @@ export default function LojaPage() {
     toastTimer.current = setTimeout(() => setToast(null), 2000)
   }
 
+  const [produtosCarregando, setProdutosCarregando] = useState(true)
+
   useEffect(() => {
     if (!slug) return
-    Promise.all([api.lojas.buscarPorSlug(slug), api.lojas.produtos(slug, 1)])
-      .then(([lojaData, produtosData]) => {
+    api.lojas.buscarPorSlug(slug)
+      .then((lojaData) => {
         setLoja(lojaData)
-        setProdutos(produtosData)
+        setCarregando(false)
+
         if (lojaData?.id) {
+          api.lojas.produtos(slug, 1).then(setProdutos).catch(() => {}).finally(() => setProdutosCarregando(false))
           api.lojas.bairros(lojaData.id).then(setBairros).catch(() => {})
           api.combos.listarPorLoja(lojaData.id).then(setCombos).catch(() => {})
           api.avaliacoes.mediaPorLoja(lojaData.id).then(setNotaMedia).catch(() => {})
           api.avaliacoes.listarPorLoja(lojaData.id).then((r) => setAvaliacoes(r.dados || [])).catch(() => {})
+        } else {
+          setProdutosCarregando(false)
         }
       })
-      .catch((e) => setErro(e.message))
-      .finally(() => setCarregando(false))
+      .catch((e) => { setErro(e.message); setCarregando(false); setProdutosCarregando(false) })
   }, [slug])
 
   const temMaisProdutos = produtos.dados.length < produtos.total
@@ -1111,8 +1116,24 @@ export default function LojaPage() {
       <div className="h-2 bg-stone-100" />
 
       <div className={`px-4 pt-4 ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
+        {produtosCarregando && (
+          <div className="space-y-2">
+            <div className="skeleton h-5 rounded w-24 mb-3" />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 bg-white rounded-xl border border-stone-100 p-3">
+                <div className="flex-1 space-y-2">
+                  <div className="skeleton h-4 rounded w-3/4" />
+                  <div className="skeleton h-3 rounded w-full" />
+                  <div className="skeleton h-4 rounded w-1/3" />
+                </div>
+                <div className="skeleton w-16 h-16 rounded-lg shrink-0" />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Carrossel de destaques */}
-        {categoriaSel === null && (() => {
+        {!produtosCarregando && categoriaSel === null && (() => {
           const destaques = produtos.dados.filter(p => p.imagem_url).slice(0, 10)
           if (destaques.length === 0) return null
           return (
@@ -1121,7 +1142,7 @@ export default function LojaPage() {
         })()}
 
         {/* Combos em destaque */}
-        {combos.length > 0 && categoriaSel === null && (
+        {!produtosCarregando && combos.length > 0 && categoriaSel === null && (
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-3">
               <FiGift className="text-red-500" />
@@ -1174,7 +1195,7 @@ export default function LojaPage() {
           </div>
         )}
 
-        {categoriaSel === null ? (
+        {!produtosCarregando && categoriaSel === null ? (
           <>
             <h2 className="text-base font-bold text-stone-900 mb-3">Cardápio</h2>
             <div className="space-y-2">

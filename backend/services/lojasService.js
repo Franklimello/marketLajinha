@@ -127,6 +127,40 @@ async function listarAtivas() {
   }, 30);
 }
 
+async function listarAtivasHome() {
+  return cacheOuBuscar('lojas:home', async () => {
+    const lojas = await prisma.lojas.findMany({
+      where: { ativa: true },
+      select: {
+        id: true,
+        nome: true,
+        slug: true,
+        logo_url: true,
+        cor_primaria: true,
+        categoria_negocio: true,
+        cidade: true,
+        aberta: true,
+        forcar_status: true,
+        horarios_semana: true,
+        horario_abertura: true,
+        horario_fechamento: true,
+        taxa_entrega: true,
+        tempo_entrega: true,
+        avaliacoes: { select: { nota: true } },
+      },
+    });
+
+    return lojas.map((loja) => {
+      const notas = loja.avaliacoes || [];
+      const media = notas.length > 0
+        ? Math.round((notas.reduce((s, a) => s + a.nota, 0) / notas.length) * 10) / 10
+        : 0;
+      const { avaliacoes, ...rest } = loja;
+      return { ...rest, nota_media: media, total_avaliacoes: notas.length };
+    });
+  }, 60);
+}
+
 async function buscarPorId(id) {
   return prisma.lojas.findUnique({
     where: { id },
@@ -192,6 +226,7 @@ async function excluir(id) {
 module.exports = {
   listar,
   listarAtivas,
+  listarAtivasHome,
   buscarPorId,
   buscarPorSlug,
   buscarPorUsuario,

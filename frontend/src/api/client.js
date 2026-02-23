@@ -50,6 +50,7 @@ function cachedRequest(path) {
 
 export const api = {
   lojas: {
+    home: () => cachedRequest('/lojas/home'),
     listarAtivas: () => cachedRequest('/lojas/ativos'),
     buscarPorSlug: (slug) => cachedRequest(`/lojas/slug/${slug}`),
     buscarPorId: (id) => cachedRequest(`/lojas/${id}`),

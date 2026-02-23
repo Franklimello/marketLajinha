@@ -9,6 +9,7 @@ const { authMiddleware, requireAuth, requireAdmin, requireSameStore, validar } =
 const { schemaLojas, schemaLojasPut } = require('../schemas/lojasSchema');
 
 router.get('/', authMiddleware, lojasController.listar);
+router.get('/home', lojasController.home);
 router.get('/ativos', lojasController.listarAtivas);
 router.get('/minha', authMiddleware, requireAuth, lojasController.buscarMinhaLoja);
 router.get('/slug/:slug', lojasController.buscarPorSlug);
