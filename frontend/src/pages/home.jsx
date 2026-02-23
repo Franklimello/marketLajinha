@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
 import SEO from '../componentes/SEO'
 
@@ -111,6 +112,7 @@ const LojaCard = memo(function LojaCard({ loja, idx }) {
 })
 
 export default function HomePage() {
+  const { cliente } = useAuth()
   const [lojas, setLojas] = useState([])
   const [busca, setBusca] = useState('')
   const buscaDebounced = useDebounce(busca, 250)
@@ -211,7 +213,9 @@ export default function HomePage() {
 
       {/* Greeting */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold text-stone-900">{saudacao()}!</h2>
+        <h2 className="text-xl font-bold text-stone-900">
+          {saudacao()}{cliente?.nome ? <>, <span className="text-red-500">{cliente.nome.split(' ')[0]}</span></> : ''}!
+        </h2>
         <p className="text-sm text-stone-400 mt-0.5">
           {lojasAbertas.length > 0
             ? `${lojasAbertas.length} loja${lojasAbertas.length !== 1 ? 's' : ''} aberta${lojasAbertas.length !== 1 ? 's' : ''} agora`
