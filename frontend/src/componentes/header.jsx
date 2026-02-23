@@ -18,6 +18,10 @@ export default function Header() {
             src="/icons/novalogo.png"
             alt=""
             className="h-20 w-20"
+            width="80"
+            height="80"
+            fetchPriority="high"
+            decoding="sync"
           />
           <div className="flex items-baseline gap-0">
             <span className="text-[22px] font-extrabold tracking-tight text-red-500">Uai</span>

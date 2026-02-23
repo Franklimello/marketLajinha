@@ -12,6 +12,8 @@ import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/loc
 const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_NOME = 'Franklim'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/uaifood2026/'
+const HOME_CACHE_KEY = 'homeLojasCache'
+const HOME_CACHE_TTL = 1000 * 60 * 5
 
 const CATEGORIAS = [
   { nome: 'Pizza', emoji: '🍕' },
@@ -62,8 +64,11 @@ const LojaCard = memo(function LojaCard({ loja, idx }) {
           <img
             src={loja.logo_url}
             alt={loja.nome}
+            width="64"
+            height="64"
             loading={isAboveFold ? 'eager' : 'lazy'}
             fetchPriority={isAboveFold ? 'high' : 'auto'}
+            sizes="64px"
             decoding={isAboveFold ? 'sync' : 'async'}
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
@@ -129,10 +134,21 @@ export default function HomePage() {
   const catRef = useRef(null)
 
   useEffect(() => {
+    const cached = getLocalItem(HOME_CACHE_KEY, null)
+    if (cached?.ts && Array.isArray(cached?.data) && Date.now() - cached.ts < HOME_CACHE_TTL) {
+      setLojas(cached.data)
+      setCarregando(false)
+    }
+
     api.lojas
       .home()
-      .then(setLojas)
-      .catch((e) => setErro(e.message))
+      .then((data) => {
+        setLojas(data)
+        setLocalItem(HOME_CACHE_KEY, { ts: Date.now(), data })
+      })
+      .catch((e) => {
+        if (!cached?.data?.length) setErro(e.message)
+      })
       .finally(() => setCarregando(false))
   }, [])
 
@@ -173,6 +189,8 @@ export default function HomePage() {
   if (carregando) {
     return (
       <div className="max-w-lg mx-auto px-4">
+        <h2 className="text-xl font-bold text-stone-900 mb-1">Carregando lojas</h2>
+        <p className="text-sm text-stone-400 mb-4">Buscando os melhores estabelecimentos da sua cidade...</p>
         <div className="skeleton h-6 rounded w-40 mb-1" />
         <div className="skeleton h-4 rounded w-56 mb-5" />
         <div className="h-12 skeleton rounded-xl mb-5" />
