@@ -7,18 +7,16 @@ export default function Header() {
   const showInstall = (canInstall || (isIOS && !installed))
 
   return (
-    <header className="bg-stone-950 fixed top-0 left-0 right-0 z-50 h-16">
+    <header className="bg-stone-950 fixed top-0 left-0 right-0 z-50 h-14">
       <div className="max-w-lg mx-auto px-4 h-full flex items-center justify-between">
         <Link
           to="/"
-          className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
+          className="flex items-baseline gap-0 transition-opacity hover:opacity-90"
           aria-label="UaiFood - Ir para início"
         >
-          <img
-            src="/icons/logouaifood.png"
-            alt="UaiFood"
-            className="h-14 w-auto"
-          />
+          <span className="text-[22px] font-extrabold tracking-tight text-red-500">Uai</span>
+          <span className="text-[22px] font-extrabold tracking-tight text-yellow-400">food</span>
+          <span className="text-[10px] font-medium text-stone-500 ml-1.5 tracking-wider">delivery</span>
         </Link>
 
         {showInstall && (
