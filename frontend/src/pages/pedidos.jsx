@@ -263,6 +263,10 @@ export default function PedidosPage() {
   if (authCarregando || carregando) {
     return (
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
+        <div className="flex items-center justify-center gap-2 text-stone-600">
+          <span className="inline-block w-4 h-4 rounded-full border-2 border-stone-300 border-t-red-500 animate-spin" />
+          <p className="text-sm font-medium">Buscando seus pedidos...</p>
+        </div>
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="bg-white rounded-xl border border-stone-200 p-4 space-y-3">
             <div className="flex justify-between">
