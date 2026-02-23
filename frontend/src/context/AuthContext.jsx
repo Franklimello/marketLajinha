@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { auth, onAuthStateChanged, messaging, getFcmToken, onMessage } from '../config/firebase'
 import { signOut } from 'firebase/auth'
 
@@ -154,14 +154,16 @@ export function AuthProvider({ children }) {
     setToken(null)
   }
 
+  const value = useMemo(() => ({
+    firebaseUser, cliente, carregando, token, getToken,
+    cadastrarCliente, atualizarPerfil, recarregarCliente, logout, registrarPush,
+    logado: !!firebaseUser,
+    perfilCompleto: !!cliente,
+    pedidosAtivos, setPedidosAtivos,
+  }), [firebaseUser, cliente, carregando, token, pedidosAtivos])
+
   return (
-    <AuthContext.Provider value={{
-      firebaseUser, cliente, carregando, token, getToken,
-      cadastrarCliente, atualizarPerfil, recarregarCliente, logout, registrarPush,
-      logado: !!firebaseUser,
-      perfilCompleto: !!cliente,
-      pedidosAtivos, setPedidosAtivos,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

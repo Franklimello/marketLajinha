@@ -135,6 +135,7 @@ export default function BuscaPage() {
                   <img
                     src={loja.logo_url || ''}
                     alt={loja.nome}
+                    loading="lazy"
                     className={`w-16 h-16 rounded-xl object-cover bg-stone-200 ${!aberta ? 'grayscale' : ''}`}
                     onError={(e) => {
                       e.target.style.display = 'none'

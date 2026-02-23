@@ -53,7 +53,7 @@ function CarrosselDestaques({ produtos, onAdd }) {
           return (
             <button key={p.id} onClick={() => onAdd(p)} className="snap-start shrink-0 w-[120px] text-left">
               <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
-                <img src={p.imagem_url} alt={p.nome} className="w-full h-full object-cover" />
+                <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover" />
               </div>
               <p className="text-xs font-semibold text-stone-900 mt-1.5 line-clamp-1">{p.nome}</p>
               <p className="text-xs text-red-700 font-bold">
@@ -73,6 +73,8 @@ export default function LojaPage() {
   const { logado, cliente, carregando: authCarregando } = useAuth()
   const [loja, setLoja] = useState(null)
   const [produtos, setProdutos] = useState({ dados: [], total: 0 })
+  const [paginaAtual, setPaginaAtual] = useState(1)
+  const [carregandoMais, setCarregandoMais] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const [categoriaSel, setCategoriaSel] = useState(null)
@@ -137,6 +139,23 @@ export default function LojaPage() {
       .catch((e) => setErro(e.message))
       .finally(() => setCarregando(false))
   }, [slug])
+
+  const temMaisProdutos = produtos.dados.length < produtos.total
+
+  async function carregarMaisProdutos() {
+    if (carregandoMais || !temMaisProdutos) return
+    setCarregandoMais(true)
+    try {
+      const proxPagina = paginaAtual + 1
+      const novos = await api.lojas.produtos(slug, proxPagina)
+      setProdutos((prev) => ({
+        dados: [...prev.dados, ...novos.dados],
+        total: novos.total,
+      }))
+      setPaginaAtual(proxPagina)
+    } catch {}
+    finally { setCarregandoMais(false) }
+  }
 
   // ---- Carrinho ----
   function addItemDireto(produto) {
@@ -833,7 +852,7 @@ export default function LojaPage() {
 
         {/* Imagem */}
         {p.imagem_url && (
-          <img src={p.imagem_url} alt={p.nome} className="w-full h-48 object-cover" />
+          <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-48 object-cover" />
         )}
 
         {/* Descrição */}
@@ -1117,7 +1136,7 @@ export default function LojaPage() {
                 return (
                   <div key={c.id} className="snap-start flex-shrink-0 w-64 bg-gradient-to-br from-red-50 to-yellow-50 rounded-2xl border-2 border-red-200 overflow-hidden">
                     {c.imagem_url && (
-                      <img src={c.imagem_url} alt={c.nome} className="w-full h-28 object-cover" />
+                      <img src={c.imagem_url} alt={c.nome} loading="lazy" className="w-full h-28 object-cover" />
                     )}
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
@@ -1172,6 +1191,23 @@ export default function LojaPage() {
                 )
               })}
             </div>
+
+            {temMaisProdutos && (
+              <button
+                onClick={carregarMaisProdutos}
+                disabled={carregandoMais}
+                className="w-full mt-4 py-3 bg-stone-100 text-stone-600 font-medium rounded-xl hover:bg-stone-200 transition-colors text-sm disabled:opacity-50"
+              >
+                {carregandoMais ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-stone-400 border-t-transparent rounded-full animate-spin" />
+                    Carregando...
+                  </span>
+                ) : (
+                  `Ver mais produtos (${produtos.dados.length} de ${produtos.total})`
+                )}
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -1194,12 +1230,29 @@ export default function LojaPage() {
                         {temConfig && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">personalizar</span>}
                       </div>
                     </div>
-                    {p.imagem_url && <img src={p.imagem_url} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />}
+                    {p.imagem_url && <img src={p.imagem_url} alt="" loading="lazy" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />}
                     {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">{qtd}</span>}
                   </button>
                 )
               })}
             </div>
+
+            {temMaisProdutos && (
+              <button
+                onClick={carregarMaisProdutos}
+                disabled={carregandoMais}
+                className="w-full mt-4 py-3 bg-stone-100 text-stone-600 font-medium rounded-xl hover:bg-stone-200 transition-colors text-sm disabled:opacity-50"
+              >
+                {carregandoMais ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-stone-400 border-t-transparent rounded-full animate-spin" />
+                    Carregando...
+                  </span>
+                ) : (
+                  `Ver mais produtos (${produtos.dados.length} de ${produtos.total})`
+                )}
+              </button>
+            )}
           </>
         )}
       </div>

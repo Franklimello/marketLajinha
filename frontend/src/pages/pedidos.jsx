@@ -313,7 +313,7 @@ export default function PedidosPage() {
               <div key={p.id} className="bg-white rounded-xl border border-stone-200 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    {p.loja?.logo_url && <img src={p.loja.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />}
+                    {p.loja?.logo_url && <img src={p.loja.logo_url} alt="" loading="lazy" className="w-8 h-8 rounded-lg object-cover" />}
                     <div>
                       <span className="text-sm font-semibold text-stone-900">{p.loja?.nome || 'Loja'}</span>
                       <p className="text-[10px] text-stone-400">

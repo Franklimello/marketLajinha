@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
@@ -34,7 +34,7 @@ function saudacao() {
   return 'Boa noite'
 }
 
-function LojaCard({ loja, idx }) {
+const LojaCard = memo(function LojaCard({ loja, idx }) {
   const aberta = loja.aberta_agora ?? loja.aberta
   const taxa = loja.taxa_entrega ?? 0
   const [imgLoaded, setImgLoaded] = useState(false)
@@ -107,7 +107,7 @@ function LojaCard({ loja, idx }) {
       </div>
     </Link>
   )
-}
+})
 
 export default function HomePage() {
   const [lojas, setLojas] = useState([])
