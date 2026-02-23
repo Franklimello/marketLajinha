@@ -6,7 +6,7 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth'
-import { auth, googleProvider, messaging, getFcmToken, onMessage } from '../config/firebase'
+import { auth, googleProvider, getMessagingCompat } from '../config/firebase'
 import { api, setTokenGetter } from '../api/client'
 import { createSessionCookie, clearSessionCookie, refreshSessionCookie } from '../storage/authStorage'
 
@@ -18,6 +18,7 @@ export function AuthProvider({ children }) {
   const [loja, setLoja] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [messagingEnv, setMessagingEnv] = useState(null)
 
   useEffect(() => {
     setTokenGetter(async () => {
@@ -26,8 +27,12 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
+  useEffect(() => {
+    getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
+  }, [])
+
   const registrarPushLoja = useCallback(async () => {
-    if (!messaging || !('serviceWorker' in navigator) || !('Notification' in window)) return
+    if (!messagingEnv || !('serviceWorker' in navigator) || !('Notification' in window)) return
     try {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
@@ -44,18 +49,18 @@ export function AuthProvider({ children }) {
         })
       }
 
-      const fcmToken = await getFcmToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+      const fcmToken = await messagingEnv.getToken(messagingEnv.messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
       if (fcmToken) {
         await api.usuarios.salvarFcmToken(fcmToken)
       }
     } catch (e) {
       console.warn('Push loja registration failed:', e.message)
     }
-  }, [])
+  }, [messagingEnv])
 
   useEffect(() => {
-    if (!messaging) return
-    const unsub = onMessage(messaging, (payload) => {
+    if (!messagingEnv) return undefined
+    const unsub = messagingEnv.onMessage(messagingEnv.messaging, (payload) => {
       const { title, body } = payload.notification || {}
       if (Notification.permission === 'granted') {
         new Notification(title || 'MarketLajinha', {
@@ -66,7 +71,7 @@ export function AuthProvider({ children }) {
       }
     })
     return () => unsub?.()
-  }, [])
+  }, [messagingEnv])
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {

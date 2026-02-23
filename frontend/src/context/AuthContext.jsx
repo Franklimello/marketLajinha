@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
-import { auth, onAuthStateChanged, messaging, getFcmToken, onMessage } from '../config/firebase'
+import { auth, onAuthStateChanged, getMessagingCompat } from '../config/firebase'
 import { signOut } from 'firebase/auth'
 import { createSessionCookie, clearSessionCookie, refreshSessionCookie } from '../storage/authStorage'
 
@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
   const [carregando, setCarregando] = useState(true)
   const [token, setToken] = useState(null)
   const [pedidosAtivos, setPedidosAtivos] = useState(0)
+  const [messagingEnv, setMessagingEnv] = useState(null)
 
   async function contarPedidosAtivos(t) {
     try {
@@ -101,15 +102,19 @@ export function AuthProvider({ children }) {
     } catch { setCliente(null) }
   }
 
+  useEffect(() => {
+    getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
+  }, [])
+
   const registrarPush = useCallback(async (authToken) => {
-    if (!messaging || !authToken || !('serviceWorker' in navigator) || !('Notification' in window)) return
+    if (!messagingEnv || !authToken || !('serviceWorker' in navigator) || !('Notification' in window)) return
     try {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
 
       const reg = await navigator.serviceWorker.ready
 
-      const fcmToken = await getFcmToken(messaging, {
+      const fcmToken = await messagingEnv.getToken(messagingEnv.messaging, {
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: reg,
       })
@@ -122,11 +127,11 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.warn('Push registration failed:', e.message)
     }
-  }, [])
+  }, [messagingEnv])
 
   useEffect(() => {
-    if (!messaging) return
-    const unsub = onMessage(messaging, (payload) => {
+    if (!messagingEnv) return undefined
+    const unsub = messagingEnv.onMessage(messagingEnv.messaging, (payload) => {
       const { title, body } = payload.notification || {}
       if (Notification.permission === 'granted') {
         new Notification(title || 'UaiFood', {
@@ -137,7 +142,7 @@ export function AuthProvider({ children }) {
       }
     })
     return () => unsub?.()
-  }, [])
+  }, [messagingEnv])
 
   async function logout() {
     await clearSessionCookie().catch(() => {})

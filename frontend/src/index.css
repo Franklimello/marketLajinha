@@ -40,3 +40,16 @@ img {
 img[src=""] {
   opacity: 0;
 }
+
+@media (prefers-reduced-motion: reduce), (max-width: 640px) {
+  .animate-slide-up,
+  .animate-fade-in-up,
+  .animate-scale-in,
+  .skeleton {
+    animation: none !important;
+  }
+
+  img {
+    transition: none;
+  }
+}

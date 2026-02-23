@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { getMessaging, getToken as getFcmToken, onMessage } from 'firebase/messaging'
 import imageCompression from 'browser-image-compression'
 
 const firebaseConfig = {
@@ -19,9 +18,16 @@ export const auth = getAuth(app)
 export const storage = getStorage(app)
 export const googleProvider = new GoogleAuthProvider()
 
-let messaging = null
-try { messaging = getMessaging(app) } catch { /* browser sem suporte */ }
-export { messaging, getFcmToken, onMessage }
+async function getMessagingCompat() {
+  try {
+    const { getMessaging, getToken, onMessage } = await import('firebase/messaging')
+    const messaging = getMessaging(app)
+    return { messaging, getToken, onMessage }
+  } catch {
+    return null
+  }
+}
+export { getMessagingCompat }
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.5,

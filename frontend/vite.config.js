@@ -11,7 +11,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/messaging'],
+          'vendor-firebase-core': ['firebase/app', 'firebase/auth'],
+          'vendor-firebase-messaging': ['firebase/messaging'],
           'vendor-icons': ['react-icons/fi', 'react-icons/fa'],
           'vendor-socket': ['socket.io-client'],
         },

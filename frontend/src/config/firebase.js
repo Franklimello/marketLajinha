@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth'
-import { getMessaging, getToken as getFcmToken, onMessage } from 'firebase/messaging'
 
 const firebaseConfig = {
   apiKey: "AIzaSyDF51FzoLyRU52X4-jXMW1evIr3DKw9vQ8",
@@ -15,11 +14,14 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const googleProvider = new GoogleAuthProvider()
 
-let messaging = null
-try {
-  messaging = getMessaging(app)
-} catch (e) {
-  console.warn('Firebase Messaging não suportado neste navegador.')
+async function getMessagingCompat() {
+  try {
+    const { getMessaging, getToken, onMessage } = await import('firebase/messaging')
+    const messaging = getMessaging(app)
+    return { messaging, getToken, onMessage }
+  } catch {
+    return null
+  }
 }
 
-export { auth, onAuthStateChanged, googleProvider, messaging, getFcmToken, onMessage }
+export { auth, onAuthStateChanged, googleProvider, getMessagingCompat }
