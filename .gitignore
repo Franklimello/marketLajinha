@@ -4,3 +4,7 @@ node_modules
 .DS_Store
 serviceAccountKey.json
 *-service-account*.json
+
+# Agente impressao - build output
+agente-impressao/dist/
+agente-impressao/node_modules/

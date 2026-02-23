@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarketLajinha - Impressão</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Title Bar -->
+  <div class="titlebar" id="titlebar">
+    <div class="titlebar-drag">
+      <span class="titlebar-title">MarketLajinha Impressão</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="tb-btn" id="btnMinimize" title="Minimizar">─</button>
+      <button class="tb-btn tb-close" id="btnClose" title="Minimizar para bandeja">✕</button>
+    </div>
+  </div>
+
+  <!-- STEP 1: Login -->
+  <div class="screen" id="screenLogin">
+    <div class="screen-inner">
+      <div class="logo-area">
+        <div class="logo-icon">🖨️</div>
+        <h1>MarketLajinha</h1>
+        <p class="subtitle">Central de Impressão</p>
+      </div>
+
+      <div class="form-card">
+        <h2>Entrar na sua conta</h2>
+        <p class="form-hint">Use o mesmo email e senha do painel da loja</p>
+
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+        </div>
+
+        <div class="field">
+          <label for="loginPassword">Senha</label>
+          <input type="password" id="loginPassword" placeholder="Sua senha" autocomplete="current-password">
+        </div>
+
+        <div id="loginAdvancedToggle" class="advanced-toggle" onclick="toggleAdvanced()">
+          <span id="advArrow">▸</span> Configurações avançadas
+        </div>
+        <div id="loginAdvanced" class="advanced-panel" style="display:none">
+          <div class="field">
+            <label for="loginApiUrl">Endereço do servidor</label>
+            <input type="url" id="loginApiUrl" placeholder="https://sua-api.com" value="https://marketlajinha-production.up.railway.app">
+            <div class="field-hint">Só altere se orientado pelo suporte</div>
+          </div>
+        </div>
+
+        <div id="loginError" class="error-box" style="display:none"></div>
+
+        <button class="btn btn-primary btn-full" id="btnLogin" onclick="doLogin()">
+          <span id="loginBtnText">Entrar</span>
+          <div id="loginSpinner" class="spinner" style="display:none"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Scanning -->
+  <div class="screen" id="screenScan" style="display:none">
+    <div class="screen-inner">
+      <div class="logo-area">
+        <div class="logo-icon animated-pulse">📡</div>
+        <h1>Procurando impressoras</h1>
+        <p class="subtitle">Estamos verificando sua rede local</p>
+      </div>
+
+      <div class="form-card">
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="scanProgress" style="width: 0%"></div>
+          </div>
+          <p class="progress-text" id="scanProgressText">Iniciando busca...</p>
+        </div>
+
+        <div id="scanResults" class="printer-list" style="display:none">
+          <h3>Impressoras encontradas:</h3>
+          <div id="printerList"></div>
+        </div>
+
+        <div id="scanEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">🔍</div>
+          <p>Nenhuma impressora encontrada automaticamente</p>
+          <p class="form-hint">Sem problema! Digite o endereço manualmente.</p>
+        </div>
+
+        <div class="manual-ip" id="manualIpSection">
+          <div class="divider"><span>ou digite manualmente</span></div>
+          <div class="field">
+            <label for="manualIp">Endereço da impressora</label>
+            <input type="text" id="manualIp" placeholder="192.168.0.100">
+            <div class="field-hint">Normalmente começa com 192.168</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="btnUsePrinter" onclick="selectPrinter()" disabled>
+          Usar esta impressora
+        </button>
+
+        <button class="btn btn-ghost btn-full" onclick="skipScan()">
+          Pular, vou configurar depois
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Test Print -->
+  <div class="screen" id="screenTest" style="display:none">
+    <div class="screen-inner">
+      <div class="logo-area">
+        <div class="logo-icon">🧪</div>
+        <h1>Testar impressora</h1>
+        <p class="subtitle" id="testSubtitle">Vamos verificar se tudo funciona</p>
+      </div>
+
+      <div class="form-card">
+        <div class="printer-selected">
+          <span class="printer-icon">🖨️</span>
+          <div>
+            <strong id="selectedPrinterIp">192.168.0.100</strong>
+            <p class="form-hint">Porta 9100</p>
+          </div>
+        </div>
+
+        <div id="testResult" style="display:none"></div>
+
+        <button class="btn btn-primary btn-full" id="btnTestPrint" onclick="doTestPrint()">
+          <span id="testBtnText">Imprimir página de teste</span>
+          <div id="testSpinner" class="spinner" style="display:none"></div>
+        </button>
+
+        <button class="btn btn-ghost btn-full" id="btnTestSkip" onclick="goToDashboard()">
+          Pular teste
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Ready / Success -->
+  <div class="screen" id="screenReady" style="display:none">
+    <div class="screen-inner center-all">
+      <div class="success-area">
+        <div class="success-check">✓</div>
+        <h1>Tudo pronto!</h1>
+        <p class="subtitle">Seus pedidos serão impressos automaticamente</p>
+        <div class="ready-info">
+          <div class="ready-row">
+            <span class="ready-label">Loja</span>
+            <span class="ready-value" id="readyLoja">—</span>
+          </div>
+          <div class="ready-row">
+            <span class="ready-label">Impressora</span>
+            <span class="ready-value" id="readyPrinter">—</span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="goToDashboard()">
+          Começar a usar
+        </button>
+        <p class="form-hint" style="margin-top:12px">O programa ficará aberto na barra de tarefas</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD (Normal operation) -->
+  <div class="screen" id="screenDash" style="display:none">
+    <div class="screen-inner dash">
+      <!-- Status Card -->
+      <div class="dash-status" id="dashStatus">
+        <div class="status-indicator" id="statusIndicator">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">Verificando...</span>
+        </div>
+        <p class="status-sub" id="statusSub"></p>
+      </div>
+
+      <!-- Store Info -->
+      <div class="dash-card dash-store">
+        <div class="dash-store-info">
+          <span class="store-emoji">🏪</span>
+          <div>
+            <strong id="dashLoja">Minha Loja</strong>
+            <p class="form-hint" id="dashPrinter">Impressora: —</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="dash-card">
+        <h3>Ações rápidas</h3>
+        <div class="action-grid">
+          <button class="action-btn" onclick="doReconnect()">
+            <span>🔄</span>Reconectar
+          </button>
+          <button class="action-btn" onclick="doDashTestPrint()">
+            <span>🖨️</span>Teste
+          </button>
+          <button class="action-btn" onclick="toggleLogs()">
+            <span>📋</span>Registros
+          </button>
+          <button class="action-btn" onclick="showSettings()">
+            <span>⚙️</span>Opções
+          </button>
+        </div>
+      </div>
+
+      <!-- Logs (collapsible) -->
+      <div class="dash-card" id="logsCard" style="display:none">
+        <div class="logs-header">
+          <h3>Últimas atividades</h3>
+          <button class="btn-icon" onclick="refreshLogs()">🔄</button>
+        </div>
+        <div class="log-list" id="logList">
+          <p class="empty-small">Nenhuma atividade</p>
+        </div>
+      </div>
+
+      <!-- Settings Modal -->
+      <div class="modal-overlay" id="settingsModal" style="display:none">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>Configurações</h3>
+            <button class="btn-icon" onclick="hideSettings()">✕</button>
+          </div>
+          <div class="modal-body">
+            <button class="settings-row" onclick="changePrinter()">
+              <span>🖨️</span>
+              <div>
+                <strong>Trocar impressora</strong>
+                <p>Escolher outra impressora na rede</p>
+              </div>
+              <span class="arrow">▸</span>
+            </button>
+            <button class="settings-row" onclick="doLogout()">
+              <span>🚪</span>
+              <div>
+                <strong>Sair da conta</strong>
+                <p>Fazer login com outra conta</p>
+              </div>
+              <span class="arrow">▸</span>
+            </button>
+            <button class="settings-row" onclick="openLogsFolder()">
+              <span>📁</span>
+              <div>
+                <strong>Pasta de registros</strong>
+                <p>Abrir pasta com os arquivos de log</p>
+              </div>
+              <span class="arrow">▸</span>
+            </button>
+          </div>
+          <div class="modal-footer">
+            <span class="version-label">v1.0.0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

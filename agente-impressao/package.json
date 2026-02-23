@@ -1,21 +1,51 @@
 {
   "name": "marketlajinha-impressao",
   "version": "1.0.0",
-  "description": "Central de Impressão - MarketLajinha",
-  "main": "agent.js",
-  "bin": "agent.js",
+  "description": "Central de Impressão Automática - MarketLajinha",
+  "main": "main.js",
   "scripts": {
-    "start": "node agent.js",
-    "build": "pkg . --targets node18-win-x64 --output dist/MarketLajinha-Impressao.exe"
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir"
   },
-  "pkg": {
-    "assets": [],
-    "outputPath": "dist"
+  "build": {
+    "appId": "com.marketlajinha.impressao",
+    "productName": "MarketLajinha Impressão",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "installerSidebar": null
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Franklimello",
+      "repo": "marketLajinha"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "ui/**/*",
+      "assets/**/*"
+    ]
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "socket.io-client": "^4.8.1",
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.2.2"
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8"
   }
 }
