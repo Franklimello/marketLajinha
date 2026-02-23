@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────
-// MarketLajinha – Service Worker (Cache + FCM)
+// UaiFood – Service Worker (Cache + FCM)
 // ─────────────────────────────────────────────
 
 const CACHE_VERSION = 'v1';
@@ -34,7 +34,7 @@ messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {};
   const data = payload.data || {};
 
-  self.registration.showNotification(title || 'MarketLajinha', {
+  self.registration.showNotification(title || 'UaiFood', {
     body: body || 'Você tem uma atualização.',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',

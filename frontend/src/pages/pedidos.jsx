@@ -42,11 +42,11 @@ function StatusTracker({ status }) {
         return (
           <div key={step.key} className="flex-1 flex flex-col items-center gap-1">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-              done ? 'bg-amber-500 text-white scale-105' : 'bg-stone-100 text-stone-400'
-            } ${i === currentIdx ? 'ring-2 ring-amber-300 ring-offset-1' : ''}`}>
+              done ? 'bg-red-500 text-white scale-105' : 'bg-stone-100 text-stone-400'
+            } ${i === currentIdx ? 'ring-2 ring-red-300 ring-offset-1' : ''}`}>
               <Icon size={14} />
             </div>
-            <span className={`text-[10px] text-center leading-tight ${done ? 'text-amber-700 font-semibold' : 'text-stone-400'}`}>
+            <span className={`text-[10px] text-center leading-tight ${done ? 'text-red-700 font-semibold' : 'text-stone-400'}`}>
               {step.label}
             </span>
             {i < STATUS_STEPS.length - 1 && (
@@ -92,12 +92,12 @@ function AvaliacaoInline({ pedidoId }) {
         <div className="flex gap-0.5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} onClick={() => setNota(n)} className="p-0.5">
-              <FiStar className={`text-lg ${n <= nota ? 'text-amber-500 fill-amber-500' : 'text-stone-300'}`} />
+              <FiStar className={`text-lg ${n <= nota ? 'text-yellow-500 fill-yellow-500' : 'text-stone-300'}`} />
             </button>
           ))}
         </div>
         {nota > 0 && (
-          <button onClick={enviar} disabled={enviando} className="text-xs font-medium text-amber-600 hover:text-amber-700 disabled:opacity-50">
+          <button onClick={enviar} disabled={enviando} className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50">
             {enviando ? '...' : 'Enviar'}
           </button>
         )}
@@ -108,7 +108,7 @@ function AvaliacaoInline({ pedidoId }) {
           value={comentario}
           onChange={(e) => setComentario(e.target.value)}
           placeholder="Comentário (opcional)"
-          className="w-full mt-1.5 px-3 py-1.5 border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-amber-500"
+          className="w-full mt-1.5 px-3 py-1.5 border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-red-500"
         />
       )}
       {erro && <p className="text-[10px] text-red-500 mt-1">{erro}</p>}
@@ -163,7 +163,7 @@ function ChatPedido({ pedidoId, socketRef }) {
     <div className="mt-2 pt-2 border-t border-stone-100">
       <button
         onClick={() => { setAberto(!aberto); if (!aberto) setNaoLidas(0) }}
-        className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-amber-600 transition-colors"
+        className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-red-600 transition-colors"
       >
         <FiMessageCircle size={13} />
         <span>Falar com a loja</span>
@@ -184,11 +184,11 @@ function ChatPedido({ pedidoId, socketRef }) {
               <div key={m.id} className={`flex ${m.remetente === 'CLIENTE' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs ${
                   m.remetente === 'CLIENTE'
-                    ? 'bg-amber-500 text-white rounded-br-sm'
+                    ? 'bg-red-500 text-white rounded-br-sm'
                     : 'bg-white text-stone-800 border border-stone-200 rounded-bl-sm'
                 }`}>
                   <p>{m.conteudo}</p>
-                  <p className={`text-[9px] mt-0.5 ${m.remetente === 'CLIENTE' ? 'text-amber-100' : 'text-stone-400'}`}>
+                  <p className={`text-[9px] mt-0.5 ${m.remetente === 'CLIENTE' ? 'text-red-100' : 'text-stone-400'}`}>
                     {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -203,7 +203,7 @@ function ChatPedido({ pedidoId, socketRef }) {
               className="flex-1 px-3 py-2 text-xs border-0 focus:ring-0 outline-none"
               maxLength={500}
             />
-            <button type="submit" disabled={enviando || !texto.trim()} className="px-3 text-amber-600 hover:text-amber-700 disabled:text-stone-300">
+            <button type="submit" disabled={enviando || !texto.trim()} className="px-3 text-red-600 hover:text-red-700 disabled:text-stone-300">
               <FiSend size={14} />
             </button>
           </form>
@@ -287,7 +287,7 @@ export default function PedidosPage() {
         <div className="text-5xl mb-4">🔐</div>
         <h2 className="text-lg font-bold text-stone-900 mb-1">Seus pedidos ficam aqui</h2>
         <p className="text-stone-400 text-sm mb-5">Entre na sua conta para acompanhar pedidos em tempo real</p>
-        <Link to="/login" className="inline-block px-6 py-2.5 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 text-sm transition-colors">Entrar na conta</Link>
+        <Link to="/login" className="inline-block px-6 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 text-sm transition-colors">Entrar na conta</Link>
       </div>
     )
   }
@@ -302,7 +302,7 @@ export default function PedidosPage() {
           <div className="text-5xl mb-4">📦</div>
           <h2 className="text-base font-bold text-stone-900 mb-1">Nenhum pedido ainda</h2>
           <p className="text-stone-400 text-sm mb-5">Que tal explorar os restaurantes e fazer seu primeiro pedido?</p>
-          <Link to="/" className="inline-block px-5 py-2.5 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 text-sm transition-colors">Explorar lojas</Link>
+          <Link to="/" className="inline-block px-5 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 text-sm transition-colors">Explorar lojas</Link>
         </div>
       ) : (
         <div className="space-y-3">
@@ -321,7 +321,7 @@ export default function PedidosPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-amber-700">R$ {Number(p.total).toFixed(2).replace('.', ',')}</span>
+                  <span className="text-sm font-bold text-red-700">R$ {Number(p.total).toFixed(2).replace('.', ',')}</span>
                 </div>
 
                 {/* Tracker visual */}
@@ -341,7 +341,7 @@ export default function PedidosPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-stone-400">{p.forma_pagamento}</span>
                     {p.tipo_entrega === 'RETIRADA' && <span className="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-medium">Retirada</span>}
-                    {p.agendado_para && <span className="text-[9px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full font-medium">Agendado</span>}
+                    {p.agendado_para && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">Agendado</span>}
                   </div>
                 </div>
                 {p.status === 'DELIVERED' && <AvaliacaoInline pedidoId={p.id} />}

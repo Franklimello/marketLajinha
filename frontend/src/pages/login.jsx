@@ -56,7 +56,7 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
-      <SEO title="Entrar" description="Faça login no MarketLajinha para acompanhar seus pedidos." noIndex />
+      <SEO title="Entrar" description="Faça login no UaiFood para acompanhar seus pedidos." noIndex />
       <Link to="/" className="flex items-center gap-1 text-stone-400 hover:text-stone-700 text-sm mb-6">
         <FiChevronLeft /> Voltar
       </Link>
@@ -85,26 +85,26 @@ export default function LoginPage() {
           <label className="block text-xs font-medium text-stone-600 mb-1">E-mail</label>
           <div className="relative">
             <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-stone-600 mb-1">Senha</label>
           <div className="relative">
             <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
-            <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required placeholder="••••••" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required placeholder="••••••" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
         </div>
 
         {erro && <p className="text-sm text-red-500 bg-red-50 rounded-lg p-3">{erro}</p>}
 
-        <button type="submit" disabled={carregando} className="w-full py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 text-sm">
+        <button type="submit" disabled={carregando} className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 disabled:opacity-50 text-sm">
           {carregando ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
 
       <p className="text-center text-sm text-stone-400 mt-6">
-        Não tem conta? <Link to={`/cadastro${voltar !== '/perfil' ? `?voltar=${encodeURIComponent(voltar)}` : ''}`} className="text-amber-600 font-medium hover:underline">Criar conta</Link>
+        Não tem conta? <Link to={`/cadastro${voltar !== '/perfil' ? `?voltar=${encodeURIComponent(voltar)}` : ''}`} className="text-red-600 font-medium hover:underline">Criar conta</Link>
       </p>
     </div>
   )

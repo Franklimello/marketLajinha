@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const STATUS_CONFIG = {
   APPROVED: { label: 'Aprovado', cor: 'bg-blue-100 text-blue-700', icon: FiClock },
-  IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-amber-100 text-amber-700', icon: FiNavigation },
+  IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-red-100 text-red-700', icon: FiNavigation },
   DELIVERED: { label: 'Entregue', cor: 'bg-green-100 text-green-700', icon: FiCheckCircle },
 }
 
@@ -85,7 +85,7 @@ export default function MotoboyPedidos() {
 
   return (
     <div className="min-h-screen bg-stone-100">
-      <header className="sticky top-0 z-30 bg-amber-600 text-white shadow-md">
+      <header className="sticky top-0 z-30 bg-red-600 text-white shadow-md">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FiTruck size={20} />
@@ -108,14 +108,14 @@ export default function MotoboyPedidos() {
       <div className="max-w-lg mx-auto px-4 py-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-stone-900">Pedidos para entrega</h2>
-          <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded-full">
+          <span className="text-xs font-medium px-2 py-1 bg-red-100 text-red-700 rounded-full">
             {pedidos.length} pedido(s)
           </span>
         </div>
 
         {loading && pedidos.length === 0 ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : pedidos.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-stone-200">
@@ -152,7 +152,7 @@ export default function MotoboyPedidos() {
                         </div>
                       </div>
                       {p.telefone_cliente && (
-                        <a href={`tel:${p.telefone_cliente}`} className="flex items-center gap-2 text-sm text-amber-700 font-medium">
+                        <a href={`tel:${p.telefone_cliente}`} className="flex items-center gap-2 text-sm text-red-700 font-medium">
                           <FiPhone size={14} /> {p.telefone_cliente}
                         </a>
                       )}
@@ -181,7 +181,7 @@ export default function MotoboyPedidos() {
                         <button
                           onClick={() => mudarStatus(p.id, 'IN_ROUTE')}
                           disabled={atualizando === p.id}
-                          className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
                         >
                           <FiNavigation size={16} />
                           {atualizando === p.id ? 'Atualizando...' : 'Saiu para entrega'}

@@ -6,7 +6,7 @@ function IOSGuideModal({ onClose }) {
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-sm p-6 animate-slide-up" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-stone-900">Instalar MarketLajinha</h3>
+          <h3 className="text-lg font-bold text-stone-900">Instalar UaiFood</h3>
           <button onClick={onClose} className="p-1 text-stone-400 hover:text-stone-600">
             <FiX size={20} />
           </button>
@@ -18,8 +18,8 @@ function IOSGuideModal({ onClose }) {
 
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-bold text-amber-700">1</span>
+            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-sm font-bold text-red-700">1</span>
             </div>
             <div>
               <p className="text-sm font-medium text-stone-800">Toque no botão Compartilhar</p>
@@ -30,8 +30,8 @@ function IOSGuideModal({ onClose }) {
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-bold text-amber-700">2</span>
+            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-sm font-bold text-red-700">2</span>
             </div>
             <div>
               <p className="text-sm font-medium text-stone-800">Adicionar à Tela de Início</p>
@@ -42,8 +42,8 @@ function IOSGuideModal({ onClose }) {
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-bold text-amber-700">3</span>
+            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-sm font-bold text-red-700">3</span>
             </div>
             <div>
               <p className="text-sm font-medium text-stone-800">Confirme tocando "Adicionar"</p>
@@ -54,7 +54,7 @@ function IOSGuideModal({ onClose }) {
 
         <button
           onClick={onClose}
-          className="mt-6 w-full py-3 bg-amber-600 text-white rounded-xl font-semibold text-sm hover:bg-amber-700 transition-colors"
+          className="mt-6 w-full py-3 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 transition-colors"
         >
           Entendi
         </button>
@@ -73,7 +73,7 @@ function UpdateBanner({ onUpdate }) {
         </div>
         <button
           onClick={onUpdate}
-          className="px-4 py-2 bg-amber-600 rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors flex-shrink-0"
+          className="px-4 py-2 bg-red-600 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors flex-shrink-0"
         >
           Atualizar
         </button>

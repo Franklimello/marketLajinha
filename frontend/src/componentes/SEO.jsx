@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-const SITE_NAME = 'MarketLajinha'
+const SITE_NAME = 'UaiFood'
 const DEFAULT_DESCRIPTION = 'Peça dos melhores estabelecimentos da sua cidade. Restaurantes, lanchonetes e muito mais com entrega rápida.'
 const DEFAULT_URL = 'https://marketlajinha.com.br'
 const DEFAULT_IMAGE = `${DEFAULT_URL}/icons/icon-512.png`

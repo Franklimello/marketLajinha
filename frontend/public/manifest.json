@@ -1,12 +1,12 @@
 {
-  "name": "MarketLajinha - Marketplace",
-  "short_name": "MarketLajinha",
+  "name": "UaiFood - Delivery",
+  "short_name": "UaiFood",
   "description": "Peça dos melhores estabelecimentos da sua cidade",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#d97706",
-  "background_color": "#fffbeb",
+  "theme_color": "#0a0a0a",
+  "background_color": "#ffffff",
   "lang": "pt-BR",
   "categories": ["food", "shopping"],
   "icons": [

@@ -16,7 +16,7 @@ function Lazy({ children }) {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center py-20">
-        <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-7 h-7 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       {children}

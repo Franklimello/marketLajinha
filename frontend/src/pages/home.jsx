@@ -84,7 +84,7 @@ function LojaCard({ loja, idx }) {
         <div className="flex items-center gap-1.5 mt-1 text-xs text-stone-500">
           {(loja.nota_media ?? 0) > 0 && (
             <>
-              <FiStar className="text-amber-500 fill-amber-500 text-[11px]" />
+              <FiStar className="text-yellow-500 fill-yellow-500 text-[11px]" />
               <span className="font-medium text-stone-700">{Number(loja.nota_media).toFixed(1).replace('.', ',')}</span>
               <span className="text-stone-300">&bull;</span>
             </>
@@ -179,7 +179,7 @@ export default function HomePage() {
         <div className="text-4xl mb-3">😕</div>
         <p className="text-stone-700 font-medium text-sm mb-1">Ops, algo deu errado</p>
         <p className="text-stone-400 text-xs mb-4">{erro}</p>
-        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
           Tentar novamente
         </button>
       </div>
@@ -189,12 +189,12 @@ export default function HomePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'MarketLajinha',
-    url: 'https://marketlajinha.com.br',
+    name: 'UaiFood',
+    url: 'https://uaifooddelivery.vercel.app',
     description: 'Marketplace com os melhores estabelecimentos da sua cidade',
     potentialAction: {
       '@type': 'SearchAction',
-      target: 'https://marketlajinha.com.br/busca?q={search_term_string}',
+      target: 'https://uaifooddelivery.vercel.app/busca?q={search_term_string}',
       'query-input': 'required name=search_term_string',
     },
   }
@@ -225,7 +225,7 @@ export default function HomePage() {
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar lojas e restaurantes"
-          className="w-full pl-10 pr-10 py-3 bg-stone-100 rounded-xl text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+          className="w-full pl-10 pr-10 py-3 bg-stone-100 rounded-xl text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-500/40"
         />
         {busca && (
           <button onClick={() => setBusca('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5">
@@ -244,10 +244,10 @@ export default function HomePage() {
               onClick={() => setCategoriaSel(ativo ? null : cat.nome)}
               className="flex flex-col items-center gap-1.5 shrink-0"
             >
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-200 ${ativo ? 'bg-amber-100 ring-2 ring-amber-500 scale-110' : 'bg-stone-100 hover:bg-stone-200'}`}>
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-200 ${ativo ? 'bg-red-100 ring-2 ring-red-500 scale-110' : 'bg-stone-100 hover:bg-stone-200'}`}>
                 {cat.emoji}
               </div>
-              <span className={`text-[11px] font-medium whitespace-nowrap transition-colors ${ativo ? 'text-amber-700' : 'text-stone-600'}`}>{cat.nome}</span>
+              <span className={`text-[11px] font-medium whitespace-nowrap transition-colors ${ativo ? 'text-red-600' : 'text-stone-600'}`}>{cat.nome}</span>
             </button>
           )
         })}
@@ -259,7 +259,7 @@ export default function HomePage() {
           <span className="text-xs text-stone-500">Filtrando por:</span>
           <button
             onClick={() => setCategoriaSel(null)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium hover:bg-red-200 transition-colors"
           >
             {categoriaSel} <FiX size={12} />
           </button>
@@ -277,7 +277,6 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="space-y-1">
-          {/* Open stores */}
           {filtradasAbertas.length > 0 && (
             <>
               {!busca && !categoriaSel && filtradasFechadas.length > 0 && (
@@ -292,7 +291,6 @@ export default function HomePage() {
             </>
           )}
 
-          {/* Closed stores */}
           {filtradasFechadas.length > 0 && (
             <>
               {!busca && !categoriaSel && filtradasAbertas.length > 0 && (
@@ -311,26 +309,26 @@ export default function HomePage() {
       )}
 
       {/* CTA Cadastrar loja */}
-      <div className="mt-8 mb-4 bg-linear-to-br from-amber-500 to-orange-500 rounded-2xl p-5 text-white animate-fade-in-up">
+      <div className="mt-8 mb-4 bg-stone-950 rounded-2xl p-5 text-white animate-fade-in-up">
         <h3 className="text-lg font-bold">Tem um negócio?</h3>
-        <p className="text-sm text-white/85 mt-1 leading-relaxed">
-          Cadastre sua loja no MarketLajinha e comece a vender online para toda a cidade!
+        <p className="text-sm text-stone-400 mt-1 leading-relaxed">
+          Cadastre sua loja no UaiFood e comece a vender online para toda a cidade!
         </p>
         <div className="flex flex-wrap gap-2 mt-3">
           <a
-            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no MarketLajinha.')}`}
+            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no UaiFood.')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-amber-700 font-semibold text-sm rounded-xl hover:bg-amber-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white font-semibold text-sm rounded-xl hover:bg-red-700 transition-colors"
           >
-            <FaWhatsapp className="text-green-600 text-lg" />
+            <FaWhatsapp className="text-lg" />
             WhatsApp
           </a>
           <a
             href={SUPORTE_INSTAGRAM}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/20 text-white font-semibold text-sm rounded-xl hover:bg-white/30 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white font-semibold text-sm rounded-xl hover:bg-white/20 transition-colors"
           >
             <FiInstagram className="text-lg" />
             Instagram
@@ -343,7 +341,7 @@ export default function HomePage() {
         <p className="text-[10px] text-stone-300">Precisa de ajuda?</p>
         <div className="flex items-center justify-center gap-3">
           <a
-            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com o MarketLajinha.')}`}
+            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com o UaiFood.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-green-600 transition-colors"

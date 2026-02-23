@@ -138,7 +138,7 @@ export function AuthProvider({ children }) {
     const unsub = onMessage(messaging, (payload) => {
       const { title, body } = payload.notification || {}
       if (Notification.permission === 'granted') {
-        new Notification(title || 'MarketLajinha', {
+        new Notification(title || 'UaiFood', {
           body: body || '',
           icon: '/vite.svg',
           vibrate: [200, 100, 200],

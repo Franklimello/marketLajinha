@@ -36,11 +36,11 @@ export default function MotoboyLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <FiTruck className="text-amber-600" size={32} />
+          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FiTruck className="text-red-600" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-stone-900">Área do Motoboy</h1>
           <p className="text-sm text-stone-500 mt-1">Faça login para acessar os pedidos</p>
@@ -56,7 +56,7 @@ export default function MotoboyLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="w-full pl-10 pr-4 py-3 border border-stone-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-stone-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500/40 focus:border-red-500 outline-none"
               />
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function MotoboyLogin() {
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 placeholder="••••••"
-                className="w-full pl-10 pr-10 py-3 border border-stone-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none"
+                className="w-full pl-10 pr-10 py-3 border border-stone-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500/40 focus:border-red-500 outline-none"
               />
               <button type="button" onClick={() => setVerSenha(!verSenha)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
                 {verSenha ? <FiEyeOff size={16} /> : <FiEye size={16} />}
@@ -85,7 +85,7 @@ export default function MotoboyLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-amber-600 text-white rounded-xl font-semibold text-sm hover:bg-amber-700 transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>

@@ -70,7 +70,7 @@ export default function CadastroPage() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
-      <SEO title="Criar conta" description="Crie sua conta no MarketLajinha e peça nos melhores estabelecimentos." noIndex />
+      <SEO title="Criar conta" description="Crie sua conta no UaiFood e peça nos melhores estabelecimentos." noIndex />
       <Link to="/" className="flex items-center gap-1 text-stone-400 hover:text-stone-700 text-sm mb-6">
         <FiChevronLeft /> Voltar
       </Link>
@@ -99,47 +99,47 @@ export default function CadastroPage() {
           <label className="block text-xs font-medium text-stone-600 mb-1">Nome completo *</label>
           <div className="relative">
             <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
-            <input name="nome" value={form.nome} onChange={handleChange} required placeholder="Seu nome" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input name="nome" value={form.nome} onChange={handleChange} required placeholder="Seu nome" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-stone-600 mb-1">E-mail *</label>
           <div className="relative">
             <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
-            <input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="seu@email.com" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="seu@email.com" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-stone-600 mb-1">Telefone</label>
           <div className="relative">
             <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
-            <input name="telefone" value={form.telefone} onChange={handleChange} placeholder="(XX) XXXXX-XXXX" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input name="telefone" value={form.telefone} onChange={handleChange} placeholder="(XX) XXXXX-XXXX" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-stone-600 mb-1">Senha *</label>
           <div className="relative">
             <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
-            <input name="senha" type="password" value={form.senha} onChange={handleChange} required placeholder="Mínimo 6 caracteres" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input name="senha" type="password" value={form.senha} onChange={handleChange} required placeholder="Mínimo 6 caracteres" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-stone-600 mb-1">Confirmar senha *</label>
           <div className="relative">
             <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
-            <input name="confirmar" type="password" value={form.confirmar} onChange={handleChange} required placeholder="Repita a senha" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input name="confirmar" type="password" value={form.confirmar} onChange={handleChange} required placeholder="Repita a senha" className="w-full pl-10 pr-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
         </div>
 
         {erro && <p className="text-sm text-red-500 bg-red-50 rounded-lg p-3">{erro}</p>}
 
-        <button type="submit" disabled={carregando} className="w-full py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 disabled:opacity-50 text-sm">
+        <button type="submit" disabled={carregando} className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 disabled:opacity-50 text-sm">
           {carregando ? 'Criando...' : 'Criar conta'}
         </button>
       </form>
 
       <p className="text-center text-sm text-stone-400 mt-6">
-        Já tem conta? <Link to={`/login${voltar !== '/perfil' ? `?voltar=${encodeURIComponent(voltar)}` : ''}`} className="text-amber-600 font-medium hover:underline">Entrar</Link>
+        Já tem conta? <Link to={`/login${voltar !== '/perfil' ? `?voltar=${encodeURIComponent(voltar)}` : ''}`} className="text-red-600 font-medium hover:underline">Entrar</Link>
       </p>
     </div>
   )

@@ -16,7 +16,7 @@ messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {};
   const data = payload.data || {};
 
-  self.registration.showNotification(title || 'MarketLajinha', {
+  self.registration.showNotification(title || 'UaiFood', {
     body: body || 'Você tem uma atualização.',
     icon: '/vite.svg',
     badge: '/vite.svg',

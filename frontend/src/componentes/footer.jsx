@@ -28,13 +28,13 @@ export default function Footer() {
               to={href}
               className={`relative flex flex-col items-center justify-center gap-0.5 w-16 py-2 transition-all duration-200 ${
                 isActive
-                  ? 'text-amber-600'
+                  ? 'text-red-600'
                   : 'text-stone-400 hover:text-stone-600'
               }`}
               aria-current={isActive ? 'page' : undefined}
             >
               {isActive && (
-                <span className="absolute -top-2 w-10 h-10 bg-amber-50 rounded-full -z-10" />
+                <span className="absolute -top-2 w-10 h-10 bg-red-50 rounded-full -z-10" />
               )}
               <div className="relative">
                 <Icon className={`text-xl transition-transform ${isActive ? 'scale-110' : ''}`} />

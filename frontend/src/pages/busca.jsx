@@ -60,7 +60,7 @@ export default function BuscaPage() {
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar por nome, categoria ou cidade..."
           autoFocus
-          className="w-full pl-10 pr-10 py-3 bg-stone-100 rounded-xl text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+          className="w-full pl-10 pr-10 py-3 bg-stone-100 rounded-xl text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-500/40"
         />
         {busca && (
           <button
@@ -112,7 +112,7 @@ export default function BuscaPage() {
       {/* Loading */}
       {carregando && (
         <div className="flex items-center justify-center py-16">
-          <div className="w-7 h-7 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-7 h-7 border-3 border-red-500 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
@@ -158,7 +158,7 @@ export default function BuscaPage() {
                   <h3 className="text-[15px] font-bold text-stone-900 truncate">{loja.nome}</h3>
                   <p className="text-xs text-stone-400 truncate mt-0.5">{loja.categoria_negocio}</p>
                   <div className="flex items-center gap-1.5 mt-1 text-xs text-stone-500">
-                    <FiStar className="text-amber-500 fill-amber-500 text-[11px]" />
+                    <FiStar className="text-yellow-500 fill-yellow-500 text-[11px]" />
                     <span className="font-medium text-stone-700">4,9</span>
                     <span className="text-stone-300">&bull;</span>
                     {taxa === 0 ? (

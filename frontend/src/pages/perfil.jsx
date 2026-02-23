@@ -43,7 +43,7 @@ export default function PerfilPage() {
     try { setEnderecos(await api.clientes.enderecos()) } catch {}
   }
 
-  if (authCarregando) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (authCarregando) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!logado) return null
 
   // Se logou mas não cadastrou perfil ainda
@@ -58,14 +58,14 @@ export default function PerfilPage() {
         }} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-stone-600 mb-1">Nome *</label>
-            <input value={formCadastro.nome} onChange={(e) => setFormCadastro((p) => ({ ...p, nome: e.target.value }))} required className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input value={formCadastro.nome} onChange={(e) => setFormCadastro((p) => ({ ...p, nome: e.target.value }))} required className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
           <div>
             <label className="block text-xs font-medium text-stone-600 mb-1">Telefone</label>
-            <input value={formCadastro.telefone} onChange={(e) => setFormCadastro((p) => ({ ...p, telefone: e.target.value }))} placeholder="(XX) XXXXX-XXXX" className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500" />
+            <input value={formCadastro.telefone} onChange={(e) => setFormCadastro((p) => ({ ...p, telefone: e.target.value }))} placeholder="(XX) XXXXX-XXXX" className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
           </div>
           {erro && <p className="text-sm text-red-500">{erro}</p>}
-          <button type="submit" className="w-full py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 text-sm">Salvar</button>
+          <button type="submit" className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 text-sm">Salvar</button>
         </form>
       </div>
     )
@@ -145,7 +145,7 @@ export default function PerfilPage() {
               <input value={formPerfil.telefone} onChange={(e) => setFormPerfil((p) => ({ ...p, telefone: e.target.value }))} className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={salvando} className="flex items-center gap-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 disabled:opacity-50"><FiSave /> Salvar</button>
+              <button type="submit" disabled={salvando} className="flex items-center gap-1 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"><FiSave /> Salvar</button>
               <button type="button" onClick={() => setEditandoPerfil(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700"><FiX /> Cancelar</button>
             </div>
           </form>
@@ -156,7 +156,7 @@ export default function PerfilPage() {
               <p className="text-xs text-stone-400">{cliente.email}</p>
               {cliente.telefone && <p className="text-xs text-stone-400">{cliente.telefone}</p>}
             </div>
-            <button onClick={() => setEditandoPerfil(true)} className="text-amber-600 hover:text-amber-700 text-sm font-medium">Editar</button>
+            <button onClick={() => setEditandoPerfil(true)} className="text-red-600 hover:text-red-700 text-sm font-medium">Editar</button>
           </div>
         )}
       </div>
@@ -166,7 +166,7 @@ export default function PerfilPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-stone-900">Meus endereços</h2>
           {editEndereco === null && (
-            <button onClick={abrirNovoEndereco} className="flex items-center gap-1 text-sm text-amber-600 hover:text-amber-700 font-medium">
+            <button onClick={abrirNovoEndereco} className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 font-medium">
               <FiPlus /> Novo
             </button>
           )}
@@ -206,7 +206,7 @@ export default function PerfilPage() {
             </div>
             {erro && <p className="text-sm text-red-500">{erro}</p>}
             <div className="flex gap-2">
-              <button type="submit" disabled={salvando} className="flex items-center gap-1 px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 disabled:opacity-50"><FiSave /> Salvar</button>
+              <button type="submit" disabled={salvando} className="flex items-center gap-1 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"><FiSave /> Salvar</button>
               <button type="button" onClick={() => { setEditEndereco(null); setErro('') }} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancelar</button>
             </div>
           </form>
@@ -214,16 +214,16 @@ export default function PerfilPage() {
           <div className="bg-white rounded-xl border border-stone-200 p-6 text-center">
             <FiMapPin className="mx-auto text-2xl text-stone-300 mb-2" />
             <p className="text-sm text-stone-400">Nenhum endereço cadastrado</p>
-            <button onClick={abrirNovoEndereco} className="mt-3 text-sm text-amber-600 font-medium hover:underline">Adicionar endereço</button>
+            <button onClick={abrirNovoEndereco} className="mt-3 text-sm text-red-600 font-medium hover:underline">Adicionar endereço</button>
           </div>
         ) : (
           <div className="space-y-2">
             {enderecos.map((end) => (
-              <div key={end.id} className={`bg-white rounded-xl border p-3 ${end.padrao ? 'border-amber-400 bg-amber-50/30' : 'border-stone-200'}`}>
+              <div key={end.id} className={`bg-white rounded-xl border p-3 ${end.padrao ? 'border-red-400 bg-red-50/30' : 'border-stone-200'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      {end.padrao && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
+                      {end.padrao && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
                       {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
                     </div>
                     <p className="text-sm text-stone-800 mt-1">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
@@ -231,7 +231,7 @@ export default function PerfilPage() {
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                     {!end.padrao && (
-                      <button onClick={() => definirPadrao(end.id)} title="Definir como padrão" className="w-7 h-7 flex items-center justify-center text-stone-400 hover:text-amber-600 rounded-lg hover:bg-amber-50">
+                      <button onClick={() => definirPadrao(end.id)} title="Definir como padrão" className="w-7 h-7 flex items-center justify-center text-stone-400 hover:text-red-600 rounded-lg hover:bg-red-50">
                         <FiStar className="text-xs" />
                       </button>
                     )}
