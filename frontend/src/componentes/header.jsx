@@ -15,9 +15,9 @@ export default function Header() {
           aria-label="UaiFood - Ir para início"
         >
           <img
-            src="/icons/icon-maskable-512.png"
+            src="/icons/novalogo.png"
             alt=""
-            className="h-9 w-9 rounded-lg"
+            className="h-10 w-10"
           />
           <div className="flex items-baseline gap-0">
             <span className="text-[22px] font-extrabold tracking-tight text-red-500">Uai</span>
