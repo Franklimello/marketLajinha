@@ -6,7 +6,7 @@ const tipoEntregaEnum = z.enum(['ENTREGA', 'RETIRADA']);
 
 const schemaItemPedido = z.object({
   produto_id: z.string().cuid('ID do produto inválido'),
-  quantidade: z.number().int().min(1, 'Quantidade deve ser pelo menos 1'),
+  quantidade: z.coerce.number().int().min(1, 'Quantidade deve ser pelo menos 1'),
   variacao_id: z.string().optional(),
   adicionais_ids: z.array(z.string()).optional().default([]),
 });
@@ -20,7 +20,7 @@ const schemaPedidos = z.object({
   bairro: z.string().optional().default(''),
   complemento: z.string().optional().default(''),
   referencia: z.string().optional().default(''),
-  taxa_entrega: z.number().min(0).optional().default(0),
+  taxa_entrega: z.coerce.number().min(0).optional().default(0),
   forma_pagamento: formaPagamentoEnum,
   observacao: z.string().optional().default(''),
   agendado_para: z.string().datetime().optional().or(z.literal('')).or(z.null()),
