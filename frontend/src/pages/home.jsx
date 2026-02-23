@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { api } from '../api/client'
+import { useDebounce } from '../hooks/useDebounce'
 import SEO from '../componentes/SEO'
 
 const SUPORTE_WHATSAPP = '5519997050303'
@@ -112,6 +113,7 @@ const LojaCard = memo(function LojaCard({ loja, idx }) {
 export default function HomePage() {
   const [lojas, setLojas] = useState([])
   const [busca, setBusca] = useState('')
+  const buscaDebounced = useDebounce(busca, 250)
   const [categoriaSel, setCategoriaSel] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
@@ -130,8 +132,8 @@ export default function HomePage() {
 
   const lojasFiltradas = useMemo(() => {
     let lista = [...lojasAbertas, ...lojasFechadas]
-    if (busca.trim()) {
-      const b = busca.toLowerCase()
+    if (buscaDebounced.trim()) {
+      const b = buscaDebounced.toLowerCase()
       lista = lista.filter(
         (l) => l.nome.toLowerCase().includes(b) || l.categoria_negocio.toLowerCase().includes(b)
       )
@@ -141,7 +143,7 @@ export default function HomePage() {
       lista = lista.filter((l) => l.categoria_negocio.toLowerCase().includes(c))
     }
     return lista
-  }, [lojasAbertas, lojasFechadas, busca, categoriaSel])
+  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel])
 
   const filtradasAbertas = useMemo(() => lojasFiltradas.filter((l) => l.aberta_agora ?? l.aberta), [lojasFiltradas])
   const filtradasFechadas = useMemo(() => lojasFiltradas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasFiltradas])

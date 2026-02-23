@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -9,7 +9,7 @@ function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
 }
 
-function CarrosselDestaques({ produtos, onAdd }) {
+const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd }) {
   const ref = useRef(null)
   const intervaloRef = useRef(null)
 
@@ -65,7 +65,7 @@ function CarrosselDestaques({ produtos, onAdd }) {
       </div>
     </div>
   )
-}
+})
 
 export default function LojaPage() {
   const { slug } = useParams()
@@ -158,13 +158,13 @@ export default function LojaPage() {
   }
 
   // ---- Carrinho ----
-  function addItemDireto(produto) {
+  const addItemDireto = useCallback((produto) => {
     setProdutoDetalhe(produto)
     setVariacaoSel(produto.variacoes?.[0]?.id || null)
     setAdicionaisSel([])
     setQtdDetalhe(1)
     setObsDetalhe('')
-  }
+  }, [])
 
   function addItemConfigurado() {
     const p = produtoDetalhe
@@ -280,7 +280,7 @@ export default function LojaPage() {
     }))
   }
 
-  function addComboAoCarrinho(combo) {
+  const addComboAoCarrinho = useCallback((combo) => {
     const chave = `combo__${combo.id}`
     setCarrinho((prev) => ({
       ...prev,
@@ -294,7 +294,7 @@ export default function LojaPage() {
         comboItens: combo.itens,
       },
     }))
-  }
+  }, [])
 
   function qtdProduto(produtoId) {
     return itensCarrinho.filter(([, i]) => i.produto.id === produtoId).reduce((s, [, i]) => s + i.qtd, 0)

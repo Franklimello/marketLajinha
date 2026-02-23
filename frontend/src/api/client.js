@@ -3,6 +3,26 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 let getTokenFn = () => null
 export function setTokenGetter(fn) { getTokenFn = fn }
 
+const cache = new Map()
+const CACHE_TTL = 60_000
+
+function getCached(key) {
+  const entry = cache.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.ts > CACHE_TTL) { cache.delete(key); return null }
+  return entry.data
+}
+
+function setCache(key, data) {
+  cache.set(key, { data, ts: Date.now() })
+}
+
+export function invalidateCache(prefix) {
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key)
+  }
+}
+
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
   const token = await getTokenFn()
@@ -22,14 +42,20 @@ async function request(path, options = {}) {
   return res.json()
 }
 
+function cachedRequest(path) {
+  const cached = getCached(path)
+  if (cached) return Promise.resolve(cached)
+  return request(path).then((data) => { setCache(path, data); return data })
+}
+
 export const api = {
   lojas: {
-    listarAtivas: () => request('/lojas/ativos'),
-    buscarPorSlug: (slug) => request(`/lojas/slug/${slug}`),
-    buscarPorId: (id) => request(`/lojas/${id}`),
+    listarAtivas: () => cachedRequest('/lojas/ativos'),
+    buscarPorSlug: (slug) => cachedRequest(`/lojas/slug/${slug}`),
+    buscarPorId: (id) => cachedRequest(`/lojas/${id}`),
     produtos: (lojaIdOuSlug, pagina = 1) =>
-      request(`/lojas/${lojaIdOuSlug}/produtos?pagina=${pagina}`),
-    bairros: (lojaId) => request(`/lojas/${lojaId}/bairros`),
+      cachedRequest(`/lojas/${lojaIdOuSlug}/produtos?pagina=${pagina}`),
+    bairros: (lojaId) => cachedRequest(`/lojas/${lojaId}/bairros`),
     gerarPix: (lojaId, valor, pedidoId) =>
       request(`/lojas/${lojaId}/pix`, {
         method: 'POST',
@@ -37,7 +63,7 @@ export const api = {
       }),
   },
   combos: {
-    listarPorLoja: (lojaId) => request(`/combos/loja/${lojaId}`),
+    listarPorLoja: (lojaId) => cachedRequest(`/combos/loja/${lojaId}`),
   },
   pedidos: {
     criar: (data) => request('/pedidos', { method: 'POST', body: JSON.stringify(data) }),
@@ -48,8 +74,8 @@ export const api = {
   },
   avaliacoes: {
     criar: (data) => request('/avaliacoes', { method: 'POST', body: JSON.stringify(data) }),
-    listarPorLoja: (lojaId, pagina = 1) => request(`/avaliacoes/loja/${lojaId}?pagina=${pagina}`),
-    mediaPorLoja: (lojaId) => request(`/avaliacoes/loja/${lojaId}/media`),
+    listarPorLoja: (lojaId, pagina = 1) => cachedRequest(`/avaliacoes/loja/${lojaId}?pagina=${pagina}`),
+    mediaPorLoja: (lojaId) => cachedRequest(`/avaliacoes/loja/${lojaId}/media`),
   },
   chat: {
     mensagens: (pedidoId) => request(`/chat/${pedidoId}/mensagens`),

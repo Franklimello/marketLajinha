@@ -2,11 +2,13 @@ import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { FiSearch, FiX, FiStar, FiMapPin } from 'react-icons/fi'
 import { api } from '../api/client'
+import { useDebounce } from '../hooks/useDebounce'
 import SEO from '../componentes/SEO'
 
 export default function BuscaPage() {
   const [lojas, setLojas] = useState([])
   const [busca, setBusca] = useState('')
+  const buscaDebounced = useDebounce(busca, 250)
   const [categoriaSel, setCategoriaSel] = useState('')
   const [carregando, setCarregando] = useState(true)
 
@@ -30,8 +32,8 @@ export default function BuscaPage() {
       lista = lista.filter((l) => l.categoria_negocio === categoriaSel)
     }
 
-    if (busca.trim()) {
-      const q = busca.toLowerCase()
+    if (buscaDebounced.trim()) {
+      const q = buscaDebounced.toLowerCase()
       lista = lista.filter(
         (l) =>
           l.nome.toLowerCase().includes(q) ||
@@ -43,7 +45,7 @@ export default function BuscaPage() {
     const abertas = lista.filter((l) => l.aberta_agora ?? l.aberta)
     const fechadas = lista.filter((l) => !(l.aberta_agora ?? l.aberta))
     return [...abertas, ...fechadas]
-  }, [lojas, busca, categoriaSel])
+  }, [lojas, buscaDebounced, categoriaSel])
 
   return (
     <div className="max-w-lg mx-auto px-4 pb-4">
