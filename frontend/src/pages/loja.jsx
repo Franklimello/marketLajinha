@@ -12,6 +12,13 @@ function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
 }
 
+function normalizarTelefoneWhatsapp(raw) {
+  const digits = String(raw || '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('55')) return digits
+  return `55${digits}`
+}
+
 function serializarCarrinho(carrinho) {
   return Object.entries(carrinho).map(([key, item]) => ({
     key,
@@ -520,6 +527,14 @@ export default function LojaPage() {
 
   const aberta = loja.aberta_agora ?? loja.aberta
   const taxa = loja.taxa_entrega ?? 0
+  const numeroPedidoCurto = pedidoCriado?.id?.slice(-6).toUpperCase() || ''
+  const telefoneLojaWhatsapp = normalizarTelefoneWhatsapp(loja?.telefone)
+  const textoComprovante = encodeURIComponent(
+    `Olá, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do pedido #${numeroPedidoCurto}.`
+  )
+  const linkComprovanteWhatsapp = telefoneLojaWhatsapp
+    ? `https://wa.me/${telefoneLojaWhatsapp}?text=${textoComprovante}`
+    : ''
 
   // ---- Confirmado ----
   if (etapa === 'confirmado') {
@@ -632,6 +647,25 @@ export default function LojaPage() {
               <div className="flex justify-center mb-4"><img src={pixData.qrcode} alt="QR Code PIX" className="w-56 h-56 rounded-xl" /></div>
               <p className="text-xs text-stone-400 mb-3">Titular: <strong className="text-stone-600">{pixData.nome_titular}</strong></p>
               <div className="bg-stone-50 rounded-lg p-3 mb-4"><p className="text-[10px] text-stone-400 mb-1 uppercase tracking-wider font-medium">PIX Copia e Cola</p><p className="text-xs text-stone-600 font-mono break-all leading-relaxed">{pixData.payload.substring(0, 80)}...</p></div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
+                <p className="text-xs font-semibold text-amber-800">
+                  Após pagar, envie o comprovante para a loja para agilizar a confirmação.
+                </p>
+                {linkComprovanteWhatsapp ? (
+                  <a
+                    href={linkComprovanteWhatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center justify-center w-full py-2.5 bg-amber-500 text-white rounded-lg text-xs font-semibold hover:bg-amber-600 transition-colors"
+                  >
+                    Enviar comprovante para loja
+                  </a>
+                ) : (
+                  <p className="text-[11px] text-amber-700 mt-1.5">
+                    Se necessário, envie o comprovante no chat do pedido.
+                  </p>
+                )}
+              </div>
               <button onClick={copiarPayload} className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 text-sm">{copiado ? <><FiCheck /> Copiado!</> : <><FiCopy /> Copiar código PIX</>}</button>
               <button onClick={handleFinalizarPix} className="w-full mt-3 py-2.5 text-green-700 bg-green-50 font-medium rounded-xl hover:bg-green-100 text-sm">Já paguei</button>
             </>
