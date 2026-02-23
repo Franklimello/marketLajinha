@@ -7,6 +7,14 @@ import {
   FiKey, FiRefreshCw
 } from 'react-icons/fi'
 
+function formatCurrency(v) {
+  return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function formatPercent(v) {
+  return `${Number(v || 0).toFixed(1).replace('.', ',')}%`
+}
+
 export default function AdminSistema() {
   const [stats, setStats] = useState(null)
   const [lojas, setLojas] = useState([])
@@ -110,12 +118,14 @@ export default function AdminSistema() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
           <StatCard icon={FiShoppingBag} label="Lojas" value={stats.lojas} sub={`${stats.lojasAtivas} ativas`} color="amber" />
           <StatCard icon={FiUsers} label="Usuários" value={stats.usuarios} color="blue" />
           <StatCard icon={FiPackage} label="Produtos" value={stats.produtos} color="green" />
           <StatCard icon={FiClipboard} label="Pedidos" value={stats.pedidos} color="purple" />
           <StatCard icon={FiUsers} label="Clientes" value={stats.clientes} color="rose" />
+          <StatCard icon={FiClipboard} label="Pedidos 30d" value={stats.pedidos30d || 0} color="indigo" />
+          <StatCard icon={FiShoppingBag} label="Faturamento 30d" value={formatCurrency(stats.faturamento30d)} color="emerald" />
         </div>
       )}
 
@@ -148,9 +158,9 @@ export default function AdminSistema() {
                 <div className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors">
                   {/* Logo */}
                   {loja.logo_url ? (
-                    <img src={loja.logo_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                    <img src={loja.logo_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center font-bold text-amber-700 flex-shrink-0 text-sm">
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center font-bold text-amber-700 shrink-0 text-sm">
                       {loja.nome?.charAt(0)}
                     </div>
                   )}
@@ -169,12 +179,30 @@ export default function AdminSistema() {
                       <span>/{loja.slug}</span>
                       {loja.cidade && <span>• {loja.cidade}</span>}
                       <span>• {loja._count?.produtos || 0} prod.</span>
-                      <span>• {loja._count?.pedidos || 0} ped.</span>
+                      <span>• {loja.metricas?.pedidos_total || 0} ped.</span>
+                    </div>
+                    <div className="text-[11px] mt-1 flex flex-wrap gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+                        {formatCurrency(loja.metricas?.faturamento_total)}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-medium">
+                        Ticket {formatCurrency(loja.metricas?.ticket_medio)}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
+                        30d: {formatCurrency(loja.metricas?.faturamento_30d)}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full font-medium ${
+                        (loja.metricas?.taxa_cancelamento || 0) > 20
+                          ? 'bg-red-50 text-red-700'
+                          : 'bg-stone-100 text-stone-600'
+                      }`}>
+                        Cancel.: {formatPercent(loja.metricas?.taxa_cancelamento)}
+                      </span>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => verDetalhes(loja.id)}
                       className="p-2 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors"
@@ -216,6 +244,21 @@ export default function AdminSistema() {
                 {expandida === loja.id && detalheLoja && (
                   <div className="px-4 pb-4 bg-stone-50 border-t border-stone-100">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                      {/* Métricas comerciais */}
+                      <div className="bg-white rounded-lg p-3 border border-stone-200 sm:col-span-2">
+                        <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Performance comercial</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                          <InfoBox label="Pedidos total" value={detalheLoja.metricas?.pedidos_total || 0} />
+                          <InfoBox label="Pedidos 30d" value={detalheLoja.metricas?.pedidos_30d || 0} />
+                          <InfoBox label="Faturamento total" value={formatCurrency(detalheLoja.metricas?.faturamento_total)} />
+                          <InfoBox label="Faturamento 30d" value={formatCurrency(detalheLoja.metricas?.faturamento_30d)} />
+                          <InfoBox label="Ticket médio" value={formatCurrency(detalheLoja.metricas?.ticket_medio)} />
+                          <InfoBox label="Cancelados" value={detalheLoja.metricas?.pedidos_cancelados || 0} />
+                          <InfoBox label="Taxa cancel." value={formatPercent(detalheLoja.metricas?.taxa_cancelamento)} />
+                          <InfoBox label="Status dominante" value={statusDominante(detalheLoja.metricas?.status)} />
+                        </div>
+                      </div>
+
                       {/* Usuários da loja */}
                       <div className="bg-white rounded-lg p-3 border border-stone-200">
                         <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Usuários ({detalheLoja.usuarios?.length || 0})</h4>
@@ -525,6 +568,8 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
     green: 'bg-green-50 text-green-600',
     purple: 'bg-purple-50 text-purple-600',
     rose: 'bg-rose-50 text-rose-600',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
   }
   return (
     <div className="bg-white rounded-xl border border-stone-200 p-4">
@@ -538,6 +583,19 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
       {sub && <p className="text-xs text-stone-400 mt-0.5">{sub}</p>}
     </div>
   )
+}
+
+function statusDominante(status = {}) {
+  const labels = {
+    PENDING: 'Pendente',
+    APPROVED: 'Aprovado',
+    IN_ROUTE: 'Em rota',
+    DELIVERED: 'Entregue',
+    CANCELLED: 'Cancelado',
+  }
+  const entrada = Object.entries(status || {}).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))[0]
+  if (!entrada || Number(entrada[1] || 0) === 0) return '—'
+  return labels[entrada[0]] || entrada[0]
 }
 
 function InfoBox({ label, value }) {
