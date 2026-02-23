@@ -36,7 +36,7 @@ export default function SobrePage() {
         description="Conheça o UaiFood: plataforma de marketplace e delivery que fortalece o comércio local em cidades pequenas e médias."
       />
 
-      <section className="bg-gradient-to-br from-stone-950 to-stone-800 rounded-2xl p-6 md:p-8 text-white">
+      <section className="bg-linear-to-br from-stone-950 to-stone-800 rounded-2xl p-6 md:p-8 text-white">
         <p className="inline-flex items-center rounded-full bg-red-500/20 text-red-200 text-xs font-semibold px-3 py-1 mb-4">
           Sobre o UaiFood
         </p>
@@ -53,7 +53,7 @@ export default function SobrePage() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            to="https://wa.me/5533999394706?text=Ol%C3%A1!%20Quero%20cadastrar%20minha%20loja%20no%20UaiFood."
+            to="https://wa.me/5533998680141?text=Ol%C3%A1!%20Quero%20cadastrar%20minha%20loja%20no%20UaiFood."
             target="_blank"
             rel="noreferrer"
             className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors text-sm font-semibold"
@@ -186,7 +186,7 @@ export default function SobrePage() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            to="https://wa.me/5533999394706?text=Ol%C3%A1!%20Quero%20me%20cadastrar%20como%20lojista%20no%20UaiFood."
+            to="https://wa.me/5533998680141?text=Ol%C3%A1!%20Quero%20me%20cadastrar%20como%20lojista%20no%20UaiFood."
             target="_blank"
             rel="noreferrer"
             className="px-4 py-2.5 rounded-xl bg-white text-red-700 hover:bg-red-50 transition-colors text-sm font-semibold"

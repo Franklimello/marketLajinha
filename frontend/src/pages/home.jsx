@@ -9,7 +9,7 @@ import { usePrefetchLoja } from '../hooks/usePrefetch'
 import SEO from '../componentes/SEO'
 import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
 
-const SUPORTE_WHATSAPP = '5533999394706'
+const SUPORTE_WHATSAPP = '5533998680141'
 const SUPORTE_NOME = 'Franklim'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/uaifood2026/'
 const HOME_CACHE_KEY = 'homeLojasCache'
@@ -47,6 +47,7 @@ const LojaCard = memo(function LojaCard({ loja, idx }) {
   const [imgError, setImgError] = useState(false)
   const isAboveFold = idx < 4
   const prefetch = usePrefetchLoja(loja.slug)
+  const shouldAnimate = idx < 8
 
   return (
     <Link
@@ -54,10 +55,14 @@ const LojaCard = memo(function LojaCard({ loja, idx }) {
       to={`/loja/${loja.slug}`}
       onMouseEnter={prefetch.onMouseEnter}
       onTouchStart={prefetch.onTouchStart}
-      className={`flex items-center gap-4 px-2 py-3.5 rounded-xl transition-all duration-200 hover:bg-stone-50 active:scale-[0.98] animate-fade-in-up ${
+      className={`flex items-center gap-4 px-2 py-3.5 rounded-xl transition-all duration-200 hover:bg-stone-50 active:scale-[0.98] ${shouldAnimate ? 'animate-fade-in-up' : ''} ${
         !aberta ? 'opacity-50' : ''
       }`}
-      style={{ animationDelay: `${Math.min(idx, 10) * 50}ms` }}
+      style={{
+        animationDelay: shouldAnimate ? `${Math.min(idx, 10) * 50}ms` : '0ms',
+        contentVisibility: idx >= 8 ? 'auto' : 'visible',
+        containIntrinsicSize: idx >= 8 ? '88px' : 'auto',
+      }}
     >
       <div className="relative shrink-0">
         {!imgError && loja.logo_url ? (
@@ -129,6 +134,7 @@ export default function HomePage() {
   const buscaDebounced = useDebounce(busca, 250)
   const [categoriaSel, setCategoriaSel] = useState(null)
   const [cidadeSel, setCidadeSel] = useState(() => getLocalItem('cidadeSelecionada', ''))
+  const [visibleCount, setVisibleCount] = useState(12)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const catRef = useRef(null)
@@ -185,6 +191,48 @@ export default function HomePage() {
 
   const filtradasAbertas = useMemo(() => lojasFiltradas.filter((l) => l.aberta_agora ?? l.aberta), [lojasFiltradas])
   const filtradasFechadas = useMemo(() => lojasFiltradas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasFiltradas])
+
+  useEffect(() => {
+    setVisibleCount(12)
+    if (lojasFiltradas.length <= 12) return undefined
+
+    let cancelled = false
+    let timeoutId = null
+    let idleId = null
+
+    function scheduleNext() {
+      if (cancelled) return
+      if ('requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(() => {
+          setVisibleCount((prev) => {
+            const next = Math.min(prev + 12, lojasFiltradas.length)
+            if (next < lojasFiltradas.length) scheduleNext()
+            return next
+          })
+        }, { timeout: 300 })
+      } else {
+        timeoutId = window.setTimeout(() => {
+          setVisibleCount((prev) => {
+            const next = Math.min(prev + 12, lojasFiltradas.length)
+            if (next < lojasFiltradas.length) scheduleNext()
+            return next
+          })
+        }, 120)
+      }
+    }
+
+    scheduleNext()
+
+    return () => {
+      cancelled = true
+      if (timeoutId) clearTimeout(timeoutId)
+      if (idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
+    }
+  }, [lojasFiltradas.length])
+
+  const lojasVisiveis = useMemo(() => lojasFiltradas.slice(0, visibleCount), [lojasFiltradas, visibleCount])
+  const filtradasAbertasVisiveis = useMemo(() => lojasVisiveis.filter((l) => l.aberta_agora ?? l.aberta), [lojasVisiveis])
+  const filtradasFechadasVisiveis = useMemo(() => lojasVisiveis.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasVisiveis])
 
   if (carregando) {
     return (
@@ -343,23 +391,23 @@ export default function HomePage() {
                   <span className="text-xs font-semibold text-stone-700">Abertas agora</span>
                 </div>
               )}
-              {filtradasAbertas.map((loja, idx) => (
+              {filtradasAbertasVisiveis.map((loja, idx) => (
                 <LojaCard key={loja.id} loja={loja} idx={idx} />
               ))}
             </>
           )}
 
-          {filtradasFechadas.length > 0 && (
+          {filtradasFechadasVisiveis.length > 0 && (
             <>
-              {!busca && !categoriaSel && filtradasAbertas.length > 0 && (
+              {!busca && !categoriaSel && filtradasAbertasVisiveis.length > 0 && (
                 <div className="flex items-center gap-2 pt-4 pb-2">
                   <span className="w-2 h-2 bg-stone-300 rounded-full" />
                   <span className="text-xs font-semibold text-stone-400">Fechadas</span>
                   <div className="flex-1 h-px bg-stone-100" />
                 </div>
               )}
-              {filtradasFechadas.map((loja, idx) => (
-                <LojaCard key={loja.id} loja={loja} idx={filtradasAbertas.length + idx} />
+              {filtradasFechadasVisiveis.map((loja, idx) => (
+                <LojaCard key={loja.id} loja={loja} idx={filtradasAbertasVisiveis.length + idx} />
               ))}
             </>
           )}
