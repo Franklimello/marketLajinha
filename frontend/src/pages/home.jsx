@@ -10,7 +10,7 @@ import SEO from '../componentes/SEO'
 
 const SUPORTE_WHATSAPP = '5519997050303'
 const SUPORTE_NOME = 'Franklim'
-const SUPORTE_INSTAGRAM = 'https://www.instagram.com/franklimello30/'
+const SUPORTE_INSTAGRAM = 'https://www.instagram.com/uaifood2026/'
 
 const CATEGORIAS = [
   { nome: 'Pizza', emoji: '🍕' },
