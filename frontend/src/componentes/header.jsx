@@ -7,7 +7,7 @@ export default function Header() {
   const showInstall = (canInstall || (isIOS && !installed))
 
   return (
-    <header className="bg-stone-950 fixed top-0 left-0 right-0 z-50 h-14">
+    <header className="bg-stone-950 fixed top-0 left-0 right-0 z-50 h-20">
       <div className="max-w-lg mx-auto px-4 h-full flex items-center justify-between">
         <Link
           to="/"
@@ -17,7 +17,7 @@ export default function Header() {
           <img
             src="/icons/novalogo.png"
             alt=""
-            className="h-10 w-10"
+            className="h-20 w-20"
           />
           <div className="flex items-baseline gap-0">
             <span className="text-[22px] font-extrabold tracking-tight text-red-500">Uai</span>
