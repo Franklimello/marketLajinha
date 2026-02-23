@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiTruck, FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'
+import { setItem as setSessionItem } from '../../storage/sessionStorageService'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -27,8 +28,8 @@ export default function MotoboyLogin() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.erro || 'Erro ao fazer login')
 
-      localStorage.setItem('motoboy_token', data.token)
-      localStorage.setItem('motoboy_data', JSON.stringify(data.motoboy))
+      setSessionItem('motoboy_token', data.token)
+      setSessionItem('motoboy_data', data.motoboy)
       navigate('/motoboy/pedidos')
     } catch (err) {
       setErro(err.message)
@@ -36,7 +37,7 @@ export default function MotoboyLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-red-50 via-white to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">

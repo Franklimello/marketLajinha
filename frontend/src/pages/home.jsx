@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
 import { usePrefetchLoja } from '../hooks/usePrefetch'
 import SEO from '../componentes/SEO'
+import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
 
 const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_NOME = 'Franklim'
@@ -122,6 +123,7 @@ export default function HomePage() {
   const [busca, setBusca] = useState('')
   const buscaDebounced = useDebounce(busca, 250)
   const [categoriaSel, setCategoriaSel] = useState(null)
+  const [cidadeSel, setCidadeSel] = useState(() => getLocalItem('cidadeSelecionada', ''))
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const catRef = useRef(null)
@@ -139,6 +141,10 @@ export default function HomePage() {
 
   const lojasFiltradas = useMemo(() => {
     let lista = [...lojasAbertas, ...lojasFechadas]
+    if (cidadeSel) {
+      const c = cidadeSel.toLowerCase()
+      lista = lista.filter((l) => String(l.cidade || '').toLowerCase() === c)
+    }
     if (buscaDebounced.trim()) {
       const b = buscaDebounced.toLowerCase()
       lista = lista.filter(
@@ -150,7 +156,16 @@ export default function HomePage() {
       lista = lista.filter((l) => l.categoria_negocio.toLowerCase().includes(c))
     }
     return lista
-  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel])
+  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel, cidadeSel])
+
+  const cidades = useMemo(() => {
+    const uniq = [...new Set(lojas.map((l) => l.cidade).filter(Boolean))]
+    return uniq.sort((a, b) => a.localeCompare(b))
+  }, [lojas])
+
+  useEffect(() => {
+    setLocalItem('cidadeSelecionada', cidadeSel || '')
+  }, [cidadeSel])
 
   const filtradasAbertas = useMemo(() => lojasFiltradas.filter((l) => l.aberta_agora ?? l.aberta), [lojasFiltradas])
   const filtradasFechadas = useMemo(() => lojasFiltradas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasFiltradas])
@@ -243,6 +258,20 @@ export default function HomePage() {
             <FiX size={16} />
           </button>
         )}
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-[11px] text-stone-500 mb-1">Cidade</label>
+        <select
+          value={cidadeSel}
+          onChange={(e) => setCidadeSel(e.target.value)}
+          className="w-full px-3 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+        >
+          <option value="">Todas as cidades</option>
+          {cidades.map((cidade) => (
+            <option key={cidade} value={cidade}>{cidade}</option>
+          ))}
+        </select>
       </div>
 
       {/* Categorias */}

@@ -10,15 +10,29 @@ function getBearerToken(req) {
   return auth.slice(7);
 }
 
+function getAuthToken(req) {
+  const bearer = getBearerToken(req);
+  if (bearer) return bearer;
+  const cookieToken = req.cookies?.session;
+  if (cookieToken && typeof cookieToken === 'string') return cookieToken;
+  return null;
+}
+
 async function authMiddleware(req, res, next) {
   req.user = null;
   req.firebaseDecoded = null;
-  const token = getBearerToken(req);
+  const token = getAuthToken(req);
   if (!token) return next();
   if (!isFirebaseInitialized()) return next();
 
   try {
-    const decoded = await getAuth().verifyIdToken(token);
+    const firebaseAuth = getAuth();
+    let decoded;
+    try {
+      decoded = await firebaseAuth.verifyIdToken(token);
+    } catch {
+      decoded = await firebaseAuth.verifySessionCookie(token, true);
+    }
     req.firebaseDecoded = decoded;
     const usuario = await prisma.usuarios.findUnique({
       where: { firebase_uid: decoded.uid },
@@ -67,6 +81,7 @@ function requireSameStore(storeIdParam = 'id') {
 
 module.exports = {
   getBearerToken,
+  getAuthToken,
   authMiddleware,
   requireAuth,
   requireAdmin,

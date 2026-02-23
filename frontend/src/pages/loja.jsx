@@ -4,9 +4,64 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
 import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift, FiStar, FiCalendar } from 'react-icons/fi'
+import { getItem as getLocalItem, setItem as setLocalItem, removeItem as removeLocalItem } from '../storage/localStorageService'
+import { getItem as getSessionItem, setItem as setSessionItem, removeItem as removeSessionItem } from '../storage/sessionStorageService'
+import { addLocalOrderHistory, enqueuePendingOrder, setupAutoSync } from '../storage/offlineDatabase'
 
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
+}
+
+function serializarCarrinho(carrinho) {
+  return Object.entries(carrinho).map(([key, item]) => ({
+    key,
+    produtoId: item?.produto?.id || null,
+    variacaoId: item?.variacao?.id || null,
+    adicionaisIds: (item?.adicionais || []).map((a) => a.id),
+    qtd: Number(item?.qtd || 0),
+    isCombo: !!item?.isCombo,
+    comboId: item?.isCombo ? item?.produto?.id : null,
+  })).filter((i) => i.produtoId && i.qtd > 0)
+}
+
+function restaurarCarrinho(snapshot, produtos, combos) {
+  if (!Array.isArray(snapshot)) return {}
+  const byId = Object.fromEntries((produtos || []).map((p) => [p.id, p]))
+  const combosById = Object.fromEntries((combos || []).map((c) => [c.id, c]))
+  const result = {}
+  for (const row of snapshot) {
+    if (row.isCombo) {
+      const combo = combosById[row.comboId]
+      if (!combo) continue
+      result[row.key] = {
+        produto: { id: combo.id, nome: combo.nome, preco: combo.preco, imagem_url: combo.imagem_url },
+        variacao: null,
+        adicionais: [],
+        precoUnit: Number(combo.preco),
+        obs: combo.itens?.map((i) => `${i.quantidade}x ${i.produto?.nome}`).join(', ') || '',
+        qtd: Number(row.qtd || 1),
+        isCombo: true,
+        comboItens: combo.itens,
+      }
+      continue
+    }
+
+    const produto = byId[row.produtoId]
+    if (!produto) continue
+    const variacao = (produto.variacoes || []).find((v) => v.id === row.variacaoId) || null
+    const adicionais = (produto.adicionais || []).filter((a) => (row.adicionaisIds || []).includes(a.id))
+    const precoBase = variacao ? Number(variacao.preco) : Number(produto.preco)
+    const precoAdds = adicionais.reduce((s, a) => s + Number(a.preco), 0)
+    result[row.key] = {
+      produto,
+      variacao,
+      adicionais,
+      precoUnit: precoBase + precoAdds,
+      obs: '',
+      qtd: Number(row.qtd || 1),
+    }
+  }
+  return result
 }
 
 const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd }) {
@@ -116,6 +171,7 @@ export default function LojaPage() {
   const [cupomCarregando, setCupomCarregando] = useState(false)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
+  const restoredCartRef = useRef(false)
 
   function mostrarToast(msg) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -124,6 +180,8 @@ export default function LojaPage() {
   }
 
   const [produtosCarregando, setProdutosCarregando] = useState(true)
+  const cartStorageKey = `cart:${slug}`
+  const checkoutStorageKey = `checkout:${slug}`
 
   useEffect(() => {
     if (!slug) return
@@ -144,6 +202,43 @@ export default function LojaPage() {
       })
       .catch((e) => { setErro(e.message); setCarregando(false); setProdutosCarregando(false) })
   }, [slug])
+
+  useEffect(() => {
+    if (restoredCartRef.current) return
+    if (produtosCarregando) return
+    const snapshot = getLocalItem(cartStorageKey, [])
+    const restored = restaurarCarrinho(snapshot, produtos.dados, combos)
+    if (Object.keys(restored).length > 0) setCarrinho(restored)
+
+    const checkout = getSessionItem(checkoutStorageKey, null)
+    if (checkout && typeof checkout === 'object') {
+      if (checkout.etapa) setEtapa(checkout.etapa)
+      if (checkout.tipoEntrega) setTipoEntrega(checkout.tipoEntrega)
+      if (checkout.formPedido) setFormPedido((prev) => ({ ...prev, ...checkout.formPedido }))
+      if (checkout.enderecoSel) setEnderecoSel(checkout.enderecoSel)
+    }
+    restoredCartRef.current = true
+  }, [produtosCarregando, produtos.dados, combos, cartStorageKey, checkoutStorageKey])
+
+  useEffect(() => {
+    if (!slug) return
+    setLocalItem(cartStorageKey, serializarCarrinho(carrinho))
+  }, [carrinho, cartStorageKey, slug])
+
+  useEffect(() => {
+    if (!slug) return
+    setSessionItem(checkoutStorageKey, {
+      etapa,
+      tipoEntrega,
+      formPedido,
+      enderecoSel,
+    })
+  }, [checkoutStorageKey, etapa, tipoEntrega, formPedido, enderecoSel, slug])
+
+  useEffect(() => {
+    const cleanup = setupAutoSync((draft) => api.pedidos.criar(draft))
+    return cleanup
+  }, [])
 
   const temMaisProdutos = produtos.dados.length < produtos.total
 
@@ -310,44 +405,47 @@ export default function LojaPage() {
   async function handleCriarPedido(e) {
     e.preventDefault()
     setEnviando(true)
+    const payloadPedido = {
+      loja_id: loja.id,
+      tipo_entrega: tipoEntrega,
+      nome_cliente: formPedido.nome_cliente,
+      telefone_cliente: formPedido.telefone_cliente,
+      endereco: formPedido.endereco,
+      bairro: formPedido.bairro,
+      complemento: formPedido.complemento,
+      referencia: formPedido.referencia,
+      taxa_entrega: taxaEntrega,
+      forma_pagamento: formPedido.forma_pagamento,
+      codigo_cupom: cupomAplicado ? codigoCupom.trim() : '',
+      agendado_para: agendado && agendadoPara ? new Date(agendadoPara).toISOString() : null,
+      observacao: [
+        formPedido.observacao,
+        formPedido.forma_pagamento === 'CASH' && trocoPara ? `Troco para R$ ${Number(trocoPara).toFixed(2).replace('.', ',')}` : '',
+        agendado && agendadoPara ? `Agendado para ${new Date(agendadoPara).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '',
+        ...itensCarrinho.filter(([, i]) => i.obs).map(([, i]) => `${i.produto.nome}: ${i.obs}`),
+      ].filter(Boolean).join(' | '),
+      itens: itensCarrinho.flatMap(([, i]) => {
+        if (i.isCombo && i.comboItens) {
+          return i.comboItens.map(ci => ({
+            produto_id: ci.produto_id,
+            quantidade: ci.quantidade * i.qtd,
+            variacao_id: undefined,
+            adicionais_ids: [],
+          }))
+        }
+        return [{
+          produto_id: i.produto.id,
+          quantidade: i.qtd,
+          variacao_id: i.variacao?.id || undefined,
+          adicionais_ids: i.adicionais?.map((a) => a.id) || [],
+        }]
+      }),
+    }
+
     try {
-      const pedido = await api.pedidos.criar({
-        loja_id: loja.id,
-        tipo_entrega: tipoEntrega,
-        nome_cliente: formPedido.nome_cliente,
-        telefone_cliente: formPedido.telefone_cliente,
-        endereco: formPedido.endereco,
-        bairro: formPedido.bairro,
-        complemento: formPedido.complemento,
-        referencia: formPedido.referencia,
-        taxa_entrega: taxaEntrega,
-        forma_pagamento: formPedido.forma_pagamento,
-        codigo_cupom: cupomAplicado ? codigoCupom.trim() : '',
-        agendado_para: agendado && agendadoPara ? new Date(agendadoPara).toISOString() : null,
-        observacao: [
-          formPedido.observacao,
-          formPedido.forma_pagamento === 'CASH' && trocoPara ? `Troco para R$ ${Number(trocoPara).toFixed(2).replace('.', ',')}` : '',
-          agendado && agendadoPara ? `Agendado para ${new Date(agendadoPara).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '',
-          ...itensCarrinho.filter(([, i]) => i.obs).map(([, i]) => `${i.produto.nome}: ${i.obs}`),
-        ].filter(Boolean).join(' | '),
-        itens: itensCarrinho.flatMap(([, i]) => {
-          if (i.isCombo && i.comboItens) {
-            return i.comboItens.map(ci => ({
-              produto_id: ci.produto_id,
-              quantidade: ci.quantidade * i.qtd,
-              variacao_id: undefined,
-              adicionais_ids: [],
-            }))
-          }
-          return [{
-            produto_id: i.produto.id,
-            quantidade: i.qtd,
-            variacao_id: i.variacao?.id || undefined,
-            adicionais_ids: i.adicionais?.map((a) => a.id) || [],
-          }]
-        }),
-      })
+      const pedido = await api.pedidos.criar(payloadPedido)
       setPedidoCriado(pedido)
+      addLocalOrderHistory(pedido).catch(() => {})
       const pagarOnline = formPedido._tipoPag === 'online' && formPedido.forma_pagamento === 'PIX' && loja.pix_chave
       if (pagarOnline) {
         setEtapa('pix')
@@ -355,12 +453,34 @@ export default function LojaPage() {
         try { setPixData(await api.lojas.gerarPix(loja.id, totalPedido, pedido.id)) }
         catch { setPixData(null) }
         finally { setPixCarregando(false) }
-      } else { setEtapa('confirmado'); setCarrinho({}); setCupomAplicado(null); setCodigoCupom('') }
-    } catch (err) { alert(err.message) }
+      } else {
+        setEtapa('confirmado')
+        setCarrinho({})
+        setCupomAplicado(null)
+        setCodigoCupom('')
+        removeLocalItem(cartStorageKey)
+        removeSessionItem(checkoutStorageKey)
+      }
+    } catch (err) {
+      if (!navigator.onLine) {
+        await enqueuePendingOrder(payloadPedido)
+        alert('Sem internet no momento. Seu pedido foi salvo e será reenviado automaticamente quando a conexão voltar.')
+      } else {
+        alert(err.message)
+      }
+    }
     finally { setEnviando(false) }
   }
 
-  function handleFinalizarPix() { setEtapa('confirmado'); setCarrinho({}); setPixData(null); setCupomAplicado(null); setCodigoCupom('') }
+  function handleFinalizarPix() {
+    setEtapa('confirmado')
+    setCarrinho({})
+    setPixData(null)
+    setCupomAplicado(null)
+    setCodigoCupom('')
+    removeLocalItem(cartStorageKey)
+    removeSessionItem(checkoutStorageKey)
+  }
 
   async function copiarPayload() {
     if (!pixData?.payload) return
@@ -1155,14 +1275,14 @@ export default function LojaPage() {
                 const economia = original - Number(c.preco)
                 const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
                 return (
-                  <div key={c.id} className="snap-start flex-shrink-0 w-64 bg-gradient-to-br from-red-50 to-yellow-50 rounded-2xl border-2 border-red-200 overflow-hidden">
+                  <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50 to-yellow-50 rounded-2xl border-2 border-red-200 overflow-hidden">
                     {c.imagem_url && (
                       <img src={c.imagem_url} alt={c.nome} loading="lazy" className="w-full h-28 object-cover" />
                     )}
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h3 className="text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
-                        {qtdNoCarrinho > 0 && <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">{qtdNoCarrinho}</span>}
+                        {qtdNoCarrinho > 0 && <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0">{qtdNoCarrinho}</span>}
                       </div>
                       <p className="text-[11px] text-stone-500 mb-2 line-clamp-2">
                         {c.itens.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(' + ')}
@@ -1251,8 +1371,8 @@ export default function LojaPage() {
                         {temConfig && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">personalizar</span>}
                       </div>
                     </div>
-                    {p.imagem_url && <img src={p.imagem_url} alt="" loading="lazy" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />}
-                    {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">{qtd}</span>}
+                    {p.imagem_url && <img src={p.imagem_url} alt="" loading="lazy" className="w-16 h-16 rounded-lg object-cover shrink-0" />}
+                    {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">{qtd}</span>}
                   </button>
                 )
               })}

@@ -14,7 +14,7 @@ async function request(path, options = {}) {
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   }
-  const res = await fetch(url, { ...options, headers })
+  const res = await fetch(url, { ...options, headers, credentials: 'include' })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     const msg = err.detalhes ? `${err.erro} ${err.detalhes}` : (err.erro || `Erro ${res.status}`)

@@ -12,4 +12,8 @@ const schemaResetPassword = z.object({
     .max(128, 'Senha muito longa.'),
 });
 
-module.exports = { schemaForgotPassword, schemaResetPassword };
+const schemaSession = z.object({
+  idToken: z.string().min(1, 'idToken é obrigatório.'),
+});
+
+module.exports = { schemaForgotPassword, schemaResetPassword, schemaSession };

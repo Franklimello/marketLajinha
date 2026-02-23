@@ -2,7 +2,7 @@
 // UaiFood – Service Worker (Cache + FCM)
 // ─────────────────────────────────────────────
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const ALL_CACHES = [STATIC_CACHE, DYNAMIC_CACHE];
@@ -10,6 +10,11 @@ const ALL_CACHES = [STATIC_CACHE, DYNAMIC_CACHE];
 const PRECACHE_URLS = [
   '/',
   '/offline.html',
+  '/icons/icon-192.png',
+  '/icons/icon-maskable-192.png',
+  '/icons/icon-maskable-512.png',
+  '/icons/novalogo.png',
+  '/icons/logouaifood.png',
 ];
 
 const API_PATTERN = /\/(lojas|produtos|pedidos|clientes|cupons|bairros|usuarios|admin|impressoras|health)/;

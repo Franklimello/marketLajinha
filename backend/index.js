@@ -16,6 +16,7 @@ if (missing.length > 0) {
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const routes = require('./routes');
@@ -34,13 +35,14 @@ app.disable('x-powered-by');
 // ── CORS ──
 const corsOriginsRaw = process.env.CORS_ORIGINS || '';
 const allowedOrigins = corsOriginsRaw === '*'
-  ? '*'
+  ? true
   : corsOriginsRaw
     ? corsOriginsRaw.split(',').map((o) => o.trim())
     : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'];
 
 app.use(cors({
   origin: allowedOrigins,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400,
@@ -77,6 +79,7 @@ app.use('/auth/forgot-password', forgotLimiter);
 
 // ── Body parsing com limite ──
 app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
 
 // ── Health check ──
 app.get('/health', (req, res) => {

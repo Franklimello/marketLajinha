@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth'
 import { auth, googleProvider, messaging, getFcmToken, onMessage } from '../config/firebase'
 import { api, setTokenGetter } from '../api/client'
+import { createSessionCookie, clearSessionCookie, refreshSessionCookie } from '../storage/authStorage'
 
 const AuthContext = createContext(null)
 const VAPID_KEY = 'BCRFH6ED5f585HBRYI1xT6Z_qcf8dzmD2ExUlVLkjIBOO8xsLT_n828jXPyR1vwc8DjcBe8PvFM_UQsaCxoHorU'
@@ -72,6 +73,10 @@ export function AuthProvider({ children }) {
       setUser(firebaseUser)
       if (firebaseUser) {
         try {
+          const idToken = await firebaseUser.getIdToken()
+          await createSessionCookie(idToken)
+        } catch {}
+        try {
           const minhaLoja = await api.lojas.minha()
           setLoja(minhaLoja)
           if (minhaLoja) registrarPushLoja()
@@ -101,9 +106,23 @@ export function AuthProvider({ children }) {
   const cadastrar = (email, senha) =>
     createUserWithEmailAndPassword(auth, email, senha)
 
-  const logout = () => signOut(auth)
+  const logout = async () => {
+    await clearSessionCookie().catch(() => {})
+    return signOut(auth)
+  }
 
   const atualizarLoja = (novaLoja) => setLoja(novaLoja)
+
+  useEffect(() => {
+    if (!user) return undefined
+    const timer = setInterval(async () => {
+      try {
+        const refreshed = await user.getIdToken(true)
+        await refreshSessionCookie(refreshed)
+      } catch {}
+    }, 1000 * 60 * 20)
+    return () => clearInterval(timer)
+  }, [user])
 
   return (
     <AuthContext.Provider

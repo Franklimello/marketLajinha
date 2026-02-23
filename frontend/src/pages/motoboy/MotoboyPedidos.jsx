@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiTruck, FiLogOut, FiRefreshCw, FiCheckCircle, FiNavigation, FiClock, FiPhone, FiMapPin } from 'react-icons/fi'
+import {
+  getItem as getSessionItem,
+  removeItem as removeSessionItem,
+} from '../../storage/sessionStorageService'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -18,12 +22,12 @@ export default function MotoboyPedidos() {
   const [motoboy, setMotoboy] = useState(null)
   const [confirmacao, setConfirmacao] = useState(null)
 
-  const token = localStorage.getItem('motoboy_token')
+  const token = getSessionItem('motoboy_token', null)
 
   useEffect(() => {
     if (!token) { navigate('/motoboy'); return }
     try {
-      const data = JSON.parse(localStorage.getItem('motoboy_data') || '{}')
+      const data = getSessionItem('motoboy_data', {})
       setMotoboy(data)
     } catch { navigate('/motoboy') }
   }, [token, navigate])
@@ -49,8 +53,8 @@ export default function MotoboyPedidos() {
   }, [carregar])
 
   function logout() {
-    localStorage.removeItem('motoboy_token')
-    localStorage.removeItem('motoboy_data')
+    removeSessionItem('motoboy_token')
+    removeSessionItem('motoboy_data')
     navigate('/motoboy')
   }
 
@@ -145,7 +149,7 @@ export default function MotoboyPedidos() {
 
                     <div className="space-y-2 mb-3">
                       <div className="flex items-start gap-2">
-                        <FiMapPin className="text-stone-400 mt-0.5 flex-shrink-0" size={14} />
+                        <FiMapPin className="text-stone-400 mt-0.5 shrink-0" size={14} />
                         <div>
                           <p className="text-sm text-stone-700">{p.endereco}</p>
                           {p.bairro && <p className="text-xs text-stone-500">{p.bairro}</p>}

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { auth, onAuthStateChanged, messaging, getFcmToken, onMessage } from '../config/firebase'
 import { signOut } from 'firebase/auth'
+import { createSessionCookie, clearSessionCookie, refreshSessionCookie } from '../storage/authStorage'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || ''
@@ -9,6 +10,7 @@ const AuthContext = createContext(null)
 
 async function apiFetch(path, token, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -44,6 +46,7 @@ export function AuthProvider({ children }) {
       if (user) {
         const t = await user.getIdToken()
         setToken(t)
+        createSessionCookie(t).catch(() => {})
         try {
           const c = await apiFetch('/clientes/me', t)
           setCliente(c)
@@ -137,10 +140,24 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function logout() {
+    await clearSessionCookie().catch(() => {})
     await signOut(auth)
     setCliente(null)
     setToken(null)
   }
+
+  useEffect(() => {
+    if (!firebaseUser) return undefined
+    const timer = setInterval(async () => {
+      try {
+        const refreshed = await firebaseUser.getIdToken(true)
+        await refreshSessionCookie(refreshed)
+      } catch {
+        // noop
+      }
+    }, 1000 * 60 * 20)
+    return () => clearInterval(timer)
+  }, [firebaseUser])
 
   const value = useMemo(() => ({
     firebaseUser, cliente, carregando, token, getToken,

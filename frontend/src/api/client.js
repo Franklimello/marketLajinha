@@ -1,3 +1,10 @@
+import {
+  getCache as getOfflineCache,
+  setCache as setOfflineCache,
+  makeCityKey,
+  OFFLINE_STORES,
+} from '../storage/offlineDatabase'
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 let getTokenFn = () => null
@@ -27,6 +34,7 @@ async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
   const token = await getTokenFn()
   const res = await fetch(url, {
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -42,10 +50,43 @@ async function request(path, options = {}) {
   return res.json()
 }
 
-function cachedRequest(path) {
+function offlineMetaForPath(path) {
+  if (path.startsWith('/lojas/home') || path.startsWith('/lojas/ativos')) {
+    const url = new URL(path, 'http://local')
+    const cidade = url.searchParams.get('cidade') || 'all'
+    return { store: OFFLINE_STORES.lojasCidade, key: makeCityKey('lojas', cidade), ttl: 1000 * 60 * 15 }
+  }
+  if (path.includes('/produtos')) {
+    return { store: OFFLINE_STORES.produtosCidade, key: path, ttl: 1000 * 60 * 10 }
+  }
+  if (path.startsWith('/pedidos/meus')) {
+    return { store: OFFLINE_STORES.pedidosHistorico, key: 'pedidos:meus', ttl: 1000 * 60 * 5 }
+  }
+  return null
+}
+
+async function cachedRequest(path) {
   const cached = getCached(path)
-  if (cached) return Promise.resolve(cached)
-  return request(path).then((data) => { setCache(path, data); return data })
+  if (cached) return cached
+
+  const offlineMeta = offlineMetaForPath(path)
+  if (!navigator.onLine && offlineMeta) {
+    const offline = await getOfflineCache(offlineMeta.store, offlineMeta.key, offlineMeta.ttl)
+    if (offline) return offline
+  }
+
+  try {
+    const data = await request(path)
+    setCache(path, data)
+    if (offlineMeta) await setOfflineCache(offlineMeta.store, offlineMeta.key, data)
+    return data
+  } catch (err) {
+    if (offlineMeta) {
+      const offline = await getOfflineCache(offlineMeta.store, offlineMeta.key, offlineMeta.ttl)
+      if (offline) return offline
+    }
+    throw err
+  }
 }
 
 export const api = {
