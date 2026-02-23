@@ -4,7 +4,7 @@ const schemaLojas = z.object({
   nome: z.string().min(1, 'Nome é obrigatório'),
   slug: z.string().min(1, 'Slug é obrigatório').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
   categoria_negocio: z.string().min(1, 'Categoria é obrigatória'),
-  cidade: z.string().min(1, 'Cidade é obrigatória'),
+  cidade: z.string().trim().min(1, 'Cidade é obrigatória'),
   endereco: z.string().optional().default(''),
   telefone: z.string().optional().default(''),
   horario_funcionamento: z.string().optional().default(''),
@@ -28,6 +28,14 @@ const schemaLojas = z.object({
   vencimento: z.union([z.string().datetime(), z.string()]).optional(),
 });
 
-const schemaLojasPut = schemaLojas.partial();
+const schemaLojasPut = schemaLojas.partial().superRefine((data, ctx) => {
+  if (typeof data.cidade !== 'string' || !data.cidade.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['cidade'],
+      message: 'Cidade é obrigatória',
+    });
+  }
+});
 
 module.exports = { schemaLojas, schemaLojasPut };

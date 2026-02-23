@@ -41,14 +41,14 @@ describe('Schema: Lojas', () => {
     expect(result.success).toBe(true);
   });
 
-  test('PUT schema aceita parcial', () => {
-    const result = schemaLojasPut.safeParse({ nome: 'Novo Nome' });
+  test('PUT schema aceita atualização com cidade', () => {
+    const result = schemaLojasPut.safeParse({ nome: 'Novo Nome', cidade: 'Ibatiba' });
     expect(result.success).toBe(true);
   });
 
-  test('PUT schema aceita vazio', () => {
+  test('PUT schema rejeita payload sem cidade', () => {
     const result = schemaLojasPut.safeParse({});
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 });
 

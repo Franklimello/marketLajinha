@@ -68,13 +68,13 @@ async function criarEndereco(req, res, next) {
     const cliente = await clientesService.buscarPorFirebaseUid(req.firebaseDecoded.uid);
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
-    const { apelido, bairro, rua, numero, complemento, referencia, padrao } = req.body;
-    if (!bairro || !rua || !numero) {
-      return res.status(400).json({ erro: 'Bairro, rua e número são obrigatórios.' });
+    const { apelido, cidade, bairro, rua, numero, complemento, referencia, padrao } = req.body;
+    if (!cidade || !bairro || !rua || !numero) {
+      return res.status(400).json({ erro: 'Cidade, bairro, rua e número são obrigatórios.' });
     }
 
     const endereco = await clientesService.criarEndereco(cliente.id, {
-      apelido: apelido || '', bairro, rua, numero,
+      apelido: apelido || '', cidade, bairro, rua, numero,
       complemento: complemento || '', referencia: referencia || '',
       padrao: !!padrao,
     });
@@ -87,6 +87,11 @@ async function atualizarEndereco(req, res, next) {
     if (!req.firebaseDecoded) return res.status(401).json({ erro: 'Token obrigatório.' });
     const cliente = await clientesService.buscarPorFirebaseUid(req.firebaseDecoded.uid);
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
+
+    const { cidade, bairro, rua, numero } = req.body || {};
+    if (!cidade || !bairro || !rua || !numero) {
+      return res.status(400).json({ erro: 'Cidade, bairro, rua e número são obrigatórios.' });
+    }
 
     const endereco = await clientesService.atualizarEndereco(cliente.id, req.params.id, req.body);
     res.json(endereco);

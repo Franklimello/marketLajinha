@@ -159,6 +159,7 @@ model EnderecoCliente {
   id         String  @id @default(cuid())
   cliente_id String
   apelido    String  @default("")
+  cidade     String  @default("")
   bairro     String
   rua        String
   numero     String

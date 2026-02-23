@@ -5,16 +5,13 @@ import { api } from '../api/client'
 import SEO from '../componentes/SEO'
 import BAIRROS_DISPONIVEIS from '../data/bairros'
 import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiChevronLeft, FiSave, FiX } from 'react-icons/fi'
-import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
-
-const CIDADE_PERFIL_KEY = 'cidadeSelecionadaPerfil'
 
 export default function PerfilPage() {
   const { logado, carregando: authCarregando, cliente, firebaseUser, logout, atualizarPerfil, perfilCompleto, cadastrarCliente } = useAuth()
   const navigate = useNavigate()
   const [enderecos, setEnderecos] = useState([])
   const [editEndereco, setEditEndereco] = useState(null)
-  const [formEnd, setFormEnd] = useState({ apelido: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: false })
+  const [formEnd, setFormEnd] = useState({ apelido: '', cidade: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: false })
   const [formPerfil, setFormPerfil] = useState({ nome: '', telefone: '' })
   const [editandoPerfil, setEditandoPerfil] = useState(false)
   const [erro, setErro] = useState('')
@@ -23,8 +20,6 @@ export default function PerfilPage() {
 
   const [formCadastro, setFormCadastro] = useState({ nome: '', telefone: '' })
   const [cadastroInit, setCadastroInit] = useState(false)
-  const [cidadePerfil, setCidadePerfil] = useState(() => getLocalItem(CIDADE_PERFIL_KEY, ''))
-  const [cidadesDisponiveis, setCidadesDisponiveis] = useState([])
 
   useEffect(() => {
     if (!cadastroInit && firebaseUser && !cliente) {
@@ -43,16 +38,6 @@ export default function PerfilPage() {
       setEnderecos(cliente.enderecos || [])
     }
   }, [cliente])
-
-  useEffect(() => {
-    api.lojas.home()
-      .then((lista) => {
-        const cidades = [...new Set((lista || []).map((l) => l.cidade).filter(Boolean))]
-          .sort((a, b) => a.localeCompare(b))
-        setCidadesDisponiveis(cidades)
-      })
-      .catch(() => {})
-  }, [])
 
   async function carregarEnderecos() {
     try { setEnderecos(await api.clientes.enderecos()) } catch {}
@@ -90,13 +75,13 @@ export default function PerfilPage() {
   function handleEndChange(e) { setFormEnd((p) => ({ ...p, [e.target.name]: e.target.value })) }
 
   function abrirNovoEndereco() {
-    setFormEnd({ apelido: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: enderecos.length === 0 })
+    setFormEnd({ apelido: '', cidade: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: enderecos.length === 0 })
     setEditEndereco('novo')
     setErro('')
   }
 
   function abrirEditarEndereco(end) {
-    setFormEnd({ apelido: end.apelido, bairro: end.bairro, rua: end.rua, numero: end.numero, complemento: end.complemento, referencia: end.referencia, padrao: end.padrao })
+    setFormEnd({ apelido: end.apelido, cidade: end.cidade || '', bairro: end.bairro, rua: end.rua, numero: end.numero, complemento: end.complemento, referencia: end.referencia, padrao: end.padrao })
     setEditEndereco(end)
     setErro('')
   }
@@ -140,12 +125,6 @@ export default function PerfilPage() {
     finally { setSalvando(false) }
   }
 
-  function salvarCidadePreferida() {
-    setLocalItem(CIDADE_PERFIL_KEY, cidadePerfil || '')
-    setSucesso('Cidade padrão atualizada!')
-    setTimeout(() => setSucesso(''), 2000)
-  }
-
   return (
     <div className="max-w-lg mx-auto px-4 py-4">
       <SEO title="Minha conta" noIndex />
@@ -182,33 +161,6 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {/* Cidade padrão */}
-      <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
-        <h2 className="font-semibold text-stone-900 mb-2">Cidade padrão para a Home</h2>
-        <p className="text-xs text-stone-400 mb-3">
-          Escolha a cidade para filtrar as lojas na tela inicial.
-        </p>
-        <div className="flex gap-2">
-          <select
-            value={cidadePerfil}
-            onChange={(e) => setCidadePerfil(e.target.value)}
-            className="flex-1 px-3 py-2.5 border border-stone-300 rounded-lg text-sm bg-white"
-          >
-            <option value="">Todas as cidades</option>
-            {cidadesDisponiveis.map((cidade) => (
-              <option key={cidade} value={cidade}>{cidade}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={salvarCidadePreferida}
-            className="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700"
-          >
-            Salvar
-          </button>
-        </div>
-      </div>
-
       {/* Endereços */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
@@ -226,6 +178,10 @@ export default function PerfilPage() {
             <div>
               <label className="block text-xs font-medium text-stone-600 mb-1">Apelido (opcional)</label>
               <input name="apelido" value={formEnd.apelido} onChange={handleEndChange} placeholder="ex: Casa, Trabalho" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-stone-600 mb-1">Cidade *</label>
+              <input name="cidade" value={formEnd.cidade} onChange={handleEndChange} required placeholder="Ex: Ibatiba" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
             </div>
             <div>
               <label className="block text-xs font-medium text-stone-600 mb-1">Bairro *</label>
@@ -275,7 +231,9 @@ export default function PerfilPage() {
                       {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
                     </div>
                     <p className="text-sm text-stone-800 mt-1">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
-                    <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}</p>
+                    <p className="text-xs text-stone-400">
+                      {end.cidade ? `${end.cidade} · ` : ''}{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}
+                    </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-2">
                     {!end.padrao && (

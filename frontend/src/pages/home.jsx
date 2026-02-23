@@ -14,6 +14,8 @@ const SUPORTE_NOME = 'Franklim'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/uaifood2026/'
 const HOME_CACHE_KEY = 'homeLojasCache'
 const HOME_CACHE_TTL = 1000 * 60 * 5
+const GEO_CITY_CACHE_KEY = 'geoCityCache'
+const GEO_CITY_CACHE_TTL = 1000 * 60 * 60 * 6
 
 const CATEGORIAS = [
   { nome: 'Pizza', emoji: '🍕' },
@@ -38,6 +40,29 @@ function saudacao() {
   if (h < 12) return 'Bom dia'
   if (h < 18) return 'Boa tarde'
   return 'Boa noite'
+}
+
+function resolverCidadePadraoCliente(cliente) {
+  const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
+  if (!enderecos.length) return ''
+
+  const endereco = enderecos.find((e) => e?.padrao) || enderecos[0]
+  return String(endereco?.cidade || '').trim()
+}
+
+async function resolverCidadePorCoordenadas(latitude, longitude) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=pt-BR`
+  const res = await fetch(url)
+  if (!res.ok) return ''
+  const data = await res.json().catch(() => null)
+  if (!data?.address) return ''
+  return String(
+    data.address.city ||
+    data.address.town ||
+    data.address.village ||
+    data.address.municipality ||
+    ''
+  ).trim()
 }
 
 const LojaCard = memo(function LojaCard({ loja, idx }) {
@@ -133,9 +158,8 @@ export default function HomePage() {
   const [busca, setBusca] = useState('')
   const buscaDebounced = useDebounce(busca, 250)
   const [categoriaSel, setCategoriaSel] = useState(null)
-  const [cidadePerfil] = useState(() =>
-    getLocalItem('cidadeSelecionadaPerfil', getLocalItem('cidadeSelecionada', ''))
-  )
+  const [cidadePadrao, setCidadePadrao] = useState('')
+  const [cidadeGeo, setCidadeGeo] = useState('')
   const [visibleCount, setVisibleCount] = useState(12)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
@@ -160,19 +184,55 @@ export default function HomePage() {
       .finally(() => setCarregando(false))
   }, [])
 
+  useEffect(() => {
+    const cidade = resolverCidadePadraoCliente(cliente)
+    setCidadePadrao(cidade)
+  }, [cliente])
+
+  useEffect(() => {
+    const cached = getLocalItem(GEO_CITY_CACHE_KEY, null)
+    if (cached?.cidade && cached?.ts && Date.now() - cached.ts < GEO_CITY_CACHE_TTL) {
+      setCidadeGeo(String(cached.cidade))
+      return
+    }
+
+    if (!('geolocation' in navigator)) return
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const cidade = await resolverCidadePorCoordenadas(
+          pos.coords.latitude,
+          pos.coords.longitude
+        ).catch(() => '')
+        if (!cidade) return
+        setCidadeGeo(cidade)
+        setLocalItem(GEO_CITY_CACHE_KEY, { cidade, ts: Date.now() })
+      },
+      () => {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 1000 * 60 * 30 }
+    )
+  }, [])
+
   const lojasAbertas = useMemo(() => lojas.filter((l) => l.aberta_agora ?? l.aberta), [lojas])
   const lojasFechadas = useMemo(() => lojas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojas])
 
   const lojasFiltradas = useMemo(() => {
     let lista = [...lojasAbertas, ...lojasFechadas]
-    if (cidadePerfil) {
-      const c = cidadePerfil.toLowerCase()
+    const buscaAtiva = Boolean(buscaDebounced.trim())
+    const cidadeBase = (cidadeGeo || cidadePadrao || '').trim()
+
+    if (cidadeBase && !buscaAtiva) {
+      const c = cidadeBase.toLowerCase()
       lista = lista.filter((l) => String(l.cidade || '').toLowerCase() === c)
     }
-    if (buscaDebounced.trim()) {
+
+    if (buscaAtiva) {
       const b = buscaDebounced.toLowerCase()
       lista = lista.filter(
-        (l) => l.nome.toLowerCase().includes(b) || l.categoria_negocio.toLowerCase().includes(b)
+        (l) =>
+          l.nome.toLowerCase().includes(b) ||
+          l.categoria_negocio.toLowerCase().includes(b) ||
+          String(l.cidade || '').toLowerCase().includes(b)
       )
     }
     if (categoriaSel) {
@@ -180,7 +240,7 @@ export default function HomePage() {
       lista = lista.filter((l) => l.categoria_negocio.toLowerCase().includes(c))
     }
     return lista
-  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel, cidadePerfil])
+  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel, cidadePadrao, cidadeGeo])
 
   const filtradasAbertas = useMemo(() => lojasFiltradas.filter((l) => l.aberta_agora ?? l.aberta), [lojasFiltradas])
   const filtradasFechadas = useMemo(() => lojasFiltradas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasFiltradas])
@@ -300,10 +360,10 @@ export default function HomePage() {
             ? `${lojasAbertas.length} loja${lojasAbertas.length !== 1 ? 's' : ''} aberta${lojasAbertas.length !== 1 ? 's' : ''} agora`
             : 'Nenhuma loja aberta no momento'}
         </p>
-        {cidadePerfil && (
+        {(cidadeGeo || cidadePadrao) && (
           <p className="text-xs text-stone-500 mt-1">
-            Mostrando lojas em <span className="font-semibold text-stone-700">{cidadePerfil}</span>.{' '}
-            <Link to="/perfil" className="text-red-600 hover:underline">Alterar no perfil</Link>
+            Mostrando lojas em <span className="font-semibold text-stone-700">{cidadeGeo || cidadePadrao}</span>.{' '}
+            Para ver outra cidade, pesquise o nome dela.
           </p>
         )}
       </div>
