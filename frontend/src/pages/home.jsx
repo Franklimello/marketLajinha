@@ -9,7 +9,7 @@ import { usePrefetchLoja } from '../hooks/usePrefetch'
 import SEO from '../componentes/SEO'
 import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
 
-const SUPORTE_WHATSAPP = '5533998680141'
+const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_NOME = 'Franklim'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/uaifood2026/'
 const HOME_CACHE_KEY = 'homeLojasCache'
