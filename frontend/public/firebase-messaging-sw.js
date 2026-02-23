@@ -18,8 +18,8 @@ messaging.onBackgroundMessage((payload) => {
 
   self.registration.showNotification(title || 'UaiFood', {
     body: body || 'Você tem uma atualização.',
-    icon: '/vite.svg',
-    badge: '/vite.svg',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
     vibrate: [200, 100, 200],
     data: { url: data.url || '/pedidos' },
     requireInteraction: true,

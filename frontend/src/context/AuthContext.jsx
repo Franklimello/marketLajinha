@@ -104,19 +104,7 @@ export function AuthProvider({ children }) {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
 
-      const reg = await navigator.serviceWorker.register('/sw.js')
-
-      await navigator.serviceWorker.ready
-
-      if (!reg.active) {
-        await new Promise((resolve) => {
-          const sw = reg.installing || reg.waiting
-          if (!sw) return resolve()
-          sw.addEventListener('statechange', function handler() {
-            if (sw.state === 'activated') { sw.removeEventListener('statechange', handler); resolve() }
-          })
-        })
-      }
+      const reg = await navigator.serviceWorker.ready
 
       const fcmToken = await getFcmToken(messaging, {
         vapidKey: VAPID_KEY,
@@ -140,7 +128,7 @@ export function AuthProvider({ children }) {
       if (Notification.permission === 'granted') {
         new Notification(title || 'UaiFood', {
           body: body || '',
-          icon: '/vite.svg',
+          icon: '/icons/icon-192.png',
           vibrate: [200, 100, 200],
         })
       }

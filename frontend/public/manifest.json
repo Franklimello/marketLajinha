@@ -3,10 +3,12 @@
   "short_name": "UaiFood",
   "description": "Peça dos melhores estabelecimentos da sua cidade",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#0a0a0a",
-  "background_color": "#ffffff",
+  "background_color": "#0a0a0a",
   "lang": "pt-BR",
   "categories": ["food", "shopping"],
   "icons": [
