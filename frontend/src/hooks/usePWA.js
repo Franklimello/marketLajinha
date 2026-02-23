@@ -20,7 +20,6 @@ export function usePWA() {
     }
 
     function onBeforeInstall(e) {
-      e.preventDefault()
       setDeferredPrompt(e)
       setCanInstall(true)
     }

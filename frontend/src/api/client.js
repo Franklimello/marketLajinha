@@ -44,7 +44,8 @@ async function request(path, options = {}) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.erro || `Erro ${res.status}`)
+    const msg = err.detalhes ? `${err.erro} ${err.detalhes}` : (err.erro || `Erro ${res.status}`)
+    throw new Error(msg)
   }
   if (res.status === 204) return null
   return res.json()
