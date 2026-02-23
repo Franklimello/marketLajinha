@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 
-const SUPORTE_WHATSAPP = '5519997050303'
+const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/franklimello30/'
 import { useState } from 'react'
 import { usePWA } from '../hooks/usePWA'

@@ -8,7 +8,7 @@ import { useDebounce } from '../hooks/useDebounce'
 import { usePrefetchLoja } from '../hooks/usePrefetch'
 import SEO from '../componentes/SEO'
 
-const SUPORTE_WHATSAPP = '5519997050303'
+const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_NOME = 'Franklim'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/uaifood2026/'
 
