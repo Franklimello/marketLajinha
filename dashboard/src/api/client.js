@@ -103,7 +103,6 @@ export const api = {
     buscarLoja: (id) => request(`/admin/lojas/${id}`),
     listarCobrancas: (competencia) => request(`/admin/cobrancas?competencia=${encodeURIComponent(competencia)}`),
     fecharCobrancas: (payload) => request('/admin/cobrancas/fechar', { method: 'POST', body: JSON.stringify(payload) }),
-    testarRelatorioSemanal: () => request('/admin/cobrancas/testar-relatorio-semanal', { method: 'POST' }),
     marcarCobrancaPaga: (id) => request(`/admin/cobrancas/${id}/pagar`, { method: 'PATCH' }),
     bloquearLoja: (id) => request(`/admin/lojas/${id}/bloquear`, { method: 'PATCH' }),
     desbloquearLoja: (id) => request(`/admin/lojas/${id}/desbloquear`, { method: 'PATCH' }),
