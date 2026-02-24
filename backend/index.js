@@ -29,6 +29,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+// Em produção atrás de proxy (Railway/Nginx), usa o IP real do cliente no rate limit.
+if (IS_PROD) app.set('trust proxy', 1);
+
 // ── Segurança HTTP ──
 app.use(helmet());
 app.disable('x-powered-by');
@@ -67,7 +70,19 @@ const authLimiter = rateLimit({
   message: { erro: 'Muitas tentativas de autenticação. Tente novamente em 15 minutos.' },
 });
 app.use('/clientes/cadastro', authLimiter);
-app.use('/lojas', authLimiter);
+app.use('/auth/session', authLimiter);
+app.use('/auth/session/refresh', authLimiter);
+app.use('/lojas/cadastro', authLimiter);
+
+const lojasReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: IS_PROD ? 1200 : 5000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas requisições de consulta. Tente novamente em alguns minutos.' },
+  skip: (req) => !['GET', 'HEAD', 'OPTIONS'].includes(req.method),
+});
+app.use('/lojas', lojasReadLimiter);
 
 const forgotLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

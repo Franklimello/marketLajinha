@@ -16,7 +16,6 @@ import {
   ShoppingCartSimple,
   Pill,
   PawPrint,
-  Drumstick,
   Leaf,
   Storefront,
   Tag,
@@ -41,8 +40,8 @@ const CATEGORIA_ICONES = [
   { k: 'hamb', Icon: Hamburger },
   { k: 'burg', Icon: Hamburger },
   { k: 'lanche', Icon: Hamburger },
-  { k: 'porç', Icon: Drumstick },
-  { k: 'frango', Icon: Drumstick },
+  { k: 'porç', Icon: BowlFood },
+  { k: 'frango', Icon: BowlFood },
   { k: 'marmit', Icon: BowlFood },
   { k: 'jap', Icon: Fish },
   { k: 'sushi', Icon: Fish },
@@ -61,7 +60,7 @@ const CATEGORIA_ICONES = [
   { k: 'mercad', Icon: ShoppingCartSimple },
   { k: 'farm', Icon: Pill },
   { k: 'pet', Icon: PawPrint },
-  { k: 'churr', Icon: Drumstick },
+  { k: 'churr', Icon: BowlFood },
 ]
 
 function saudacao() {
