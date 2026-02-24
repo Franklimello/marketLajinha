@@ -187,6 +187,7 @@ export default function LojaPage() {
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
   const restoredCartRef = useRef(false)
+  const [pageVisible, setPageVisible] = useState(false)
 
   function mostrarToast(msg) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -254,6 +255,16 @@ export default function LojaPage() {
     const cleanup = setupAutoSync((draft) => api.pedidos.criar(draft))
     return cleanup
   }, [])
+
+  useEffect(() => {
+    setPageVisible(false)
+    const raf = requestAnimationFrame(() => setPageVisible(true))
+    return () => cancelAnimationFrame(raf)
+  }, [slug])
+
+  const pageTransitionClass = pageVisible
+    ? 'opacity-100 translate-y-0'
+    : 'opacity-0 translate-y-1'
 
   const temMaisProdutos = produtos.dados.length < produtos.total
 
@@ -518,7 +529,7 @@ export default function LojaPage() {
 
   // ---- Loading/Error ----
   if (carregando) return (
-    <div className="max-w-lg mx-auto px-4 pt-4">
+    <div className={`max-w-lg mx-auto px-4 pt-4 transition-all duration-300 ease-out ${pageTransitionClass}`}>
       <div className="skeleton h-40 rounded-2xl mb-4" />
       <div className="flex items-center gap-3 mb-5">
         <div className="skeleton w-14 h-14 rounded-xl shrink-0" />
@@ -544,7 +555,7 @@ export default function LojaPage() {
       ))}
     </div>
   )
-  if (erro || !loja) return <div className="flex flex-col items-center justify-center py-20 gap-4"><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
+  if (erro || !loja) return <div className={`flex flex-col items-center justify-center py-20 gap-4 transition-all duration-300 ease-out ${pageTransitionClass}`}><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
 
   const aberta = loja.aberta_agora ?? loja.aberta
   const taxa = bairroPadraoLojaMatch ? Number(bairroPadraoLojaMatch.taxa || 0) : Number(loja.taxa_entrega || 0)
@@ -561,7 +572,7 @@ export default function LojaPage() {
   if (etapa === 'confirmado') {
     const PAGAMENTO_LABELS = { PIX: 'PIX', CREDIT: 'Cartão de Crédito', DEBIT: 'Cartão de Débito', CASH: 'Dinheiro' }
     return (
-      <div className="max-w-lg mx-auto px-4 py-8">
+      <div className={`max-w-lg mx-auto px-4 py-8 transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <div className="text-center mb-6">
           <div className="relative w-20 h-20 mx-auto mb-4">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-bounce-slow">
@@ -655,7 +666,7 @@ export default function LojaPage() {
   // ---- PIX ----
   if (etapa === 'pix') {
     return (
-      <div className="max-w-lg mx-auto px-4 py-6">
+      <div className={`max-w-lg mx-auto px-4 py-6 transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <button onClick={handleFinalizarPix} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-6"><FiChevronLeft /> Pular pagamento online</button>
         <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Pagar com PIX</h2>
@@ -713,7 +724,7 @@ export default function LojaPage() {
     }
 
     return (
-      <div className="max-w-lg mx-auto px-4 py-2 pb-8">
+      <div className={`max-w-lg mx-auto px-4 py-2 pb-8 transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <button onClick={() => setEtapa('cardapio')} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-4"><FiChevronLeft /> Voltar ao cardápio</button>
         <h2 className="text-lg font-bold text-stone-900 mb-4">Finalizar pedido</h2>
 
@@ -1021,7 +1032,7 @@ export default function LojaPage() {
     }
 
     return (
-      <div className="max-w-lg mx-auto pb-32">
+      <div className={`max-w-lg mx-auto pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-4 border-b border-stone-100">
           <button onClick={() => setProdutoDetalhe(null)} className="text-stone-500 hover:text-stone-900">
@@ -1166,7 +1177,7 @@ export default function LojaPage() {
   } : null
 
   return (
-    <div className="max-w-lg mx-auto pb-24">
+    <div className={`max-w-lg mx-auto pb-24 transition-all duration-300 ease-out ${pageTransitionClass}`}>
       {loja && (
         <SEO
           title={loja.nome}

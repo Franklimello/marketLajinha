@@ -131,6 +131,7 @@ async function listarAtivas() {
 
 async function listarAtivasHome() {
   return cacheOuBuscar('lojas:home', async () => {
+    const agora = new Date();
     const lojas = await prisma.lojas.findMany({
       where: { ativa: true },
       select: {
@@ -148,6 +149,20 @@ async function listarAtivasHome() {
         horario_fechamento: true,
         taxa_entrega: true,
         tempo_entrega: true,
+        cupons: {
+          where: {
+            ativo: true,
+            data_inicio: { lte: agora },
+            data_fim: { gte: agora },
+          },
+          select: {
+            codigo: true,
+            tipo_desconto: true,
+            valor_desconto: true,
+          },
+          orderBy: { created_at: 'desc' },
+          take: 1,
+        },
         avaliacoes: { select: { nota: true } },
       },
     });
@@ -157,8 +172,20 @@ async function listarAtivasHome() {
       const media = notas.length > 0
         ? Math.round((notas.reduce((s, a) => s + a.nota, 0) / notas.length) * 10) / 10
         : 0;
-      const { avaliacoes, ...rest } = loja;
-      return { ...rest, nota_media: media, total_avaliacoes: notas.length };
+      const cupomAtivo = Array.isArray(loja.cupons) && loja.cupons.length > 0 ? loja.cupons[0] : null;
+      const { avaliacoes, cupons, ...rest } = loja;
+      return {
+        ...rest,
+        cupom_ativo: cupomAtivo
+          ? {
+              codigo: cupomAtivo.codigo,
+              tipo_desconto: cupomAtivo.tipo_desconto,
+              valor_desconto: Number(cupomAtivo.valor_desconto || 0),
+            }
+          : null,
+        nota_media: media,
+        total_avaliacoes: notas.length,
+      };
     });
   }, 60);
 }

@@ -1,4 +1,5 @@
 const { prisma } = require('../config/database');
+const { invalidarCache } = require('../config/redis');
 
 async function listarPorLoja(lojaId) {
   return prisma.cupom.findMany({
@@ -16,7 +17,7 @@ async function buscarPorId(id) {
 }
 
 async function criar(lojaId, data) {
-  return prisma.cupom.create({
+  const cupom = await prisma.cupom.create({
     data: {
       loja_id: lojaId,
       codigo: data.codigo.toUpperCase().trim(),
@@ -30,6 +31,8 @@ async function criar(lojaId, data) {
       ativo: data.ativo ?? true,
     },
   });
+  await invalidarCache('lojas:*');
+  return cupom;
 }
 
 async function atualizar(id, data) {
@@ -44,11 +47,15 @@ async function atualizar(id, data) {
   if (data.data_fim !== undefined) updateData.data_fim = new Date(data.data_fim);
   if (data.ativo !== undefined) updateData.ativo = data.ativo;
 
-  return prisma.cupom.update({ where: { id }, data: updateData });
+  const cupom = await prisma.cupom.update({ where: { id }, data: updateData });
+  await invalidarCache('lojas:*');
+  return cupom;
 }
 
 async function excluir(id) {
-  return prisma.cupom.delete({ where: { id } });
+  const cupom = await prisma.cupom.delete({ where: { id } });
+  await invalidarCache('lojas:*');
+  return cupom;
 }
 
 function criarErro(msg, status = 400) {

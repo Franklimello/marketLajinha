@@ -124,26 +124,68 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
   const taxa = typeof taxaBairro === 'number' ? taxaBairro : (loja.taxa_entrega ?? 0)
   const [imgLoaded, setImgLoaded] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const [ripples, setRipples] = useState([])
+  const rippleIdRef = useRef(0)
+  const rippleTimersRef = useRef([])
   const isAboveFold = idx < 4
   const prefetch = usePrefetchLoja(loja.slug)
   const shouldAnimate = idx < 8
+
+  useEffect(() => {
+    return () => {
+      rippleTimersRef.current.forEach((timer) => clearTimeout(timer))
+    }
+  }, [])
+
+  function handlePointerDown(e) {
+    if (e.pointerType === 'mouse') return
+    prefetch.onTouchStart()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const size = Math.max(rect.width, rect.height) * 1.15
+    const id = rippleIdRef.current + 1
+    rippleIdRef.current = id
+
+    const x = (e.clientX - rect.left) - (size / 2)
+    const y = (e.clientY - rect.top) - (size / 2)
+
+    setRipples((prev) => [...prev, { id, x, y, size, active: false }])
+    requestAnimationFrame(() => {
+      setRipples((prev) => prev.map((r) => (r.id === id ? { ...r, active: true } : r)))
+    })
+
+    const timer = setTimeout(() => {
+      setRipples((prev) => prev.filter((r) => r.id !== id))
+    }, 520)
+    rippleTimersRef.current.push(timer)
+  }
 
   return (
     <Link
       ref={prefetch.ref}
       to={`/loja/${loja.slug}`}
       onMouseEnter={prefetch.onMouseEnter}
-      onTouchStart={prefetch.onTouchStart}
-      className={`flex items-center gap-4 px-2 py-3.5 rounded-xl transition-all duration-200 hover:bg-stone-50 active:scale-[0.98] ${shouldAnimate ? 'animate-fade-in-up' : ''} ${
+      onPointerDown={handlePointerDown}
+      className={`group relative overflow-hidden flex items-center gap-4 px-2 py-3.5 rounded-xl transform-gpu will-change-transform transition-all duration-200 ease-out hover:bg-white hover:shadow-sm hover:scale-[1.01] active:scale-[0.985] active:bg-stone-50 active:shadow-none ${shouldAnimate ? 'animate-fade-in-up' : ''} ${
         !aberta ? 'opacity-50' : ''
       }`}
       style={{
         animationDelay: shouldAnimate ? `${Math.min(idx, 10) * 50}ms` : '0ms',
         contentVisibility: idx >= 8 ? 'auto' : 'visible',
         containIntrinsicSize: idx >= 8 ? '88px' : 'auto',
+        WebkitTapHighlightColor: 'rgba(239, 68, 68, 0.12)',
       }}
     >
-      <div className="relative shrink-0">
+      <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-transparent transition-colors duration-200 group-active:ring-red-200" />
+      <span className="pointer-events-none absolute inset-0 rounded-xl overflow-hidden">
+        {ripples.map((r) => (
+          <span
+            key={r.id}
+            className={`absolute rounded-full bg-red-500/15 transition-all duration-500 ease-out ${r.active ? 'scale-100 opacity-0' : 'scale-0 opacity-100'}`}
+            style={{ width: r.size, height: r.size, left: r.x, top: r.y }}
+          />
+        ))}
+      </span>
+      <div className="relative shrink-0 z-10">
         {!imgError && loja.logo_url ? (
           <img
             src={loja.logo_url}
@@ -176,7 +218,7 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 relative z-10">
         <h3 className="text-[15px] font-bold text-stone-900 truncate">{loja.nome}</h3>
         <div className="flex items-center gap-1.5 mt-1 text-xs text-stone-500">
           {(loja.nota_media ?? 0) > 0 && (
@@ -198,6 +240,11 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
             </>
           )}
         </div>
+        {loja.cupom_ativo?.codigo && (
+          <p className="text-[11px] text-red-600 mt-1 font-medium truncate">
+            {loja.nome} com cupom {String(loja.cupom_ativo.codigo).toUpperCase()}, aproveite
+          </p>
+        )}
         {!aberta && loja.horario_hoje?.aberto && (
           <p className="text-[10px] text-stone-400 mt-0.5">Abre hoje às {loja.horario_hoje.abertura}</p>
         )}
