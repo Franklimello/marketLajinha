@@ -78,7 +78,7 @@ export default function DashLayout() {
   }, [registrarNovoPedido])
 
   useEffect(() => {
-    if (!loja?.id || isSuperAdmin) return undefined
+    if (!loja?.id) return undefined
 
     primeiraCargaPedidosRef.current = true
     carregarPedidosEmBackground()
@@ -116,7 +116,7 @@ export default function DashLayout() {
       socket.disconnect()
       setWsPedidosConectado(false)
     }
-  }, [loja?.id, isSuperAdmin, registrarNovoPedido, carregarPedidosEmBackground])
+  }, [loja?.id, registrarNovoPedido, carregarPedidosEmBackground])
 
   function irParaPedidos() {
     setModalNovoPedidoAberto(false)
@@ -307,7 +307,7 @@ export default function DashLayout() {
                 {loja.forcar_status && ' (manual)'}
               </span>
             ) : null}
-            {!isSuperAdmin && loja && (
+            {loja && (
               <span className={`inline-flex items-center gap-1 text-[10px] ${wsPedidosConectado ? 'text-green-600' : 'text-stone-400'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${wsPedidosConectado ? 'bg-green-500' : 'bg-stone-300'}`} />
                 {wsPedidosConectado ? 'Ao vivo' : 'Offline'}
