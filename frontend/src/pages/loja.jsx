@@ -341,6 +341,15 @@ export default function LojaPage() {
     })
   }
 
+  function removeItemCompletely(chave) {
+    setCarrinho((prev) => {
+      if (!prev[chave]) return prev
+      const next = { ...prev }
+      delete next[chave]
+      return next
+    })
+  }
+
   const itensCarrinho = Object.entries(carrinho)
   const totalItens = itensCarrinho.reduce((s, [, i]) => s + i.qtd, 0)
   const subtotal = itensCarrinho.reduce((s, [, i]) => s + i.precoUnit * i.qtd, 0)
@@ -788,6 +797,14 @@ export default function LojaPage() {
         <button onClick={() => setEtapa('cardapio')} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-3"><FiChevronLeft /> Voltar</button>
         <h2 className="text-2xl font-extrabold text-red-700 mb-1">ticket</h2>
         <p className="text-sm text-stone-500 mb-4">Confira os itens e escolha como deseja pagar.</p>
+        <button
+          type="button"
+          onClick={() => setEtapa('cardapio')}
+          className="mb-4 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-semibold hover:bg-red-50"
+        >
+          <FiPlus size={14} />
+          Adicionar mais itens
+        </button>
 
         {/* Resumo itens */}
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
@@ -805,6 +822,30 @@ export default function LojaPage() {
               {i.variacao && <p className="text-[10px] text-stone-400 ml-4">Tamanho: {i.variacao.nome}</p>}
               {i.adicionais?.length > 0 && <p className="text-[10px] text-stone-400 ml-4">+ {i.adicionais.map((a) => a.nome).join(', ')}</p>}
               {!i.isCombo && i.obs && <p className="text-[10px] text-stone-400 ml-4 italic">Obs: {i.obs}</p>}
+              <div className="ml-4 mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => removeItem(chave)}
+                  className="w-7 h-7 rounded-full border border-stone-300 text-stone-700 inline-flex items-center justify-center hover:bg-stone-100"
+                >
+                  <FiMinus size={12} />
+                </button>
+                <span className="text-xs font-semibold text-stone-700 min-w-4 text-center">{i.qtd}</span>
+                <button
+                  type="button"
+                  onClick={() => addItemByKey(chave)}
+                  className="w-7 h-7 rounded-full border border-stone-300 text-stone-700 inline-flex items-center justify-center hover:bg-stone-100"
+                >
+                  <FiPlus size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeItemCompletely(chave)}
+                  className="ml-1 text-[11px] font-semibold text-red-600 hover:text-red-700"
+                >
+                  Remover item
+                </button>
+              </div>
             </div>
           ))}
           <div className="border-t border-stone-100 mt-2 pt-2 flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="font-medium">R$ {subtotal.toFixed(2).replace('.', ',')}</span></div>
