@@ -30,6 +30,7 @@ export default function AdminSistema() {
   const [dadosCobranca, setDadosCobranca] = useState(null)
   const [carregandoCobranca, setCarregandoCobranca] = useState(false)
   const [processandoCobranca, setProcessandoCobranca] = useState(false)
+  const [testandoRelatorio, setTestandoRelatorio] = useState(false)
   const [filtro, setFiltro] = useState('')
   const [expandida, setExpandida] = useState(null)
   const [detalheLoja, setDetalheLoja] = useState(null)
@@ -94,6 +95,20 @@ export default function AdminSistema() {
       alert(e.message)
     } finally {
       setProcessandoCobranca(false)
+    }
+  }
+
+  async function testarRelatorioSemanal() {
+    setTestandoRelatorio(true)
+    try {
+      const res = await api.admin.testarRelatorioSemanal()
+      const enviados = Number(res?.resultado?.enviados || 0)
+      const erros = Number(res?.resultado?.erros || 0)
+      alert(`Teste executado. Enviados: ${enviados} | Erros: ${erros}`)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setTestandoRelatorio(false)
     }
   }
 
@@ -237,6 +252,13 @@ export default function AdminSistema() {
                 className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50"
               >
                 {processandoCobranca ? 'Processando...' : 'Fechar cobrança da competência'}
+              </button>
+              <button
+                onClick={testarRelatorioSemanal}
+                disabled={testandoRelatorio || processandoCobranca}
+                className="px-4 py-2 border border-blue-300 text-blue-700 text-sm rounded-lg hover:bg-blue-50 disabled:opacity-50"
+              >
+                {testandoRelatorio ? 'Testando...' : 'Testar relatório semanal'}
               </button>
               <button
                 onClick={() => carregarCobrancas(competencia)}
