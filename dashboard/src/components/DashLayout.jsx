@@ -38,6 +38,7 @@ export default function DashLayout() {
   const statusPedidoRef = useRef(new Map())
   const pollingRef = useRef(null)
   const primeiraCargaPedidosRef = useRef(true)
+  const abriuPainelEmRef = useRef(Date.now())
   const audioRef = useRef(null)
   const { canInstall, isIOS, installed, showIOSGuide, promptInstall, dismissIOSGuide } = usePWA()
   const showInstallBtn = canInstall || (isIOS && !installed)
@@ -66,7 +67,13 @@ export default function DashLayout() {
         statusPedidoRef.current.set(id, pedido.status)
 
         const pedidoEhNovo = statusAnterior === undefined
-        if (!primeiraCargaPedidosRef.current && pedidoEhNovo) {
+        const criadoEmMs = new Date(pedido?.created_at || 0).getTime()
+        const pedidoMuitoRecenteAoAbrir =
+          pedidoEhNovo &&
+          Number.isFinite(criadoEmMs) &&
+          criadoEmMs >= (abriuPainelEmRef.current - 3000)
+
+        if (pedidoEhNovo && (!primeiraCargaPedidosRef.current || pedidoMuitoRecenteAoAbrir)) {
           registrarNovoPedido(pedido)
         }
       }
@@ -80,9 +87,10 @@ export default function DashLayout() {
   useEffect(() => {
     if (!loja?.id) return undefined
 
+    abriuPainelEmRef.current = Date.now()
     primeiraCargaPedidosRef.current = true
     carregarPedidosEmBackground()
-    pollingRef.current = setInterval(() => carregarPedidosEmBackground(), 15000)
+    pollingRef.current = setInterval(() => carregarPedidosEmBackground(), 5000)
 
     const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
     socketPedidosRef.current = socket
@@ -119,12 +127,14 @@ export default function DashLayout() {
   }, [loja?.id, registrarNovoPedido, carregarPedidosEmBackground])
 
   function irParaPedidos() {
+    setAlertaPedidosIds([])
     setModalNovoPedidoAberto(false)
     setMenuAberto(false)
     navigate('/pedidos')
   }
 
   function dispensarModal() {
+    setAlertaPedidosIds([])
     setModalNovoPedidoAberto(false)
   }
 
