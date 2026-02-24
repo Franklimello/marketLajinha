@@ -57,7 +57,7 @@ export default function Pedidos() {
       const lista = Array.isArray(res) ? res : (Array.isArray(res?.dados) ? res.dados : [])
 
       if (silencioso && lista.length > pedidosCountRef.current && pedidosCountRef.current > 0) {
-        try { audioRef.current?.play() } catch {}
+        audioRef.current?.play()?.catch(() => {})
       }
       pedidosCountRef.current = lista.length
       const idsAtuais = new Set(lista.map((p) => p.id))
@@ -97,7 +97,7 @@ export default function Pedidos() {
         return [pedido, ...prev]
       })
       setUltimaAtualizacao(new Date())
-      try { audioRef.current?.play() } catch {}
+      audioRef.current?.play()?.catch(() => {})
     })
 
     socket.on('pedido:atualizado', (pedidoAtualizado) => {
@@ -110,7 +110,7 @@ export default function Pedidos() {
     socket.on('chat:nova_mensagem', (msg) => {
       if (msg.remetente === 'CLIENTE') {
         setNaoLidasMap((prev) => ({ ...prev, [msg.pedido_id]: (prev[msg.pedido_id] || 0) + 1 }))
-        try { audioRef.current?.play() } catch {}
+        audioRef.current?.play()?.catch(() => {})
       }
     })
 

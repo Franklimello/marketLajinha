@@ -47,7 +47,7 @@ export default function DashLayout() {
     if (!id) return
     setAlertaPedidosIds((prev) => {
       if (prev.includes(id)) return prev
-      try { audioRef.current?.play() } catch {}
+      audioRef.current?.play()?.catch(() => {})
       setModalNovoPedidoAberto(true)
       return [...prev, id]
     })
