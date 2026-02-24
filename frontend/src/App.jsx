@@ -62,19 +62,37 @@ function ModalAceiteTermos({ onAccept }) {
 }
 
 export default function App() {
-  const { getToken, cliente, firebaseUser } = useAuth()
+  const { getToken, cliente, firebaseUser, carregando } = useAuth()
   const { pathname } = useLocation()
   const isLojaPage = pathname.startsWith('/loja/')
   const [aceitouAgora, setAceitouAgora] = useState(false)
 
-  const termosKey = useMemo(() => {
-    const identity = cliente?.id || firebaseUser?.uid
-    if (!identity) return ''
-    return `termos:${TERMOS_VERSAO}:${identity}`
-  }, [cliente?.id, firebaseUser?.uid])
+  const termosInfo = useMemo(() => {
+    if (carregando) return null
 
-  const jaAceitou = termosKey ? getLocalItem(termosKey, false) === true : true
-  const precisaAceitar = Boolean(termosKey) && !jaAceitou && !aceitouAgora
+    const uid = firebaseUser?.uid ? String(firebaseUser.uid) : ''
+    const clienteId = cliente?.id ? String(cliente.id) : ''
+    if (!uid && !clienteId) return null
+
+    const keyAtual = clienteId
+      ? `termos:${TERMOS_VERSAO}:cliente:${clienteId}`
+      : `termos:${TERMOS_VERSAO}:uid:${uid}`
+
+    // Compatibilidade com versões anteriores (sem prefixo de tipo).
+    const legadas = []
+    if (clienteId) legadas.push(`termos:${TERMOS_VERSAO}:${clienteId}`)
+    if (uid) legadas.push(`termos:${TERMOS_VERSAO}:${uid}`)
+
+    return { keyAtual, uid, clienteId, legadas }
+  }, [carregando, firebaseUser?.uid, cliente?.id])
+
+  const jaAceitou = useMemo(() => {
+    if (!termosInfo) return true
+    if (getLocalItem(termosInfo.keyAtual, false) === true) return true
+    return termosInfo.legadas.some((k) => getLocalItem(k, false) === true)
+  }, [termosInfo])
+
+  const precisaAceitar = Boolean(termosInfo) && !jaAceitou && !aceitouAgora
 
   useEffect(() => {
     setTokenGetter(getToken)
@@ -90,11 +108,15 @@ export default function App() {
 
   useEffect(() => {
     setAceitouAgora(false)
-  }, [termosKey])
+  }, [termosInfo?.keyAtual])
 
   function aceitarTermos() {
-    if (!termosKey) return
-    setLocalItem(termosKey, true)
+    if (!termosInfo) return
+
+    // Persiste em chave atual e chaves de compatibilidade para evitar "flash".
+    setLocalItem(termosInfo.keyAtual, true)
+    for (const legacyKey of termosInfo.legadas) setLocalItem(legacyKey, true)
+
     setAceitouAgora(true)
   }
 
@@ -107,7 +129,7 @@ export default function App() {
       <Footer />
       <InstallPrompt />
       {precisaAceitar && (
-        <ModalAceiteTermos key={termosKey} onAccept={aceitarTermos} />
+        <ModalAceiteTermos key={termosInfo?.keyAtual} onAccept={aceitarTermos} />
       )}
     </div>
   )
