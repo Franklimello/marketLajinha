@@ -28,7 +28,35 @@ const schemaLojas = z.object({
   vencimento: z.union([z.string().datetime(), z.string()]).optional(),
 });
 
-const schemaLojasPut = schemaLojas.partial().superRefine((data, ctx) => {
+// PUT não aplica defaults para evitar sobrescrever campos existentes
+// (ex: logo_url/banner_url) em updates parciais.
+const schemaLojasPut = z.object({
+  nome: z.string().min(1, 'Nome é obrigatório').optional(),
+  slug: z.string().min(1, 'Slug é obrigatório').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens').optional(),
+  categoria_negocio: z.string().min(1, 'Categoria é obrigatória').optional(),
+  cidade: z.string().trim().min(1, 'Cidade é obrigatória').optional(),
+  endereco: z.string().optional(),
+  telefone: z.string().optional(),
+  horario_funcionamento: z.string().optional(),
+  horario_abertura: z.string().optional(),
+  horario_fechamento: z.string().optional(),
+  logo_url: z.string().url().optional().or(z.literal('')).optional(),
+  banner_url: z.string().url().optional().or(z.literal('')).optional(),
+  taxa_entrega: z.coerce.number().min(0).optional(),
+  tempo_entrega: z.string().optional(),
+  pix_tipo: z.string().optional(),
+  pix_chave: z.string().optional(),
+  pix_nome_titular: z.string().optional(),
+  pix_cidade: z.string().optional(),
+  formas_pagamento: z.string().optional(),
+  horarios_semana: z.string().optional(),
+  pedido_minimo: z.coerce.number().min(0).optional(),
+  cor_primaria: z.string().optional(),
+  ativa: z.boolean().optional(),
+  aberta: z.boolean().optional(),
+  forcar_status: z.boolean().optional(),
+  vencimento: z.union([z.string().datetime(), z.string()]).optional(),
+}).superRefine((data, ctx) => {
   if (typeof data.cidade !== 'string' || !data.cidade.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

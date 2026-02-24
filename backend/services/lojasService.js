@@ -213,6 +213,13 @@ async function criar(data, firebaseDecoded, bodyAdmin = {}) {
 
 async function atualizar(id, data) {
   const payload = { ...data };
+  // Camada extra de proteção para não apagar mídia por envio acidental de string vazia.
+  if (Object.prototype.hasOwnProperty.call(payload, 'logo_url') && !String(payload.logo_url || '').trim()) {
+    delete payload.logo_url;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'banner_url') && !String(payload.banner_url || '').trim()) {
+    delete payload.banner_url;
+  }
   if (payload.vencimento) payload.vencimento = new Date(payload.vencimento);
   const loja = await prisma.lojas.update({ where: { id }, data: payload });
   await invalidarCache('lojas:*');
