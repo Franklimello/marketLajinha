@@ -4,21 +4,46 @@ import { FiSearch, FiX, FiStar, FiMapPin } from 'react-icons/fi'
 import { api } from '../api/client'
 import { useDebounce } from '../hooks/useDebounce'
 import SEO from '../componentes/SEO'
+import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
+
+const BUSCA_CACHE_KEY = 'buscaLojasCache'
+const BUSCA_CACHE_TTL = 1000 * 60 * 5
 
 export default function BuscaPage() {
   const [lojas, setLojas] = useState([])
   const [busca, setBusca] = useState('')
   const buscaDebounced = useDebounce(busca, 250)
+  const buscaAtiva = Boolean(buscaDebounced.trim())
   const [categoriaSel, setCategoriaSel] = useState('')
-  const [carregando, setCarregando] = useState(true)
+  const [carregando, setCarregando] = useState(false)
+  const [dadosCarregados, setDadosCarregados] = useState(false)
 
   useEffect(() => {
+    if (!buscaAtiva || dadosCarregados) return
+    const cached = getLocalItem(BUSCA_CACHE_KEY, null)
+    if (cached?.ts && Array.isArray(cached?.data) && Date.now() - cached.ts < BUSCA_CACHE_TTL) {
+      setLojas(cached.data)
+      setDadosCarregados(true)
+      return
+    }
+
+    setCarregando(true)
     api.lojas
       .home()
-      .then(setLojas)
+      .then((data) => {
+        setLojas(data)
+        setLocalItem(BUSCA_CACHE_KEY, { ts: Date.now(), data })
+      })
       .catch(() => {})
-      .finally(() => setCarregando(false))
-  }, [])
+      .finally(() => {
+        setCarregando(false)
+        setDadosCarregados(true)
+      })
+  }, [buscaAtiva, dadosCarregados])
+
+  useEffect(() => {
+    if (!busca.trim() && categoriaSel) setCategoriaSel('')
+  }, [busca, categoriaSel])
 
   const categorias = useMemo(() => {
     const cats = [...new Set(lojas.map((l) => l.categoria_negocio).filter(Boolean))]
@@ -26,6 +51,7 @@ export default function BuscaPage() {
   }, [lojas])
 
   const resultados = useMemo(() => {
+    if (!buscaAtiva) return []
     let lista = [...lojas]
 
     if (categoriaSel) {
@@ -45,7 +71,7 @@ export default function BuscaPage() {
     const abertas = lista.filter((l) => l.aberta_agora ?? l.aberta)
     const fechadas = lista.filter((l) => !(l.aberta_agora ?? l.aberta))
     return [...abertas, ...fechadas]
-  }, [lojas, buscaDebounced, categoriaSel])
+  }, [lojas, buscaDebounced, categoriaSel, buscaAtiva])
 
   return (
     <div className="max-w-lg mx-auto px-4 pb-4">
@@ -75,7 +101,7 @@ export default function BuscaPage() {
       </div>
 
       {/* Categories */}
-      {categorias.length > 0 && (
+      {buscaAtiva && categorias.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
           <button
             onClick={() => setCategoriaSel('')}
@@ -104,7 +130,7 @@ export default function BuscaPage() {
       )}
 
       {/* Results count */}
-      {(busca || categoriaSel) && (
+      {buscaAtiva && (busca || categoriaSel) && (
         <p className="text-xs text-stone-400 mb-3">
           {resultados.length} resultado{resultados.length !== 1 ? 's' : ''}
           {categoriaSel && <span> em <strong className="text-stone-600">{categoriaSel}</strong></span>}
@@ -112,14 +138,21 @@ export default function BuscaPage() {
       )}
 
       {/* Loading */}
-      {carregando && (
+      {buscaAtiva && carregando && (
         <div className="flex items-center justify-center py-16">
           <div className="w-7 h-7 border-3 border-red-500 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {/* Results */}
-      {!carregando && (
+      {!buscaAtiva && (
+        <div className="py-16 text-center">
+          <FiSearch className="mx-auto text-3xl text-stone-300 mb-3" />
+          <p className="text-stone-500 text-sm font-medium">Digite para buscar lojas</p>
+        </div>
+      )}
+
+      {buscaAtiva && !carregando && (
         <div className="space-y-1">
           {resultados.map((loja) => {
             const aberta = loja.aberta_agora ?? loja.aberta
