@@ -21,6 +21,7 @@ router.get('/lojas/:id', adminController.buscarLoja);
 router.get('/cobrancas', adminController.listarCobrancas);
 router.post('/cobrancas/fechar', adminController.fecharCobrancas);
 router.patch('/cobrancas/:id/pagar', adminController.marcarCobrancaComoPaga);
+router.post('/cobrancas/testar-relatorio-semanal', adminController.testarRelatorioSemanal);
 router.patch('/lojas/:id/bloquear', adminController.bloquearLoja);
 router.patch('/lojas/:id/desbloquear', adminController.desbloquearLoja);
 router.delete('/lojas/:id', adminController.excluirLoja);

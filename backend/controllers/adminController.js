@@ -1,6 +1,7 @@
 const { prisma } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { getAuth } = require('../config/firebase');
+const { generateWeeklyReports } = require('../services/weeklyReportService');
 
 const SALT_ROUNDS = 10;
 const PERCENTUAL_PADRAO = Number(process.env.COMISSAO_PADRAO_PERCENTUAL || 12);
@@ -519,6 +520,18 @@ async function marcarCobrancaComoPaga(req, res, next) {
   }
 }
 
+async function testarRelatorioSemanal(req, res, next) {
+  try {
+    const result = await generateWeeklyReports();
+    res.json({
+      mensagem: 'Teste de relatório semanal executado.',
+      resultado: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   listarTodasLojas,
   buscarLoja,
@@ -534,4 +547,5 @@ module.exports = {
   listarCobrancas,
   fecharCobrancas,
   marcarCobrancaComoPaga,
+  testarRelatorioSemanal,
 };
