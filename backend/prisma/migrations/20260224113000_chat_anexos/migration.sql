@@ -1,0 +1,4 @@
+ALTER TABLE "Mensagem"
+ADD COLUMN "arquivo_url" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "arquivo_nome" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "arquivo_mime" TEXT NOT NULL DEFAULT '';

@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiPackage, FiSearch, FiMinus } from 'react-icons/fi'
+import { uploadImagem } from '../config/firebase'
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiPackage, FiSearch, FiMinus, FiUpload, FiCamera, FiImage } from 'react-icons/fi'
 
 const EMPTY_FORM = { nome: '', descricao: '', preco: '', imagem_url: '', itens: [] }
 
@@ -14,9 +15,13 @@ export default function Combos() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [imagemFile, setImagemFile] = useState(null)
+  const [imagemPreview, setImagemPreview] = useState(null)
 
   const [produtos, setProdutos] = useState([])
   const [busca, setBusca] = useState('')
+  const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
 
   const carregar = useCallback(async () => {
     try {
@@ -55,9 +60,35 @@ export default function Combos() {
       setEditId(null)
       setForm(EMPTY_FORM)
     }
+    setImagemFile(null)
+    setImagemPreview(null)
     setErro('')
     setBusca('')
     setModal(true)
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setErro('Selecione uma imagem válida (JPG, PNG, WebP).')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErro('A imagem deve ter no máximo 5 MB.')
+      return
+    }
+    setImagemFile(file)
+    setImagemPreview(URL.createObjectURL(file))
+    setErro('')
+  }
+
+  function removerImagem() {
+    setImagemFile(null)
+    setImagemPreview(null)
+    setForm((f) => ({ ...f, imagem_url: '' }))
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   function addProduto(prod) {
@@ -93,11 +124,16 @@ export default function Combos() {
 
     setSalvando(true)
     try {
+      let imagem_url = form.imagem_url
+      if (imagemFile) {
+        const path = `combos/${loja.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
+        imagem_url = await uploadImagem(imagemFile, path)
+      }
       const data = {
         nome: form.nome.trim(),
         descricao: form.descricao.trim(),
         preco: Number(form.preco),
-        imagem_url: form.imagem_url,
+        imagem_url,
         itens: form.itens.map(i => ({ produto_id: i.produto_id, quantidade: i.quantidade })),
       }
       if (editId) {
@@ -161,9 +197,9 @@ export default function Combos() {
               <div key={c.id} className={`bg-white rounded-xl border border-stone-200 p-4 ${!c.ativo ? 'opacity-60' : ''}`}>
                 <div className="flex items-start gap-4">
                   {c.imagem_url ? (
-                    <img src={c.imagem_url} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                    <img src={c.imagem_url} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0" />
                   ) : (
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-linear-to-br from-amber-100 to-orange-100 flex items-center justify-center shrink-0">
                       <FiPackage className="text-amber-600" size={24} />
                     </div>
                   )}
@@ -187,7 +223,7 @@ export default function Combos() {
                       {c.itens.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(' + ')}
                     </p>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex gap-1 shrink-0">
                     <button onClick={() => toggleAtivo(c)} className={`px-2 py-1 text-[11px] font-medium rounded-lg ${c.ativo ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}>
                       {c.ativo ? 'Desativar' : 'Ativar'}
                     </button>
@@ -222,8 +258,53 @@ export default function Combos() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">URL da imagem (opcional)</label>
-                <input type="text" value={form.imagem_url} onChange={(e) => setForm(f => ({ ...f, imagem_url: e.target.value }))} className="w-full px-3 py-2.5 border border-stone-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500 outline-none" placeholder="https://..." />
+                <label className="block text-sm font-medium text-stone-700 mb-2">Imagem do combo (opcional)</label>
+                <div className="flex items-start gap-4">
+                  {(imagemPreview || form.imagem_url) ? (
+                    <div className="relative">
+                      <img
+                        src={imagemPreview || form.imagem_url}
+                        alt="Preview do combo"
+                        className="w-24 h-24 rounded-xl object-cover border-2 border-stone-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={removerImagem}
+                        className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow text-xs"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 border-2 border-dashed border-stone-300 rounded-xl flex items-center justify-center">
+                      <FiUpload className="text-xl text-stone-300" />
+                    </div>
+                  )}
+                  <div className="flex-1 pt-0.5">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs font-medium text-stone-700 transition-colors"
+                      >
+                        <FiImage className="text-sm" /> Galeria
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-medium text-amber-700 transition-colors"
+                      >
+                        <FiCamera className="text-sm" /> Câmera
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-stone-400 mt-1.5">JPG, PNG ou WebP (máx. 5 MB)</p>
+                    {imagemFile && (
+                      <span className="inline-block text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full mt-1">Nova imagem selecionada</span>
+                    )}
+                  </div>
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
               </div>
 
               {/* Produtos do combo */}

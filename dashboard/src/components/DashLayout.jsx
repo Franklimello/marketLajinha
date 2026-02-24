@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram } from 'react-icons/fi'
+import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram, FiTrendingUp } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 
 const SUPORTE_WHATSAPP = '5533999394706'
@@ -14,6 +14,7 @@ const NAV = [
   { to: '/produtos', icon: FiPackage, label: 'Cardápio' },
   { to: '/bairros', icon: FiMapPin, label: 'Bairros e Taxas' },
   { to: '/cupons', icon: FiTag, label: 'Cupons' },
+  { to: '/promocoes', icon: FiTrendingUp, label: 'Promoções' },
   { to: '/impressoras', icon: FiPrinter, label: 'Impressoras' },
   { to: '/combos', icon: FiGift, label: 'Combos' },
   { to: '/motoboys', icon: FiTruck, label: 'Motoboys' },
@@ -71,7 +72,7 @@ export default function DashLayout() {
             : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
         }`}
       >
-        <Icon className="text-lg flex-shrink-0" />
+        <Icon className="text-lg shrink-0" />
         {label}
       </Link>
     )

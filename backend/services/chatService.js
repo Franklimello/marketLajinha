@@ -8,9 +8,17 @@ async function listarMensagens(pedidoId, limite = 50) {
   });
 }
 
-async function enviarMensagem({ pedido_id, loja_id, remetente, conteudo }) {
+async function enviarMensagem({ pedido_id, loja_id, remetente, conteudo, arquivo_url, arquivo_nome, arquivo_mime }) {
   return prisma.mensagem.create({
-    data: { pedido_id, loja_id, remetente, conteudo },
+    data: {
+      pedido_id,
+      loja_id,
+      remetente,
+      conteudo: conteudo || '',
+      arquivo_url: arquivo_url || '',
+      arquivo_nome: arquivo_nome || '',
+      arquivo_mime: arquivo_mime || '',
+    },
   });
 }
 

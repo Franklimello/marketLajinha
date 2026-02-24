@@ -173,6 +173,7 @@ export default function LojaPage() {
   const [copiado, setCopiado] = useState(false)
 
   const [combos, setCombos] = useState([])
+  const [promocoes, setPromocoes] = useState([])
   const [notaMedia, setNotaMedia] = useState({ media: 0, total: 0 })
   const [avaliacoes, setAvaliacoes] = useState([])
   const [showAvaliacoes, setShowAvaliacoes] = useState(false)
@@ -210,6 +211,7 @@ export default function LojaPage() {
           api.lojas.produtos(slug, 1).then(setProdutos).catch(() => {}).finally(() => setProdutosCarregando(false))
           api.lojas.bairros(lojaData.id).then(setBairros).catch(() => {})
           api.combos.listarPorLoja(lojaData.id).then(setCombos).catch(() => {})
+          api.promocoes.listarPorLoja(lojaData.id).then((r) => setPromocoes(Array.isArray(r) ? r : [])).catch(() => {})
           api.avaliacoes.mediaPorLoja(lojaData.id).then(setNotaMedia).catch(() => {})
           api.avaliacoes.listarPorLoja(lojaData.id).then((r) => setAvaliacoes(r.dados || [])).catch(() => {})
         } else {
@@ -683,20 +685,27 @@ export default function LojaPage() {
                 <p className="text-xs font-semibold text-amber-800">
                   Após pagar, envie o comprovante para a loja para agilizar a confirmação.
                 </p>
-                {linkComprovanteWhatsapp ? (
-                  <a
-                    href={linkComprovanteWhatsapp}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center justify-center w-full py-2.5 bg-amber-500 text-white rounded-lg text-xs font-semibold hover:bg-amber-600 transition-colors"
+                <div className="mt-2 grid grid-cols-1 gap-2">
+                  {linkComprovanteWhatsapp && (
+                    <a
+                      href={linkComprovanteWhatsapp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center w-full py-2.5 bg-amber-500 text-white rounded-lg text-xs font-semibold hover:bg-amber-600 transition-colors"
+                    >
+                      Enviar no WhatsApp da loja
+                    </a>
+                  )}
+                  <Link
+                    to="/pedidos"
+                    className="inline-flex items-center justify-center w-full py-2.5 bg-white border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors"
                   >
-                    Enviar comprovante para loja
-                  </a>
-                ) : (
-                  <p className="text-[11px] text-amber-700 mt-1.5">
-                    Se necessário, envie o comprovante no chat do pedido.
-                  </p>
-                )}
+                    Enviar dentro do sistema (chat)
+                  </Link>
+                </div>
+                <p className="text-[11px] text-amber-700 mt-1.5">
+                  Você pode escolher qualquer uma das opções acima.
+                </p>
               </div>
               <button onClick={copiarPayload} className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 text-sm">{copiado ? <><FiCheck /> Copiado!</> : <><FiCopy /> Copiar código PIX</>}</button>
               <button onClick={handleFinalizarPix} className="w-full mt-3 py-2.5 text-green-700 bg-green-50 font-medium rounded-xl hover:bg-green-100 text-sm">Já paguei</button>
@@ -1319,6 +1328,37 @@ export default function LojaPage() {
       <div className="h-2 bg-stone-100" />
 
       <div className={`px-4 pt-4 ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
+        {!produtosCarregando && Array.isArray(promocoes) && promocoes.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <FiTag className="text-red-500" />
+              <h2 className="text-base font-bold text-stone-900">Promoções da loja</h2>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
+              {promocoes.map((promo) => (
+                <div key={promo.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-amber-50 to-red-50 rounded-2xl border border-amber-200 overflow-hidden">
+                  {promo.imagem_url ? (
+                    <img src={promo.imagem_url} alt={promo.titulo} loading="lazy" className="w-full h-28 object-cover" />
+                  ) : (
+                    <div className="w-full h-28 bg-amber-100 flex items-center justify-center">
+                      <FiTag className="text-amber-600 text-2xl" />
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <h3 className="text-sm font-bold text-stone-900 line-clamp-1">{promo.titulo}</h3>
+                    {promo.descricao && <p className="text-[11px] text-stone-600 mt-1 line-clamp-2">{promo.descricao}</p>}
+                    {Number(promo.preco_promocional || 0) > 0 && (
+                      <p className="text-lg font-extrabold text-red-700 mt-2">
+                        R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {produtosCarregando && (
           <div className="space-y-2">
             <div className="skeleton h-5 rounded w-24 mb-3" />

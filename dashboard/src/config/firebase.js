@@ -64,3 +64,9 @@ export async function uploadImagem(file, path, opts = {}) {
   await uploadBytes(storageRef, compressed)
   return getDownloadURL(storageRef)
 }
+
+export async function uploadArquivoChat(file, path) {
+  const storageRef = ref(storage, path)
+  await uploadBytes(storageRef, file, { contentType: file.type || 'application/octet-stream' })
+  return getDownloadURL(storageRef)
+}

@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
+import { uploadArquivoChat } from '../config/firebase'
 import SEO from '../componentes/SEO'
-import { FiClock, FiCheck, FiTruck, FiX, FiPackage, FiStar, FiMessageCircle, FiSend } from 'react-icons/fi'
+import { FiClock, FiCheck, FiTruck, FiX, FiPackage, FiStar, FiMessageCircle, FiSend, FiPaperclip, FiFileText } from 'react-icons/fi'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -121,8 +122,10 @@ function ChatPedido({ pedidoId, socketRef }) {
   const [mensagens, setMensagens] = useState([])
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [arquivo, setArquivo] = useState(null)
   const [naoLidas, setNaoLidas] = useState(0)
   const scrollRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (!aberto) return
@@ -146,14 +149,50 @@ function ChatPedido({ pedidoId, socketRef }) {
     return () => socket.off('chat:nova_mensagem', onMsg)
   }, [pedidoId, aberto, socketRef])
 
+  function handleSelecionarArquivo(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const permitidos = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+    if (!permitidos.includes(file.type)) {
+      alert('Formato inválido. Envie JPG, PNG, WEBP ou PDF.')
+      e.target.value = ''
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Arquivo deve ter no máximo 5 MB.')
+      e.target.value = ''
+      return
+    }
+    setArquivo(file)
+  }
+
+  function limparArquivo() {
+    setArquivo(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   async function enviar(e) {
     e.preventDefault()
-    if (!texto.trim() || enviando) return
+    if ((!texto.trim() && !arquivo) || enviando) return
     setEnviando(true)
     try {
-      const msg = await api.chat.enviar(pedidoId, texto.trim())
+      let payload = { conteudo: texto.trim() }
+      if (arquivo) {
+        const ext = (arquivo.name.split('.').pop() || 'bin').toLowerCase()
+        const path = `chat/pedidos/${pedidoId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const url = await uploadArquivoChat(arquivo, path)
+        payload = {
+          conteudo: texto.trim(),
+          arquivo_url: url,
+          arquivo_nome: arquivo.name,
+          arquivo_mime: arquivo.type,
+        }
+      }
+
+      const msg = await api.chat.enviar(pedidoId, payload)
       setMensagens((prev) => [...prev, msg])
       setTexto('')
+      limparArquivo()
       setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
     } catch {}
     finally { setEnviando(false) }
@@ -187,7 +226,30 @@ function ChatPedido({ pedidoId, socketRef }) {
                     ? 'bg-red-500 text-white rounded-br-sm'
                     : 'bg-white text-stone-800 border border-stone-200 rounded-bl-sm'
                 }`}>
-                  <p>{m.conteudo}</p>
+                  {!!m.conteudo && <p>{m.conteudo}</p>}
+                  {!!m.arquivo_url && (
+                    <div className={m.conteudo ? 'mt-1.5' : ''}>
+                      {(m.arquivo_mime || '').startsWith('image/') ? (
+                        <a href={m.arquivo_url} target="_blank" rel="noopener noreferrer">
+                          <img src={m.arquivo_url} alt={m.arquivo_nome || 'Comprovante'} className="w-40 rounded-lg border border-white/30" />
+                        </a>
+                      ) : (
+                        <a
+                          href={m.arquivo_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ${
+                            m.remetente === 'CLIENTE'
+                              ? 'bg-white/20 text-white hover:bg-white/30'
+                              : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          }`}
+                        >
+                          <FiFileText size={12} />
+                          <span className="truncate max-w-[130px]">{m.arquivo_nome || 'Arquivo'}</span>
+                        </a>
+                      )}
+                    </div>
+                  )}
                   <p className={`text-[9px] mt-0.5 ${m.remetente === 'CLIENTE' ? 'text-red-100' : 'text-stone-400'}`}>
                     {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
@@ -195,7 +257,23 @@ function ChatPedido({ pedidoId, socketRef }) {
               </div>
             ))}
           </div>
+          {arquivo && (
+            <div className="px-3 py-1.5 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
+              <p className="text-[11px] text-stone-500 truncate max-w-[75%]">Anexo: {arquivo.name}</p>
+              <button type="button" onClick={limparArquivo} className="text-[11px] text-red-500 hover:text-red-600">Remover</button>
+            </div>
+          )}
           <form onSubmit={enviar} className="flex border-t border-stone-200 bg-white">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.pdf"
+              onChange={handleSelecionarArquivo}
+              className="hidden"
+            />
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 text-stone-400 hover:text-red-600">
+              <FiPaperclip size={14} />
+            </button>
             <input
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
@@ -203,7 +281,7 @@ function ChatPedido({ pedidoId, socketRef }) {
               className="flex-1 px-3 py-2 text-xs border-0 focus:ring-0 outline-none"
               maxLength={500}
             />
-            <button type="submit" disabled={enviando || !texto.trim()} className="px-3 text-red-600 hover:text-red-700 disabled:text-stone-300">
+            <button type="submit" disabled={enviando || (!texto.trim() && !arquivo)} className="px-3 text-red-600 hover:text-red-700 disabled:text-stone-300">
               <FiSend size={14} />
             </button>
           </form>

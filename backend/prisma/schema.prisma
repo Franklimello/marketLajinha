@@ -50,6 +50,7 @@ model Lojas {
   combos          Combo[]
   mensagens       Mensagem[]
   cobrancas       CobrancaLojista[]
+  promocoes       Promocao[]
   token_impressao String    @default("")
 
   @@index([ativa, cidade])
@@ -390,6 +391,9 @@ model Mensagem {
   loja_id    String
   remetente  RemetenteMensagem
   conteudo   String
+  arquivo_url  String        @default("")
+  arquivo_nome String        @default("")
+  arquivo_mime String        @default("")
   lido       Boolean         @default(false)
   created_at DateTime        @default(now())
 
@@ -439,6 +443,24 @@ model CobrancaPedido {
 
   @@unique([cobranca_id, pedido_id])
   @@index([loja_id, pedido_criado_em])
+}
+
+model Promocao {
+  id               String   @id @default(cuid())
+  loja_id          String
+  titulo           String
+  descricao        String   @default("")
+  imagem_url       String   @default("")
+  preco_promocional Decimal @default(0)
+  ativo            Boolean  @default(true)
+  destaque_inicio  DateTime?
+  destaque_fim     DateTime?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+
+  @@index([loja_id, ativo])
 }
 
 enum RemetenteMensagem {

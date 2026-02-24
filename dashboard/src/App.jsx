@@ -15,6 +15,7 @@ import AdminSistema from './pages/AdminSistema'
 import Cupons from './pages/Cupons'
 import Motoboys from './pages/Motoboys'
 import Combos from './pages/Combos'
+import Promocoes from './pages/Promocoes'
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/bairros" element={<Bairros />} />
             <Route path="/impressoras" element={<Impressoras />} />
             <Route path="/cupons" element={<Cupons />} />
+            <Route path="/promocoes" element={<Promocoes />} />
             <Route path="/motoboys" element={<Motoboys />} />
             <Route path="/combos" element={<Combos />} />
             <Route path="/configuracoes" element={<Configuracoes />} />

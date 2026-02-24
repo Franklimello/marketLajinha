@@ -108,6 +108,9 @@ export const api = {
   combos: {
     listarPorLoja: (lojaId) => cachedRequest(`/combos/loja/${lojaId}`),
   },
+  promocoes: {
+    listarPorLoja: (lojaId) => cachedRequest(`/promocoes/loja/${lojaId}`),
+  },
   pedidos: {
     criar: (data) => request('/pedidos', { method: 'POST', body: JSON.stringify(data) }),
     meus: () => request('/pedidos/meus'),
@@ -122,7 +125,14 @@ export const api = {
   },
   chat: {
     mensagens: (pedidoId) => request(`/chat/${pedidoId}/mensagens`),
-    enviar: (pedidoId, conteudo) => request(`/chat/${pedidoId}/mensagens/cliente`, { method: 'POST', body: JSON.stringify({ conteudo }) }),
+    enviar: (pedidoId, payload) => request(`/chat/${pedidoId}/mensagens/cliente`, {
+      method: 'POST',
+      body: JSON.stringify(
+        typeof payload === 'string'
+          ? { conteudo: payload }
+          : payload
+      ),
+    }),
   },
   clientes: {
     me: () => request('/clientes/me'),

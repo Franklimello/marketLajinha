@@ -48,10 +48,11 @@ export default function Dashboard() {
     setErro('')
     setCarregando(true)
     Promise.all([
-      api.pedidos.listar().catch(() => []),
+      api.pedidos.listar({ pagina: 1, limite: 500 }).catch(() => ({ dados: [] })),
       api.produtos.listar(loja.id, 1).catch(() => ({ dados: [], total: 0 })),
     ]).then(([ped, prod]) => {
-      setPedidos(Array.isArray(ped) ? ped : [])
+      const pedidosLista = Array.isArray(ped) ? ped : (Array.isArray(ped?.dados) ? ped.dados : [])
+      setPedidos(pedidosLista)
       setProdutos(prod)
     }).catch(() => {
       setErro('Não foi possível carregar os indicadores agora. Tente novamente em instantes.')

@@ -50,7 +50,13 @@ export const api = {
       request(`/lojas/${lojaId}/bairros/${id}`, { method: 'DELETE' }),
   },
   pedidos: {
-    listar: () => request('/pedidos'),
+    listar: (params = {}) => {
+      const qs = new URLSearchParams()
+      if (params.pagina !== undefined) qs.set('pagina', String(params.pagina))
+      if (params.limite !== undefined) qs.set('limite', String(params.limite))
+      const sufixo = qs.toString() ? `?${qs.toString()}` : ''
+      return request(`/pedidos${sufixo}`)
+    },
     buscar: (id) => request(`/pedidos/${id}`),
     atualizarStatus: (id, status) =>
       request(`/pedidos/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
@@ -85,6 +91,13 @@ export const api = {
     atualizar: (id, data) => request(`/combos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     excluir: (id) => request(`/combos/${id}`, { method: 'DELETE' }),
   },
+  promocoes: {
+    listar: () => request('/promocoes'),
+    buscar: (id) => request(`/promocoes/${id}`),
+    criar: (data) => request('/promocoes', { method: 'POST', body: JSON.stringify(data) }),
+    atualizar: (id, data) => request(`/promocoes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    excluir: (id) => request(`/promocoes/${id}`, { method: 'DELETE' }),
+  },
   motoboys: {
     listar: () => request('/motoboys'),
     buscar: (id) => request(`/motoboys/${id}`),
@@ -94,7 +107,14 @@ export const api = {
   },
   chat: {
     mensagens: (pedidoId) => request(`/chat/${pedidoId}/mensagens`),
-    enviar: (pedidoId, conteudo) => request(`/chat/${pedidoId}/mensagens/loja`, { method: 'POST', body: JSON.stringify({ conteudo }) }),
+    enviar: (pedidoId, payload) => request(`/chat/${pedidoId}/mensagens/loja`, {
+      method: 'POST',
+      body: JSON.stringify(
+        typeof payload === 'string'
+          ? { conteudo: payload }
+          : payload
+      ),
+    }),
     naoLidas: () => request('/chat/nao-lidas'),
   },
   admin: {

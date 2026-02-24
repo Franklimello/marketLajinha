@@ -31,8 +31,12 @@ async function listarMensagens(req, res, next) {
 async function enviarMensagemLoja(req, res, next) {
   try {
     const { pedidoId } = req.params;
-    const { conteudo } = req.body;
-    if (!conteudo?.trim()) return res.status(400).json({ erro: 'Mensagem vazia.' });
+    const { conteudo, arquivo_url, arquivo_nome, arquivo_mime } = req.body || {};
+    const texto = String(conteudo || '').trim();
+    const arquivoUrl = String(arquivo_url || '').trim();
+    const arquivoNome = String(arquivo_nome || '').trim();
+    const arquivoMime = String(arquivo_mime || '').trim();
+    if (!texto && !arquivoUrl) return res.status(400).json({ erro: 'Mensagem vazia.' });
 
     const pedido = await prisma.pedidos.findUnique({ where: { id: pedidoId } });
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
@@ -42,7 +46,10 @@ async function enviarMensagemLoja(req, res, next) {
       pedido_id: pedidoId,
       loja_id: pedido.loja_id,
       remetente: 'LOJA',
-      conteudo: conteudo.trim(),
+      conteudo: texto,
+      arquivo_url: arquivoUrl,
+      arquivo_nome: arquivoNome,
+      arquivo_mime: arquivoMime,
     });
 
     const io = getIO();
@@ -57,8 +64,12 @@ async function enviarMensagemLoja(req, res, next) {
 async function enviarMensagemCliente(req, res, next) {
   try {
     const { pedidoId } = req.params;
-    const { conteudo } = req.body;
-    if (!conteudo?.trim()) return res.status(400).json({ erro: 'Mensagem vazia.' });
+    const { conteudo, arquivo_url, arquivo_nome, arquivo_mime } = req.body || {};
+    const texto = String(conteudo || '').trim();
+    const arquivoUrl = String(arquivo_url || '').trim();
+    const arquivoNome = String(arquivo_nome || '').trim();
+    const arquivoMime = String(arquivo_mime || '').trim();
+    if (!texto && !arquivoUrl) return res.status(400).json({ erro: 'Mensagem vazia.' });
     if (!req.firebaseDecoded) return res.status(401).json({ erro: 'Token obrigatório.' });
 
     const cliente = await clientesService.buscarPorFirebaseUid(req.firebaseDecoded.uid);
@@ -72,7 +83,10 @@ async function enviarMensagemCliente(req, res, next) {
       pedido_id: pedidoId,
       loja_id: pedido.loja_id,
       remetente: 'CLIENTE',
-      conteudo: conteudo.trim(),
+      conteudo: texto,
+      arquivo_url: arquivoUrl,
+      arquivo_nome: arquivoNome,
+      arquivo_mime: arquivoMime,
     });
 
     const io = getIO();

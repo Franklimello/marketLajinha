@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
+import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
@@ -103,6 +104,51 @@ function extrairCategorias(lojas) {
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
     .map((nome) => ({ nome, emoji: emojiCategoria(nome) }))
 }
+
+const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggle }) {
+  return (
+    <motion.button
+      type="button"
+      layout
+      whileTap={{ scale: 0.95 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      onClick={onToggle}
+      className="relative shrink-0 rounded-2xl"
+    >
+      <motion.div
+        layout
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className={`relative px-2.5 py-2 rounded-2xl border ${
+          isActive
+            ? 'border-red-600 shadow-sm'
+            : 'border-stone-200 bg-white hover:bg-stone-50'
+        }`}
+      >
+        {isActive && (
+          <motion.span
+            layoutId="categoria-pill"
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="absolute inset-0 rounded-2xl bg-red-600"
+          />
+        )}
+        <div className="relative z-10 flex flex-col items-center gap-1.5 min-w-[64px]">
+          <motion.div
+            layout
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className={`w-11 h-11 rounded-full flex items-center justify-center text-xl ${
+              isActive ? 'bg-white/20 text-white' : 'bg-stone-100'
+            }`}
+          >
+            {categoria.emoji}
+          </motion.div>
+          <span className={`text-[11px] font-semibold whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-600'}`}>
+            {categoria.nome}
+          </span>
+        </div>
+      </motion.div>
+    </motion.button>
+  )
+})
 
 async function resolverCidadePorCoordenadas(latitude, longitude) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=pt-BR`
@@ -534,32 +580,47 @@ export default function HomePage() {
         {categoriasDinamicas.map((cat) => {
           const ativo = categoriaSel === cat.nome
           return (
-            <button
+            <CategoriaCard
               key={cat.nome}
-              onClick={() => setCategoriaSel(ativo ? null : cat.nome)}
-              className="flex flex-col items-center gap-1.5 shrink-0"
-            >
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-200 ${ativo ? 'bg-red-100 ring-2 ring-red-500 scale-110' : 'bg-stone-100 hover:bg-stone-200'}`}>
-                {cat.emoji}
-              </div>
-              <span className={`text-[11px] font-medium whitespace-nowrap transition-colors ${ativo ? 'text-red-600' : 'text-stone-600'}`}>{cat.nome}</span>
-            </button>
+              categoria={cat}
+              isActive={ativo}
+              onToggle={() => setCategoriaSel(ativo ? null : cat.nome)}
+            />
           )
         })}
       </div>
 
       {/* Active filter chip */}
-      {categoriaSel && (
-        <div className="flex items-center gap-2 mb-3 animate-fade-in-up">
-          <span className="text-xs text-stone-500">Filtrando por:</span>
-          <button
-            onClick={() => setCategoriaSel(null)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium hover:bg-red-200 transition-colors"
+      <AnimatePresence mode="wait">
+        {categoriaSel && (
+          <motion.div
+            key="filtro-ativo"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="flex items-center gap-2 mb-3"
           >
-            {categoriaSel} <FiX size={12} />
-          </button>
-        </div>
-      )}
+            <span className="text-sm text-stone-600">Filtrando por:</span>
+            <button
+              onClick={() => setCategoriaSel(null)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm font-medium hover:bg-red-100 transition-colors"
+            >
+              <span>{categoriaSel}</span>
+              <motion.span
+                initial={{ rotate: -45, opacity: 0.8 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.94 }}
+                transition={{ duration: 0.2 }}
+                className="inline-flex"
+              >
+                <FiX size={14} />
+              </motion.span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stores */}
       {lojasFiltradas.length === 0 ? (
