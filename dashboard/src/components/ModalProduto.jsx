@@ -3,6 +3,8 @@ import { api } from '../api/client'
 import { uploadImagem } from '../config/firebase'
 import { FiUpload, FiCamera, FiImage, FiPlus, FiTrash2 } from 'react-icons/fi'
 
+const TAMANHOS_PADRAO = ['P', 'M', 'G', 'GG']
+
 export default function ModalProduto({ lojaId, produto, categoriaInicial, categoriasExistentes = [], onFechar, onSalvo }) {
   const [form, setForm] = useState({
     nome: '', descricao: '', preco: 0, estoque: 0,
@@ -74,6 +76,37 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   function handleVariacaoChange(i, field, value) {
     setVariacoes((prev) => prev.map((v, idx) => idx === i ? { ...v, [field]: field === 'preco' ? (parseFloat(value) || 0) : value } : v))
   }
+
+  function isTamanhoPadrao(nome) {
+    return TAMANHOS_PADRAO.includes(String(nome || '').trim().toUpperCase())
+  }
+
+  function indiceVariacaoPorNome(nome) {
+    return variacoes.findIndex((v) => String(v.nome || '').trim().toUpperCase() === String(nome || '').trim().toUpperCase())
+  }
+
+  function toggleTamanhoPadrao(nome) {
+    const target = String(nome || '').trim().toUpperCase()
+    setVariacoes((prev) => {
+      const idx = prev.findIndex((v) => String(v.nome || '').trim().toUpperCase() === target)
+      if (idx >= 0) return prev.filter((_, i) => i !== idx)
+      return [...prev, { nome: target, preco: 0 }]
+    })
+  }
+
+  function setPrecoTamanhoPadrao(nome, valor) {
+    const target = String(nome || '').trim().toUpperCase()
+    const preco = parseFloat(valor) || 0
+    setVariacoes((prev) => {
+      const idx = prev.findIndex((v) => String(v.nome || '').trim().toUpperCase() === target)
+      if (idx >= 0) {
+        return prev.map((v, i) => (i === idx ? { ...v, preco } : v))
+      }
+      return [...prev, { nome: target, preco }]
+    })
+  }
+
+  const variacoesCustomizadas = variacoes.filter((v) => !isTamanhoPadrao(v.nome))
 
   // Adicionais
   function addAdicional() { setAdicionais((prev) => [...prev, { nome: '', preco: 0 }]) }
@@ -260,12 +293,57 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <p className="text-xs text-stone-400">
                 Defina tamanhos/variações para este produto. Ex: P, M, G ou 300ml, 500ml. Cada tamanho tem seu preço próprio.
               </p>
+              <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-medium text-stone-600">Tamanhos rápidos</p>
+                {TAMANHOS_PADRAO.map((tam) => {
+                  const idx = indiceVariacaoPorNome(tam)
+                  const ativo = idx >= 0
+                  const precoAtual = ativo ? variacoes[idx].preco : 0
+                  return (
+                    <div key={tam} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleTamanhoPadrao(tam)}
+                        className={`w-9 h-9 rounded-lg text-xs font-bold border transition-colors ${
+                          ativo
+                            ? 'bg-amber-600 border-amber-600 text-white'
+                            : 'bg-white border-stone-300 text-stone-600 hover:border-amber-400'
+                        }`}
+                      >
+                        {tam}
+                      </button>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">R$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={precoAtual}
+                          disabled={!ativo}
+                          onFocus={() => { if (!ativo) toggleTamanhoPadrao(tam) }}
+                          onChange={(e) => setPrecoTamanhoPadrao(tam, e.target.value)}
+                          placeholder={`Preço ${tam}`}
+                          className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 ${
+                            ativo ? 'border-stone-300 bg-white' : 'border-stone-200 bg-stone-100 text-stone-400'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+                <p className="text-[11px] text-stone-400">
+                  Toque no tamanho para ativar/desativar. Com os tamanhos ativos, cada um usa seu próprio preço.
+                </p>
+              </div>
               <div className="space-y-2">
-                {variacoes.map((v, i) => (
+                {variacoesCustomizadas.map((v, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <input
                       value={v.nome}
-                      onChange={(e) => handleVariacaoChange(i, 'nome', e.target.value)}
+                      onChange={(e) => {
+                        const idxReal = variacoes.findIndex((x) => x === v)
+                        handleVariacaoChange(idxReal, 'nome', e.target.value)
+                      }}
                       placeholder="Nome (ex: G)"
                       className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
                     />
@@ -276,18 +354,28 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                         step="0.01"
                         min="0"
                         value={v.preco}
-                        onChange={(e) => handleVariacaoChange(i, 'preco', e.target.value)}
+                        onChange={(e) => {
+                          const idxReal = variacoes.findIndex((x) => x === v)
+                          handleVariacaoChange(idxReal, 'preco', e.target.value)
+                        }}
                         className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
-                    <button type="button" onClick={() => removeVariacao(i)} className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const idxReal = variacoes.findIndex((x) => x === v)
+                        removeVariacao(idxReal)
+                      }}
+                      className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
                       <FiTrash2 className="text-sm" />
                     </button>
                   </div>
                 ))}
               </div>
               <button type="button" onClick={addVariacao} className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium">
-                <FiPlus /> Adicionar tamanho
+                <FiPlus /> Adicionar tamanho personalizado
               </button>
             </>
           )}
