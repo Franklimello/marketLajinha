@@ -1,12 +1,15 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram, FiTrendingUp } from 'react-icons/fi'
+import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram, FiTrendingUp, FiBell } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
+import { io } from 'socket.io-client'
 
 const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/franklimello30/'
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePWA } from '../hooks/usePWA'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const NAV = [
   { to: '/', icon: FiGrid, label: 'Dashboard' },
@@ -27,8 +30,78 @@ export default function DashLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuAberto, setMenuAberto] = useState(false)
+  const [alertaPedidosIds, setAlertaPedidosIds] = useState([])
+  const [modalNovoPedidoAberto, setModalNovoPedidoAberto] = useState(false)
+  const [wsPedidosConectado, setWsPedidosConectado] = useState(false)
+  const socketPedidosRef = useRef(null)
+  const statusPedidoRef = useRef(new Map())
+  const audioRef = useRef(null)
   const { canInstall, isIOS, installed, showIOSGuide, promptInstall, dismissIOSGuide } = usePWA()
   const showInstallBtn = canInstall || (isIOS && !installed)
+
+  const registrarNovoAprovado = useCallback((pedido) => {
+    const id = String(pedido?.id || '')
+    if (!id) return
+    setAlertaPedidosIds((prev) => {
+      if (prev.includes(id)) return prev
+      try { audioRef.current?.play() } catch {}
+      setModalNovoPedidoAberto(true)
+      return [...prev, id]
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!loja?.id || isSuperAdmin) return undefined
+
+    const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
+    socketPedidosRef.current = socket
+
+    socket.on('connect', () => {
+      setWsPedidosConectado(true)
+      socket.emit('join:loja', loja.id)
+    })
+    socket.on('disconnect', () => setWsPedidosConectado(false))
+
+    socket.on('pedido:novo', (pedido) => {
+      const id = String(pedido?.id || '')
+      if (!id) return
+      statusPedidoRef.current.set(id, pedido.status)
+      if (pedido.status === 'APPROVED') registrarNovoAprovado(pedido)
+    })
+
+    socket.on('pedido:atualizado', (pedidoAtualizado) => {
+      const id = String(pedidoAtualizado?.id || '')
+      if (!id) return
+      const statusAnterior = statusPedidoRef.current.get(id)
+      statusPedidoRef.current.set(id, pedidoAtualizado.status)
+      if (pedidoAtualizado.status === 'APPROVED' && statusAnterior !== 'APPROVED') {
+        registrarNovoAprovado(pedidoAtualizado)
+      }
+      if (pedidoAtualizado.status !== 'APPROVED') {
+        setAlertaPedidosIds((ids) => ids.filter((pid) => pid !== id))
+      }
+    })
+
+    return () => {
+      socket.disconnect()
+      setWsPedidosConectado(false)
+    }
+  }, [loja?.id, isSuperAdmin, registrarNovoAprovado])
+
+  function irParaPedidos() {
+    setModalNovoPedidoAberto(false)
+    setMenuAberto(false)
+    navigate('/pedidos')
+  }
+
+  function dispensarModal() {
+    setModalNovoPedidoAberto(false)
+  }
+
+  function marcarComoVisto() {
+    setAlertaPedidosIds([])
+    setModalNovoPedidoAberto(false)
+  }
 
   if (loading) {
     return (
@@ -183,6 +256,16 @@ export default function DashLayout() {
                 <span className="hidden sm:inline">Instalar App</span>
               </button>
             )}
+            {alertaPedidosIds.length > 0 && (
+              <button
+                onClick={() => setModalNovoPedidoAberto(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors animate-pulse"
+                title="Novo pedido confirmado"
+              >
+                <FiBell size={14} />
+                <span>{alertaPedidosIds.length} novo(s)</span>
+              </button>
+            )}
             {loja ? (
               <span
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -193,11 +276,18 @@ export default function DashLayout() {
                 {(loja.aberta_agora ?? loja.aberta) ? 'Aberta' : 'Fechada'}
                 {loja.forcar_status && ' (manual)'}
               </span>
-            ) : isSuperAdmin ? (
+            ) : null}
+            {!isSuperAdmin && loja && (
+              <span className={`inline-flex items-center gap-1 text-[10px] ${wsPedidosConectado ? 'text-green-600' : 'text-stone-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${wsPedidosConectado ? 'bg-green-500' : 'bg-stone-300'}`} />
+                {wsPedidosConectado ? 'Ao vivo' : 'Offline'}
+              </span>
+            )}
+            {!loja && isSuperAdmin && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                 <FiShield className="text-xs" /> Admin
               </span>
-            ) : null}
+            )}
           </div>
         </header>
 
@@ -243,6 +333,57 @@ export default function DashLayout() {
           </div>
         </div>
       )}
+
+      {alertaPedidosIds.length > 0 && (
+        <div className="fixed inset-0 z-45 pointer-events-none">
+          <div className="absolute inset-0 border-12 border-red-500 animate-pulse" />
+          <div className="absolute inset-0 bg-red-500/10 animate-pulse" />
+        </div>
+      )}
+
+      {modalNovoPedidoAberto && alertaPedidosIds.length > 0 && (
+        <div className="fixed inset-0 z-90 bg-black/45 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-red-100 overflow-hidden">
+            <div className="px-5 py-4 bg-red-50 border-b border-red-100">
+              <p className="text-sm font-semibold text-red-700">Novo pedido confirmado</p>
+              <h3 className="text-xl font-extrabold text-stone-900 mt-1">
+                {alertaPedidosIds.length} pedido(s) aguardando atenção
+              </h3>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-stone-600">
+                Chegaram novos pedidos. Deseja abrir a tela de pedidos agora?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  onClick={dispensarModal}
+                  className="px-3 py-2 rounded-lg border border-stone-200 text-stone-600 text-sm font-semibold hover:bg-stone-50"
+                >
+                  Fechar
+                </button>
+                <button
+                  onClick={marcarComoVisto}
+                  className="px-3 py-2 rounded-lg bg-amber-100 text-amber-800 text-sm font-semibold hover:bg-amber-200"
+                >
+                  Marcar como visto
+                </button>
+                <button
+                  onClick={irParaPedidos}
+                  className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
+                >
+                  Ver pedidos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <audio
+        ref={audioRef}
+        src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2JkZWTjHxybG16iJSdnpiQg3VtcIGRnaalm5CDdG90gZGfo6Sgk4R2cXSCkZ+koZiMfnRyeYiXoaOemIyCdnN3hZSfoaCXi392c3eElp+joZiMfnZzeIWWoaOel4t+dXJ3"
+        preload="auto"
+      />
     </div>
   )
 }
