@@ -15,13 +15,6 @@ function formatPercent(v) {
   return `${Number(v || 0).toFixed(1).replace('.', ',')}%`
 }
 
-function competenciaAtual() {
-  const d = new Date()
-  const ano = d.getFullYear()
-  const mes = String(d.getMonth() + 1).padStart(2, '0')
-  return `${ano}-${mes}`
-}
-
 function dataInputHojeMenosDias(dias) {
   const d = new Date()
   d.setDate(d.getDate() - dias)
@@ -36,11 +29,6 @@ function formatDateBR(v) {
 export default function AdminSistema() {
   const [stats, setStats] = useState(null)
   const [lojas, setLojas] = useState([])
-  const [competencia, setCompetencia] = useState(competenciaAtual())
-  const [percentualCobranca, setPercentualCobranca] = useState(12)
-  const [dadosCobranca, setDadosCobranca] = useState(null)
-  const [carregandoCobranca, setCarregandoCobranca] = useState(false)
-  const [processandoCobranca, setProcessandoCobranca] = useState(false)
   const [filtro, setFiltro] = useState('')
   const [expandida, setExpandida] = useState(null)
   const [detalheLoja, setDetalheLoja] = useState(null)
@@ -66,52 +54,6 @@ export default function AdminSistema() {
   }, [])
 
   useEffect(() => { carregar() }, [carregar])
-
-  const carregarCobrancas = useCallback(async (comp = competencia) => {
-    setCarregandoCobranca(true)
-    try {
-      const data = await api.admin.listarCobrancas(comp)
-      setDadosCobranca(data)
-    } catch (e) {
-      console.error(e)
-      setDadosCobranca(null)
-    } finally {
-      setCarregandoCobranca(false)
-    }
-  }, [competencia])
-
-  useEffect(() => {
-    carregarCobrancas()
-  }, [carregarCobrancas])
-
-  async function fecharCompetencia() {
-    setProcessandoCobranca(true)
-    try {
-      await api.admin.fecharCobrancas({
-        competencia,
-        percentual: Number(percentualCobranca),
-        dias_vencimento: 5,
-      })
-      await carregarCobrancas(competencia)
-      alert('Cobranças fechadas com sucesso.')
-    } catch (e) {
-      alert(e.message)
-    } finally {
-      setProcessandoCobranca(false)
-    }
-  }
-
-  async function marcarComoPaga(cobrancaId) {
-    setProcessandoCobranca(true)
-    try {
-      await api.admin.marcarCobrancaPaga(cobrancaId)
-      await carregarCobrancas(competencia)
-    } catch (e) {
-      alert(e.message)
-    } finally {
-      setProcessandoCobranca(false)
-    }
-  }
 
   async function handleBloquear(id) {
     setProcessando(true)
@@ -168,7 +110,7 @@ export default function AdminSistema() {
       loja_nome: loja.nome,
       data_inicio: dataInputHojeMenosDias(6),
       data_fim: dataInputHojeMenosDias(0),
-      percentual: String(percentualCobranca || 12),
+      percentual: '12',
     })
   }
 
@@ -267,108 +209,6 @@ export default function AdminSistema() {
         />
       </div>
 
-      {/* Cobranças por competência */}
-      <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-stone-200 bg-stone-50">
-          <h2 className="font-semibold text-stone-700 text-sm">Cobrança por faturamento bruto</h2>
-        </div>
-        <div className="p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs text-stone-500 mb-1">Competência</label>
-              <input
-                type="month"
-                value={competencia}
-                onChange={(e) => {
-                  setCompetencia(e.target.value)
-                  carregarCobrancas(e.target.value)
-                }}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-stone-500 mb-1">% comissão</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={percentualCobranca}
-                onChange={(e) => setPercentualCobranca(e.target.value)}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
-              />
-            </div>
-            <div className="sm:col-span-2 flex items-end gap-2">
-              <button
-                onClick={fecharCompetencia}
-                disabled={processandoCobranca || !competencia}
-                className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50"
-              >
-                {processandoCobranca ? 'Processando...' : 'Fechar cobrança da competência'}
-              </button>
-              <button
-                onClick={() => carregarCobrancas(competencia)}
-                disabled={carregandoCobranca}
-                className="px-4 py-2 border border-stone-300 text-stone-600 text-sm rounded-lg hover:bg-stone-50"
-              >
-                Atualizar
-              </button>
-            </div>
-          </div>
-
-          {dadosCobranca?.totais && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-              <InfoBox label="Lojas cobradas" value={dadosCobranca.totais.total_lojas || 0} />
-              <InfoBox label="Pedidos no período" value={dadosCobranca.totais.pedidos_count || 0} />
-              <InfoBox label="Bruto no período" value={formatCurrency(dadosCobranca.totais.faturamento_bruto || 0)} />
-              <InfoBox label="Comissão total" value={formatCurrency(dadosCobranca.totais.valor_comissao || 0)} />
-              <InfoBox label="Pagas / Fechadas" value={`${dadosCobranca.totais.pagas || 0} / ${dadosCobranca.totais.fechadas || 0}`} />
-            </div>
-          )}
-
-          <div className="border border-stone-200 rounded-lg overflow-hidden">
-            <div className="grid grid-cols-12 bg-stone-50 text-[11px] font-semibold text-stone-600 px-3 py-2">
-              <div className="col-span-4">Loja</div>
-              <div className="col-span-2 text-right">Bruto</div>
-              <div className="col-span-2 text-right">Comissão</div>
-              <div className="col-span-1 text-right">%</div>
-              <div className="col-span-1 text-right">Pedidos</div>
-              <div className="col-span-2 text-right">Ação</div>
-            </div>
-            <div className="divide-y divide-stone-100">
-              {carregandoCobranca ? (
-                <div className="px-3 py-3 text-sm text-stone-400">Carregando cobranças...</div>
-              ) : !dadosCobranca?.cobrancas?.length ? (
-                <div className="px-3 py-3 text-sm text-stone-400">Nenhuma cobrança para esta competência.</div>
-              ) : (
-                dadosCobranca.cobrancas.map((c) => (
-                  <div key={c.id} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
-                    <div className="col-span-4 truncate text-stone-700">{c.loja?.nome}</div>
-                    <div className="col-span-2 text-right text-stone-700">{formatCurrency(c.faturamento_bruto)}</div>
-                    <div className="col-span-2 text-right text-stone-700">{formatCurrency(c.valor_comissao)}</div>
-                    <div className="col-span-1 text-right text-stone-500">{Number(c.percentual || 0).toFixed(1)}%</div>
-                    <div className="col-span-1 text-right text-stone-500">{c.pedidos_count}</div>
-                    <div className="col-span-2 text-right">
-                      {c.status === 'PAGA' ? (
-                        <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">Paga</span>
-                      ) : (
-                        <button
-                          onClick={() => marcarComoPaga(c.id)}
-                          disabled={processandoCobranca}
-                          className="px-2 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                        >
-                          Marcar paga
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Lojas */}
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-stone-200 bg-stone-50">
@@ -383,7 +223,7 @@ export default function AdminSistema() {
           <div className="divide-y divide-stone-100">
             {lojasFiltradas.map((loja) => (
               <div key={loja.id}>
-                <div className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors">
                   {/* Logo */}
                   {loja.logo_url ? (
                     <img src={loja.logo_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
@@ -430,7 +270,7 @@ export default function AdminSistema() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto sm:justify-end">
                     <button
                       onClick={() => abrirModalCobranca(loja)}
                       className="px-2 py-1 text-[11px] rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
