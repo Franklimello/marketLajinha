@@ -1201,7 +1201,13 @@ export default function LojaPage() {
           />
         ) : (
           <div className={`w-full h-full bg-black flex items-center justify-center ${!aberta ? 'brightness-75' : ''}`}>
-            <span className="text-white text-2xl font-extrabold tracking-wide">UaiFood</span>
+            <div className="flex items-end gap-1">
+              <span className="text-3xl font-extrabold leading-none">
+                <span className="text-red-500">Uai</span>
+                <span className="text-yellow-400">Food</span>
+              </span>
+              <span className="text-stone-300 text-base font-medium mb-0.5">delivery</span>
+            </div>
           </div>
         )}
         <div className="absolute bottom-3 right-4 w-20 h-20 rounded-2xl overflow-hidden border-3 border-white shadow-lg bg-white">
