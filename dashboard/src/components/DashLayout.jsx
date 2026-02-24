@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram, FiTrendingUp, FiBell } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { io } from 'socket.io-client'
+import { api } from '../api/client'
 
 const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_INSTAGRAM = 'https://www.instagram.com/franklimello30/'
@@ -35,6 +36,8 @@ export default function DashLayout() {
   const [wsPedidosConectado, setWsPedidosConectado] = useState(false)
   const socketPedidosRef = useRef(null)
   const statusPedidoRef = useRef(new Map())
+  const pollingRef = useRef(null)
+  const primeiraCargaPedidosRef = useRef(true)
   const audioRef = useRef(null)
   const { canInstall, isIOS, installed, showIOSGuide, promptInstall, dismissIOSGuide } = usePWA()
   const showInstallBtn = canInstall || (isIOS && !installed)
@@ -50,8 +53,35 @@ export default function DashLayout() {
     })
   }, [])
 
+  const carregarPedidosEmBackground = useCallback(async () => {
+    try {
+      const res = await api.pedidos.listar()
+      const lista = Array.isArray(res) ? res : (Array.isArray(res?.dados) ? res.dados : [])
+      if (!Array.isArray(lista) || lista.length === 0) return
+
+      for (const pedido of lista) {
+        const id = String(pedido?.id || '')
+        if (!id) continue
+        const statusAnterior = statusPedidoRef.current.get(id)
+        statusPedidoRef.current.set(id, pedido.status)
+
+        if (!primeiraCargaPedidosRef.current && pedido.status === 'APPROVED' && statusAnterior !== 'APPROVED') {
+          registrarNovoAprovado(pedido)
+        }
+      }
+
+      if (primeiraCargaPedidosRef.current) primeiraCargaPedidosRef.current = false
+    } catch {
+      // noop
+    }
+  }, [registrarNovoAprovado])
+
   useEffect(() => {
     if (!loja?.id || isSuperAdmin) return undefined
+
+    primeiraCargaPedidosRef.current = true
+    carregarPedidosEmBackground()
+    pollingRef.current = setInterval(() => carregarPedidosEmBackground(), 15000)
 
     const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
     socketPedidosRef.current = socket
@@ -83,10 +113,11 @@ export default function DashLayout() {
     })
 
     return () => {
+      clearInterval(pollingRef.current)
       socket.disconnect()
       setWsPedidosConectado(false)
     }
-  }, [loja?.id, isSuperAdmin, registrarNovoAprovado])
+  }, [loja?.id, isSuperAdmin, registrarNovoAprovado, carregarPedidosEmBackground])
 
   function irParaPedidos() {
     setModalNovoPedidoAberto(false)
