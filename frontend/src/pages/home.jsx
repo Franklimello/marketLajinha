@@ -35,6 +35,30 @@ const HOME_CACHE_TTL = 1000 * 60 * 5
 const GEO_CITY_CACHE_KEY = 'geoCityCache'
 const GEO_CITY_CACHE_TTL = 1000 * 60 * 60 * 6
 
+const HOME_BANNERS = [
+  {
+    id: 'entrega',
+    titulo: 'Entrega rápida e sem complicação',
+    subtitulo: 'Peça em segundos e acompanhe tudo em tempo real pelo app.',
+    destaque: 'Pedido chegando quentinho',
+    gradiente: 'from-fuchsia-600 via-purple-600 to-indigo-600',
+  },
+  {
+    id: 'cupom',
+    titulo: 'Cupons ativos todo dia',
+    subtitulo: 'Aproveite ofertas especiais das lojas da sua cidade.',
+    destaque: 'Economize no almoço e no jantar',
+    gradiente: 'from-rose-600 via-red-500 to-orange-500',
+  },
+  {
+    id: 'variedade',
+    titulo: 'Tudo em um só lugar',
+    subtitulo: 'Restaurantes, mercado, farmácia e muito mais no UaiFood.',
+    destaque: 'Mais opções para sua rotina',
+    gradiente: 'from-cyan-600 via-sky-600 to-blue-700',
+  },
+]
+
 const CATEGORIA_ICONES = [
   { k: 'pizza', Icon: Pizza },
   { k: 'hamb', Icon: Hamburger },
@@ -107,17 +131,29 @@ function formatarTempoEntrega(tempo) {
   return `${t} min`
 }
 
+function formatarNomeCategoria(nome) {
+  const texto = String(nome || '').trim().replace(/\s+/g, ' ')
+  if (!texto) return ''
+  return texto
+    .toLocaleLowerCase('pt-BR')
+    .replace(/(^|\s)\S/g, (char) => char.toLocaleUpperCase('pt-BR'))
+}
+
 function extrairCategorias(lojas) {
-  const set = new Set()
+  const categoriasMap = new Map()
   for (const loja of lojas || []) {
     const raw = String(loja?.categoria_negocio || '')
     raw
       .split(',')
       .map((c) => c.trim())
       .filter(Boolean)
-      .forEach((c) => set.add(c))
+      .forEach((c) => {
+        const key = normalizeText(c)
+        if (!key || categoriasMap.has(key)) return
+        categoriasMap.set(key, formatarNomeCategoria(c))
+      })
   }
-  return Array.from(set)
+  return Array.from(categoriasMap.values())
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
     .map((nome) => ({ nome, Icon: iconCategoria(nome) }))
 }
@@ -165,6 +201,54 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
         </div>
       </motion.div>
     </motion.button>
+  )
+})
+
+const HomeCarousel = memo(function HomeCarousel() {
+  const [slideAtivo, setSlideAtivo] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideAtivo((prev) => (prev + 1) % HOME_BANNERS.length)
+    }, 4500)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <section className="mb-5" aria-label="Destaques do UaiFood">
+      <div className="relative overflow-hidden rounded-3xl border border-stone-100 shadow-sm">
+        <div
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${slideAtivo * 100}%)` }}
+        >
+          {HOME_BANNERS.map((banner) => (
+            <div key={banner.id} className={`min-w-full p-5 text-white bg-linear-to-r ${banner.gradiente}`}>
+              <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide">
+                UaiFood destaque
+              </span>
+              <h3 className="mt-3 text-xl font-extrabold leading-tight">{banner.titulo}</h3>
+              <p className="mt-1.5 text-sm text-white/90 leading-relaxed">{banner.subtitulo}</p>
+              <p className="mt-3 text-xs font-semibold text-white/95">{banner.destaque}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+          {HOME_BANNERS.map((banner, idx) => (
+            <button
+              key={banner.id}
+              type="button"
+              onClick={() => setSlideAtivo(idx)}
+              aria-label={`Ir para banner ${idx + 1}`}
+              className={`h-2 rounded-full transition-all ${
+                slideAtivo === idx ? 'w-6 bg-white' : 'w-2 bg-white/60 hover:bg-white/80'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
   )
 })
 
@@ -412,8 +496,8 @@ export default function HomePage() {
       )
     }
     if (categoriaSel) {
-      const c = categoriaSel.toLowerCase()
-      lista = lista.filter((l) => l.categoria_negocio.toLowerCase().includes(c))
+      const c = normalizeText(categoriaSel)
+      lista = lista.filter((l) => normalizeText(l.categoria_negocio).includes(c))
     }
     return lista
   }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel, cidadePadrao, cidadeGeo])
@@ -592,6 +676,8 @@ export default function HomePage() {
           </button>
         )}
       </div>
+
+      <HomeCarousel />
 
       {/* Categorias */}
       <div ref={catRef} className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
