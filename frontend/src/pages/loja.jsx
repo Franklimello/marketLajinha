@@ -19,6 +19,14 @@ function normalizarTelefoneWhatsapp(raw) {
   return `55${digits}`
 }
 
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+}
+
 function serializarCarrinho(carrinho) {
   return Object.entries(carrinho).map(([key, item]) => ({
     key,
@@ -316,6 +324,18 @@ export default function LojaPage() {
   const itensCarrinho = Object.entries(carrinho)
   const totalItens = itensCarrinho.reduce((s, [, i]) => s + i.qtd, 0)
   const subtotal = itensCarrinho.reduce((s, [, i]) => s + i.precoUnit * i.qtd, 0)
+  const enderecoPadraoCliente = useMemo(() => {
+    const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
+    if (!enderecos.length) return null
+    return enderecos.find((e) => e.padrao) || enderecos[0]
+  }, [cliente?.enderecos])
+  const bairroPadraoCliente = String(enderecoPadraoCliente?.bairro || '').trim()
+  const bairroPadraoLojaMatch = useMemo(() => {
+    const alvo = normalizeText(bairroPadraoCliente)
+    if (!alvo || !Array.isArray(bairros) || bairros.length === 0) return null
+    return bairros.find((b) => normalizeText(b?.nome) === alvo) || null
+  }, [bairroPadraoCliente, bairros])
+
   const bairroSel2 = bairros.find((b) => b.nome === formPedido.bairro)
   const taxaPadraoLoja = loja ? Number(loja.taxa_entrega || 0) : 0
   const taxaEntrega = tipoEntrega === 'RETIRADA' ? 0 : (bairroSel2 ? Number(bairroSel2.taxa) : taxaPadraoLoja)
@@ -527,7 +547,7 @@ export default function LojaPage() {
   if (erro || !loja) return <div className="flex flex-col items-center justify-center py-20 gap-4"><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
 
   const aberta = loja.aberta_agora ?? loja.aberta
-  const taxa = loja.taxa_entrega ?? 0
+  const taxa = bairroPadraoLojaMatch ? Number(bairroPadraoLojaMatch.taxa || 0) : Number(loja.taxa_entrega || 0)
   const numeroPedidoCurto = pedidoCriado?.id?.slice(-6).toUpperCase() || ''
   const telefoneLojaWhatsapp = normalizarTelefoneWhatsapp(loja?.telefone)
   const textoComprovante = encodeURIComponent(
