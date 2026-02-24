@@ -66,6 +66,13 @@ function emojiCategoria(nome) {
   return match?.e || '🏷️'
 }
 
+function formatarTempoEntrega(tempo) {
+  const t = String(tempo || '').trim()
+  if (!t) return ''
+  if (/min/i.test(t)) return t
+  return `${t} min`
+}
+
 function extrairCategorias(lojas) {
   const set = new Set()
   for (const loja of lojas || []) {
@@ -171,7 +178,7 @@ const LojaCard = memo(function LojaCard({ loja, idx }) {
           {loja.tempo_entrega && (
             <>
               <span className="text-stone-300">&bull;</span>
-              <span>{loja.tempo_entrega}</span>
+              <span>{formatarTempoEntrega(loja.tempo_entrega)}</span>
             </>
           )}
         </div>
