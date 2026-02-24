@@ -49,6 +49,7 @@ model Lojas {
   filaImpressao   FilaImpressao[]
   combos          Combo[]
   mensagens       Mensagem[]
+  cobrancas       CobrancaLojista[]
   token_impressao String    @default("")
 
   @@index([ativa, cidade])
@@ -399,6 +400,47 @@ model Mensagem {
   @@index([loja_id, lido])
 }
 
+model CobrancaLojista {
+  id                String         @id @default(cuid())
+  loja_id           String
+  competencia       String
+  periodo_inicio    DateTime
+  periodo_fim       DateTime
+  percentual        Decimal        @default(0)
+  faturamento_bruto Decimal        @default(0)
+  pedidos_count     Int            @default(0)
+  valor_comissao    Decimal        @default(0)
+  status            StatusCobranca @default(ABERTA)
+  fechado_em        DateTime?
+  vencimento_em     DateTime?
+  pago_em           DateTime?
+  observacao        String         @default("")
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  loja  Lojas            @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  itens CobrancaPedido[]
+
+  @@unique([loja_id, competencia])
+  @@index([competencia, status])
+}
+
+model CobrancaPedido {
+  id           String   @id @default(cuid())
+  cobranca_id  String
+  pedido_id    String
+  loja_id      String
+  total        Decimal
+  status_pedido String  @default("")
+  pedido_criado_em DateTime
+  created_at    DateTime @default(now())
+
+  cobranca CobrancaLojista @relation(fields: [cobranca_id], references: [id], onDelete: Cascade)
+
+  @@unique([cobranca_id, pedido_id])
+  @@index([loja_id, pedido_criado_em])
+}
+
 enum RemetenteMensagem {
   CLIENTE
   LOJA
@@ -433,4 +475,10 @@ enum FormaPagamento {
 enum TipoEntrega {
   ENTREGA
   RETIRADA
+}
+
+enum StatusCobranca {
+  ABERTA
+  FECHADA
+  PAGA
 }
