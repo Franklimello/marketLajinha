@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import Header from './componentes/header'
 import Footer from './componentes/footer'
 import InstallPrompt from './componentes/InstallPrompt'
@@ -9,6 +9,8 @@ import { getItem as getLocalItem, setItem as setLocalItem } from './storage/loca
 
 export default function App() {
   const { getToken } = useAuth()
+  const { pathname } = useLocation()
+  const isLojaPage = pathname.startsWith('/loja/')
 
   useEffect(() => {
     setTokenGetter(getToken)
@@ -25,7 +27,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 pt-24 pb-20">
+      <main className={`flex-1 pb-20 ${isLojaPage ? 'pt-20' : 'pt-24'}`}>
         <Outlet />
       </main>
       <Footer />
