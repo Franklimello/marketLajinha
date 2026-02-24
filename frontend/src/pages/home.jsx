@@ -60,6 +60,22 @@ function resolverCidadePadraoCliente(cliente) {
   return String(endereco?.cidade || '').trim()
 }
 
+function resolverBairroPadraoCliente(cliente) {
+  const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
+  if (!enderecos.length) return ''
+
+  const endereco = enderecos.find((e) => e?.padrao) || enderecos[0]
+  return String(endereco?.bairro || '').trim()
+}
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+}
+
 function emojiCategoria(nome) {
   const n = String(nome || '').toLowerCase()
   const match = CATEGORIA_ICONES.find((i) => n.includes(i.k))
@@ -103,9 +119,9 @@ async function resolverCidadePorCoordenadas(latitude, longitude) {
   ).trim()
 }
 
-const LojaCard = memo(function LojaCard({ loja, idx }) {
+const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
   const aberta = loja.aberta_agora ?? loja.aberta
-  const taxa = loja.taxa_entrega ?? 0
+  const taxa = typeof taxaBairro === 'number' ? taxaBairro : (loja.taxa_entrega ?? 0)
   const [imgLoaded, setImgLoaded] = useState(false)
   const [imgError, setImgError] = useState(false)
   const isAboveFold = idx < 4
@@ -197,11 +213,14 @@ export default function HomePage() {
   const buscaDebounced = useDebounce(busca, 250)
   const [categoriaSel, setCategoriaSel] = useState(null)
   const [cidadePadrao, setCidadePadrao] = useState('')
+  const [bairroPadrao, setBairroPadrao] = useState('')
   const [cidadeGeo, setCidadeGeo] = useState('')
+  const [taxaBairroPorLoja, setTaxaBairroPorLoja] = useState({})
   const [visibleCount, setVisibleCount] = useState(12)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const catRef = useRef(null)
+  const lojasComTaxaCarregadaRef = useRef(new Set())
 
   useEffect(() => {
     const cached = getLocalItem(HOME_CACHE_KEY, null)
@@ -224,8 +243,15 @@ export default function HomePage() {
 
   useEffect(() => {
     const cidade = resolverCidadePadraoCliente(cliente)
+    const bairro = resolverBairroPadraoCliente(cliente)
     setCidadePadrao(cidade)
+    setBairroPadrao(bairro)
   }, [cliente])
+
+  useEffect(() => {
+    lojasComTaxaCarregadaRef.current.clear()
+    setTaxaBairroPorLoja({})
+  }, [bairroPadrao])
 
   useEffect(() => {
     const cached = getLocalItem(GEO_CITY_CACHE_KEY, null)
@@ -325,6 +351,38 @@ export default function HomePage() {
   const lojasVisiveis = useMemo(() => lojasFiltradas.slice(0, visibleCount), [lojasFiltradas, visibleCount])
   const filtradasAbertasVisiveis = useMemo(() => lojasVisiveis.filter((l) => l.aberta_agora ?? l.aberta), [lojasVisiveis])
   const filtradasFechadasVisiveis = useMemo(() => lojasVisiveis.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasVisiveis])
+
+  useEffect(() => {
+    const bairroNormalizado = normalizeText(bairroPadrao)
+    if (!bairroNormalizado || lojasVisiveis.length === 0) return
+
+    const lojasPendentes = lojasVisiveis.filter((loja) => !lojasComTaxaCarregadaRef.current.has(loja.id))
+    if (lojasPendentes.length === 0) return
+
+    lojasPendentes.forEach((loja) => lojasComTaxaCarregadaRef.current.add(loja.id))
+
+    Promise.all(
+      lojasPendentes.map(async (loja) => {
+        try {
+          const bairros = await api.lojas.bairros(loja.id)
+          const match = Array.isArray(bairros)
+            ? bairros.find((b) => normalizeText(b?.nome) === bairroNormalizado)
+            : null
+
+          if (!match) return { lojaId: loja.id, taxa: null }
+          return { lojaId: loja.id, taxa: Number(match.taxa) || 0 }
+        } catch {
+          return { lojaId: loja.id, taxa: null }
+        }
+      })
+    ).then((resultados) => {
+      setTaxaBairroPorLoja((prev) => {
+        const next = { ...prev }
+        for (const r of resultados) next[r.lojaId] = r.taxa
+        return next
+      })
+    })
+  }, [bairroPadrao, lojasVisiveis])
 
   if (carregando) {
     return (
@@ -476,7 +534,7 @@ export default function HomePage() {
                 </div>
               )}
               {filtradasAbertasVisiveis.map((loja, idx) => (
-                <LojaCard key={loja.id} loja={loja} idx={idx} />
+                <LojaCard key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
               ))}
             </>
           )}
@@ -491,7 +549,12 @@ export default function HomePage() {
                 </div>
               )}
               {filtradasFechadasVisiveis.map((loja, idx) => (
-                <LojaCard key={loja.id} loja={loja} idx={filtradasAbertasVisiveis.length + idx} />
+                <LojaCard
+                  key={loja.id}
+                  loja={loja}
+                  idx={filtradasAbertasVisiveis.length + idx}
+                  taxaBairro={taxaBairroPorLoja[loja.id]}
+                />
               ))}
             </>
           )}
