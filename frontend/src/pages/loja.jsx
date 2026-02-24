@@ -1192,7 +1192,18 @@ export default function LojaPage() {
 
       {/* Banner */}
       <div className="relative w-full h-44 bg-stone-200 overflow-hidden">
-        <img src={loja.banner_url || loja.logo_url || ''} alt="" className={`w-full h-full object-cover ${!aberta ? 'grayscale brightness-75' : ''}`} onError={(e) => { e.target.style.display = 'none' }} />
+        {String(loja.banner_url || '').trim() ? (
+          <img
+            src={loja.banner_url}
+            alt=""
+            className={`w-full h-full object-cover ${!aberta ? 'grayscale brightness-75' : ''}`}
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
+        ) : (
+          <div className={`w-full h-full bg-black flex items-center justify-center ${!aberta ? 'brightness-75' : ''}`}>
+            <span className="text-white text-2xl font-extrabold tracking-wide">UaiFood</span>
+          </div>
+        )}
         <div className="absolute bottom-3 right-4 w-20 h-20 rounded-2xl overflow-hidden border-3 border-white shadow-lg bg-white">
           <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           <div className="w-full h-full items-center justify-center text-2xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
