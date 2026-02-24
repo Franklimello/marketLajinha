@@ -732,19 +732,35 @@ export default function LojaPage() {
       }
     }
 
+    const checkoutPodeEnviar = !(
+      enviando ||
+      totalItens === 0 ||
+      (tipoEntrega === 'ENTREGA' && !enderecoSel) ||
+      !formPedido.forma_pagamento ||
+      (agendado && !agendadoPara) ||
+      (Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo))
+    )
+
+    const labelBotaoCheckout = enviando
+      ? 'Enviando...'
+      : agendado
+        ? `Agendar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+        : `Ir para pagamento — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+
     return (
-      <div className={`max-w-lg mx-auto px-4 py-2 pb-8 transition-all duration-300 ease-out ${pageTransitionClass}`}>
-        <button onClick={() => setEtapa('cardapio')} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-4"><FiChevronLeft /> Voltar ao cardápio</button>
-        <h2 className="text-lg font-bold text-stone-900 mb-4">Finalizar pedido</h2>
+      <div className={`max-w-lg mx-auto px-4 py-2 pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+        <button onClick={() => setEtapa('cardapio')} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-3"><FiChevronLeft /> Voltar</button>
+        <h2 className="text-2xl font-extrabold text-red-700 mb-1">ticket</h2>
+        <p className="text-sm text-stone-500 mb-4">Confira os itens e escolha como deseja pagar.</p>
 
         {/* Resumo itens */}
-        <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
-          <h3 className="text-sm font-semibold text-stone-700 mb-2">Resumo</h3>
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
+          <h3 className="text-sm font-semibold text-red-700 mb-2">Resumo</h3>
           {itensCarrinho.map(([chave, i]) => (
             <div key={chave} className="py-1.5 border-b border-stone-50 last:border-0">
               <div className="flex justify-between text-sm">
                 <div className="flex items-center gap-1.5">
-                  {i.isCombo && <span className="text-[9px] font-bold bg-red-100 text-red-700 px-1 py-0.5 rounded">COMBO</span>}
+                  {i.isCombo && <span className="text-[9px] font-bold bg-amber-100 text-red-700 px-1 py-0.5 rounded">COMBO</span>}
                   <span className="text-stone-600">{i.qtd}x {i.produto.nome}</span>
                 </div>
                 <span className="text-stone-900 font-medium">R$ {(i.precoUnit * i.qtd).toFixed(2).replace('.', ',')}</span>
@@ -770,25 +786,28 @@ export default function LojaPage() {
         </div>
 
         {/* Tipo de entrega */}
-        <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
-          <h3 className="text-sm font-semibold text-stone-700 mb-3 flex items-center gap-1"><FiTruck className="text-red-600" /> Como deseja receber?</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => { setTipoEntrega('ENTREGA'); if (!enderecoSel) { const ends = cliente?.enderecos || []; if (ends.length) { const ep = ends.find(e => e.padrao) || ends[0]; selecionarEndereco(ep) } } }} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoEntrega === 'ENTREGA' ? 'border-red-500 bg-red-50' : 'border-stone-200 hover:border-stone-300'}`}>
-              <FiTruck className={`text-lg ${tipoEntrega === 'ENTREGA' ? 'text-red-600' : 'text-stone-400'}`} />
-              <span className="text-sm font-semibold text-stone-900">Entrega</span>
-              <span className="text-[10px] text-stone-400">Receber em casa</span>
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
+          <h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-1"><FiTruck className="text-red-600" /> Entrega</h3>
+          <div className="bg-stone-100 rounded-full p-1 grid grid-cols-2 gap-1">
+            <button type="button" onClick={() => { setTipoEntrega('ENTREGA'); if (!enderecoSel) { const ends = cliente?.enderecos || []; if (ends.length) { const ep = ends.find(e => e.padrao) || ends[0]; selecionarEndereco(ep) } } }} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'ENTREGA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
+              <FiTruck className="text-base" />
+              <span>entrega</span>
             </button>
-            <button type="button" onClick={() => setTipoEntrega('RETIRADA')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoEntrega === 'RETIRADA' ? 'border-red-500 bg-red-50' : 'border-stone-200 hover:border-stone-300'}`}>
-              <FiShoppingBag className={`text-lg ${tipoEntrega === 'RETIRADA' ? 'text-red-600' : 'text-stone-400'}`} />
-              <span className="text-sm font-semibold text-stone-900">Retirar no balcão</span>
-              <span className="text-[10px] text-stone-400">Buscar na loja</span>
+            <button type="button" onClick={() => setTipoEntrega('RETIRADA')} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'RETIRADA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
+              <FiShoppingBag className="text-base" />
+              <span>retirada</span>
             </button>
           </div>
+          {tipoEntrega !== 'RETIRADA' && (
+            <p className="text-xs text-stone-500 mt-3">
+              entrega: {loja.tempo_entrega || '40-60 min'} {taxaEntrega > 0 ? ` • R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : ' • grátis'}
+            </p>
+          )}
         </div>
 
         {/* Cupom de desconto */}
-        <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
-          <h3 className="text-sm font-semibold text-stone-700 mb-2 flex items-center gap-1"><FiTag className="text-red-600" /> Cupom de desconto</h3>
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
+          <h3 className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-1"><FiTag className="text-red-600" /> Cupom de desconto</h3>
           {cupomAplicado ? (
             <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
               <div>
@@ -800,7 +819,7 @@ export default function LojaPage() {
                   {' · '}Você economiza R$ {cupomAplicado.desconto.toFixed(2).replace('.', ',')}
                 </p>
               </div>
-              <button onClick={handleRemoverCupom} className="text-red-500 hover:text-red-700 text-xs font-medium">Remover</button>
+              <button onClick={handleRemoverCupom} className="text-red-600 hover:text-red-700 text-xs font-medium">Remover</button>
             </div>
           ) : (
             <div>
@@ -816,7 +835,7 @@ export default function LojaPage() {
                   type="button"
                   onClick={handleAplicarCupom}
                   disabled={cupomCarregando || !codigoCupom.trim()}
-                  className="px-4 py-2.5 bg-stone-900 text-white rounded-lg text-sm font-medium hover:bg-stone-800 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
                 >
                   {cupomCarregando ? '...' : 'Aplicar'}
                 </button>
@@ -828,19 +847,19 @@ export default function LojaPage() {
 
         {/* Endereço de entrega (apenas para ENTREGA) */}
         {tipoEntrega === 'ENTREGA' && (
-          <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
+          <div className="bg-amber-50/70 rounded-2xl border border-amber-200 p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1"><FiMapPin className="text-red-600" /> Endereço de entrega</h3>
-              <Link to="/perfil" className="text-[10px] text-red-600 font-medium hover:underline">Alterar</Link>
+              <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiMapPin className="text-red-600" /> endereço de entrega</h3>
+              <Link to="/perfil" className="text-[11px] text-emerald-600 font-semibold hover:underline">trocar</Link>
             </div>
             <div className="space-y-2">
               {enderecosCliente.map((end) => {
                 const sel = enderecoSel?.id === end.id
                 return (
-                  <button key={end.id} type="button" onClick={() => selecionarEndereco(end)} className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${sel ? 'border-red-500 bg-red-50/50' : 'border-stone-200 hover:border-stone-300'}`}>
+                  <button key={end.id} type="button" onClick={() => selecionarEndereco(end)} className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${sel ? 'border-red-500 bg-white' : 'border-amber-200 bg-white/80 hover:border-amber-300'}`}>
                     <div className="flex items-center gap-2">
                       {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
-                      {end.padrao && <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
+                      {end.padrao && <span className="text-[9px] bg-amber-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
                     </div>
                     <p className="text-sm text-stone-800 mt-0.5">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
                     <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}</p>
@@ -852,20 +871,20 @@ export default function LojaPage() {
         )}
 
         {tipoEntrega === 'RETIRADA' && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-sm text-red-800 flex items-start gap-2">
-            <FiInfo className="text-red-600 mt-0.5 shrink-0" />
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-sm text-amber-800 flex items-start gap-2">
+            <FiInfo className="text-amber-600 mt-0.5 shrink-0" />
             <div>
               <p className="font-semibold">Retirada no balcão</p>
-              <p className="text-xs text-red-600 mt-0.5">Retire seu pedido diretamente na loja. Sem taxa de entrega!</p>
+              <p className="text-xs text-amber-700 mt-0.5">Retire seu pedido diretamente na loja. Sem taxa de entrega.</p>
             </div>
           </div>
         )}
 
         <form onSubmit={handleCriarPedido} className="space-y-4">
           {/* Agendar pedido */}
-          <div className="bg-white rounded-xl border border-stone-200 p-4">
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1"><FiCalendar className="text-red-600" /> Agendar para depois?</h3>
+              <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiCalendar className="text-red-600" /> Agendar para depois?</h3>
               <button type="button" onClick={() => { setAgendado(!agendado); if (agendado) setAgendadoPara('') }} className={`relative w-11 h-6 rounded-full transition-colors ${agendado ? 'bg-red-500' : 'bg-stone-300'}`}>
                 <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${agendado ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
@@ -885,9 +904,9 @@ export default function LojaPage() {
           </div>
 
           {/* Observação */}
-          <div className="bg-white rounded-xl border border-stone-200 p-4">
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
             <label className="block text-xs font-medium text-stone-600 mb-1">Observação</label>
-            <textarea name="observacao" value={formPedido.observacao} onChange={handleFormChange} rows={2} placeholder="Ex: troco pra 50, interfone 302..." className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 resize-none" />
+            <textarea name="observacao" value={formPedido.observacao} onChange={handleFormChange} rows={2} placeholder="alguma observação? • opcional" className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 resize-none" />
           </div>
 
           {/* Pagamento */}
@@ -903,31 +922,31 @@ export default function LojaPage() {
             const temPixOnline = aceitaPix && loja.pix_chave
 
             return (
-              <div className="bg-white rounded-xl border border-stone-200 p-4">
-                <h3 className="text-sm font-semibold text-stone-700 mb-3">Como deseja pagar?</h3>
+              <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-red-700 mb-3">pagamento</h3>
 
                 {temPixOnline ? (
                   <>
                     <div className="grid grid-cols-2 gap-2 mb-3">
-                      <button type="button" onClick={() => escolherTipoPag('online')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'online' ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                      <button type="button" onClick={() => escolherTipoPag('online')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'online' ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
                         <span className="text-sm font-semibold text-stone-900">Pagar online</span>
                         <span className="text-[10px] text-stone-400">PIX com QR Code</span>
                       </button>
-                      <button type="button" onClick={() => escolherTipoPag('entrega')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'entrega' ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                      <button type="button" onClick={() => escolherTipoPag('entrega')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'entrega' ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
                         <span className="text-sm font-semibold text-stone-900">{tipoEntrega === 'RETIRADA' ? 'Pagar na retirada' : 'Pagar na entrega'}</span>
                         <span className="text-[10px] text-stone-400">Presencial</span>
                       </button>
                     </div>
                     {tipoPagamento === 'online' && (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-700 flex items-center gap-2">
-                        <FiCheck className="text-emerald-600 shrink-0" />
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700 flex items-center gap-2">
+                        <FiCheck className="text-amber-600 shrink-0" />
                         <span>Pagamento via <strong>PIX</strong> — você receberá o QR Code após confirmar.</span>
                       </div>
                     )}
                     {tipoPagamento === 'entrega' && formasPresenciais.length > 0 && (
                       <div className="grid grid-cols-3 gap-2">
                         {formasPresenciais.map((opt) => (
-                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-red-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
                             <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
                             <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
                           </label>
@@ -935,8 +954,8 @@ export default function LojaPage() {
                       </div>
                     )}
                     {formPedido.forma_pagamento === 'CASH' && (
-                      <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
-                        <label className="block text-xs font-medium text-red-800 mb-1.5">Precisa de troco? Para quanto?</label>
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-stone-600">R$</span>
                           <input
@@ -947,19 +966,19 @@ export default function LojaPage() {
                             value={trocoPara}
                             onChange={(e) => setTrocoPara(e.target.value)}
                             placeholder="Ex: 100"
-                            className="flex-1 px-3 py-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
+                            className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
                           />
                         </div>
                         {trocoPara && Number(trocoPara) > totalPedido && (
-                          <p className="text-xs text-red-700 mt-1.5 font-medium">
+                          <p className="text-xs text-amber-800 mt-1.5 font-medium">
                             Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
                           </p>
                         )}
                         {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
-                          <p className="text-xs text-red-600 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+                          <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
                         )}
                         {!trocoPara && (
-                          <p className="text-[10px] text-red-600 mt-1.5">Deixe vazio se não precisa de troco</p>
+                          <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
                         )}
                       </div>
                     )}
@@ -969,7 +988,7 @@ export default function LojaPage() {
                     {formasPresenciais.length > 0 && (
                       <div className="grid grid-cols-3 gap-2">
                         {formasPresenciais.map((opt) => (
-                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-red-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
                             <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
                             <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
                           </label>
@@ -977,8 +996,8 @@ export default function LojaPage() {
                       </div>
                     )}
                     {formPedido.forma_pagamento === 'CASH' && (
-                      <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
-                        <label className="block text-xs font-medium text-red-800 mb-1.5">Precisa de troco? Para quanto?</label>
+                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-stone-600">R$</span>
                           <input
@@ -989,19 +1008,19 @@ export default function LojaPage() {
                             value={trocoPara}
                             onChange={(e) => setTrocoPara(e.target.value)}
                             placeholder="Ex: 100"
-                            className="flex-1 px-3 py-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
+                            className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
                           />
                         </div>
                         {trocoPara && Number(trocoPara) > totalPedido && (
-                          <p className="text-xs text-red-700 mt-1.5 font-medium">
+                          <p className="text-xs text-amber-800 mt-1.5 font-medium">
                             Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
                           </p>
                         )}
                         {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
-                          <p className="text-xs text-red-600 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+                          <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
                         )}
                         {!trocoPara && (
-                          <p className="text-[10px] text-red-600 mt-1.5">Deixe vazio se não precisa de troco</p>
+                          <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
                         )}
                       </div>
                     )}
@@ -1012,14 +1031,27 @@ export default function LojaPage() {
           })()}
 
           {Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-              <p className="text-xs text-red-600 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — adicione mais R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}.</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+              <p className="text-xs text-amber-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — adicione mais R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}.</p>
             </div>
           )}
 
-          <button type="submit" disabled={enviando || totalItens === 0 || (tipoEntrega === 'ENTREGA' && !enderecoSel) || !formPedido.forma_pagamento || (agendado && !agendadoPara) || (Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo))} className="w-full py-3.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 disabled:opacity-50 text-sm">
-            {enviando ? 'Enviando...' : agendado ? `Agendar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}` : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`}
-          </button>
+          <div className="h-28" />
+          <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-2">
+            <div className="w-full max-w-lg mx-auto bg-white/95 backdrop-blur rounded-2xl border border-stone-200 shadow-lg p-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] text-stone-500">total</p>
+                <p className="text-2xl leading-none font-extrabold text-red-700">R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+              </div>
+              <button
+                type="submit"
+                disabled={!checkoutPodeEnviar}
+                className="px-5 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 disabled:opacity-50 text-sm"
+              >
+                {labelBotaoCheckout}
+              </button>
+            </div>
+          </div>
         </form>
       </div>
     )
