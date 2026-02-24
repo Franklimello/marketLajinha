@@ -9,7 +9,7 @@ function formatCurrency(valor) {
 }
 
 export default function Bairros() {
-  const { loja } = useAuth()
+  const { loja, atualizarLoja } = useAuth()
   const [bairros, setBairros] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
@@ -23,10 +23,16 @@ export default function Bairros() {
 
   const [taxaEmLote, setTaxaEmLote] = useState('')
   const [aplicandoLote, setAplicandoLote] = useState(false)
+  const [taxaEntregaPadrao, setTaxaEntregaPadrao] = useState('0')
+  const [salvandoTaxaPadrao, setSalvandoTaxaPadrao] = useState(false)
 
   useEffect(() => {
     if (loja) carregarBairros()
   }, [loja])
+
+  useEffect(() => {
+    setTaxaEntregaPadrao(String(Number(loja?.taxa_entrega || 0)))
+  }, [loja?.taxa_entrega])
 
   async function carregarBairros() {
     setCarregando(true)
@@ -131,6 +137,28 @@ export default function Bairros() {
     }
   }
 
+  async function salvarTaxaPadraoEntrega() {
+    if (!loja?.id) return
+    if (!String(loja?.cidade || '').trim()) {
+      alert('Defina a cidade da loja antes de salvar a taxa padrão.')
+      return
+    }
+
+    setSalvandoTaxaPadrao(true)
+    const taxa = Number(taxaEntregaPadrao) || 0
+    try {
+      const lojaAtualizada = await api.lojas.atualizar(loja.id, {
+        cidade: loja.cidade,
+        taxa_entrega: taxa,
+      })
+      atualizarLoja(lojaAtualizada)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSalvandoTaxaPadrao(false)
+    }
+  }
+
   if (carregando) {
     return <div className="flex items-center justify-center py-20 text-stone-400">Carregando...</div>
   }
@@ -160,6 +188,41 @@ export default function Bairros() {
             Adicionar todos
           </button>
         )}
+      </div>
+
+      {/* Taxa padrão exibida no app do cliente */}
+      <div className="bg-white rounded-xl border border-stone-200 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-stone-800 flex items-center gap-1.5">
+              <FiDollarSign className="text-amber-600" />
+              Valor padrão de entrega
+            </h3>
+            <p className="text-xs text-stone-400 mt-1">
+              Este valor aparece na página da loja do cliente e é usado como fallback quando não houver taxa específica do bairro.
+            </p>
+          </div>
+          <div className="w-40">
+            <label className="block text-[11px] text-stone-400 mb-1 text-right">R$ padrão</label>
+            <input
+              type="number"
+              step="0.50"
+              min="0"
+              value={taxaEntregaPadrao}
+              onChange={(e) => setTaxaEntregaPadrao(e.target.value)}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button
+            onClick={salvarTaxaPadraoEntrega}
+            disabled={salvandoTaxaPadrao}
+            className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50"
+          >
+            {salvandoTaxaPadrao ? 'Salvando...' : 'Salvar valor padrão'}
+          </button>
+        </div>
       </div>
 
       {/* Modal/painel de seleção de bairros */}
@@ -313,7 +376,7 @@ export default function Bairros() {
               return (
                 <div key={b.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-4 py-3 hover:bg-stone-50/50 transition-colors group">
                   <div className="flex items-center gap-2">
-                    <FiCheck className="text-green-500 text-xs flex-shrink-0" />
+                    <FiCheck className="text-green-500 text-xs shrink-0" />
                     <span className="text-sm text-stone-900">{b.nome}</span>
                   </div>
                   <span className="w-28 text-right text-sm font-semibold text-stone-900">

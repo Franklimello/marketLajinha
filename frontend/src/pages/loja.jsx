@@ -317,7 +317,8 @@ export default function LojaPage() {
   const totalItens = itensCarrinho.reduce((s, [, i]) => s + i.qtd, 0)
   const subtotal = itensCarrinho.reduce((s, [, i]) => s + i.precoUnit * i.qtd, 0)
   const bairroSel2 = bairros.find((b) => b.nome === formPedido.bairro)
-  const taxaEntrega = tipoEntrega === 'RETIRADA' ? 0 : (bairroSel2 ? Number(bairroSel2.taxa) : (bairros.length === 0 && loja ? Number(loja.taxa_entrega || 0) : 0))
+  const taxaPadraoLoja = loja ? Number(loja.taxa_entrega || 0) : 0
+  const taxaEntrega = tipoEntrega === 'RETIRADA' ? 0 : (bairroSel2 ? Number(bairroSel2.taxa) : taxaPadraoLoja)
   const descontoCupom = cupomAplicado ? cupomAplicado.desconto : 0
   const totalPedido = Math.max(0, subtotal - descontoCupom + taxaEntrega)
 

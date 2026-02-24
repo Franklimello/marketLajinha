@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import { uploadImagem } from '../config/firebase'
 import { FiUpload, FiX } from 'react-icons/fi'
+import CATEGORIAS_NEGOCIO from '../data/categoriasNegocio'
 
 export default function CadastroLoja() {
   const [etapa, setEtapa] = useState(1)
@@ -46,6 +47,20 @@ export default function CadastroLoja() {
         .replace(/[^a-z0-9-]/g, '')
       setForm((prev) => ({ ...prev, slug }))
     }
+  }
+
+  function categoriasSelecionadas() {
+    return String(form.categoria_negocio || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }
+
+  function toggleCategoria(categoria) {
+    const atuais = categoriasSelecionadas()
+    const existe = atuais.includes(categoria)
+    const proximas = existe ? atuais.filter((c) => c !== categoria) : [...atuais, categoria]
+    setForm((prev) => ({ ...prev, categoria_negocio: proximas.join(', ') }))
   }
 
   function handleFileChange(e) {
@@ -94,6 +109,12 @@ export default function CadastroLoja() {
     setErro('')
     setCarregando(true)
     try {
+      if (categoriasSelecionadas().length === 0) {
+        setErro('Selecione pelo menos uma categoria para sua loja.')
+        setCarregando(false)
+        return
+      }
+
       if (!user) {
         await cadastrar(form.email, form.senha)
       }
@@ -240,14 +261,28 @@ export default function CadastroLoja() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">Categoria *</label>
-                  <input
-                    name="categoria_negocio"
-                    value={form.categoria_negocio}
-                    onChange={handleChange}
-                    required
-                    placeholder="ex: Alimentação"
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-                  />
+                  <div className="flex flex-wrap gap-2 rounded-lg border border-stone-300 p-3 max-h-44 overflow-y-auto">
+                    {CATEGORIAS_NEGOCIO.map((cat) => {
+                      const ativo = categoriasSelecionadas().includes(cat)
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => toggleCategoria(cat)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            ativo
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1">
+                    Selecionadas: {categoriasSelecionadas().join(', ') || 'nenhuma'}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">Cidade *</label>

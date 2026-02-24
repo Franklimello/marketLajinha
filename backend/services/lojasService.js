@@ -98,7 +98,9 @@ async function desativarForcamento(id) {
 async function listar(filtros = {}) {
   const { categoria_negocio, cidade } = filtros;
   const where = {};
-  if (categoria_negocio) where.categoria_negocio = categoria_negocio;
+  if (categoria_negocio) {
+    where.categoria_negocio = { contains: categoria_negocio, mode: 'insensitive' };
+  }
   if (cidade) where.cidade = cidade;
   return prisma.lojas.findMany({
     where,

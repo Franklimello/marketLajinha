@@ -17,22 +17,32 @@ const HOME_CACHE_TTL = 1000 * 60 * 5
 const GEO_CITY_CACHE_KEY = 'geoCityCache'
 const GEO_CITY_CACHE_TTL = 1000 * 60 * 60 * 6
 
-const CATEGORIAS = [
-  { nome: 'Pizza', emoji: '🍕' },
-  { nome: 'Burguer', emoji: '🍔' },
-  { nome: 'Porções', emoji: '🍗' },
-  { nome: 'Marmitex', emoji: '🍱' },
-  { nome: 'Carnes', emoji: '🍢' },
-  { nome: 'Salgados', emoji: '🥟' },
-  { nome: 'Açaí', emoji: '🍇' },
-  { nome: 'Doces', emoji: '🍩' },
-  { nome: 'Bebidas', emoji: '🥤' },
-  { nome: 'Japonesa', emoji: '🍣' },
-  { nome: 'Padaria', emoji: '🥖' },
-  { nome: 'Saudável', emoji: '🥗' },
-  { nome: 'Sorvetes', emoji: '🍦' },
-  { nome: 'Café', emoji: '☕' },
-  { nome: 'Petiscos', emoji: '🧆' },
+const CATEGORIA_ICONES = [
+  { k: 'pizza', e: '🍕' },
+  { k: 'hamb', e: '🍔' },
+  { k: 'burg', e: '🍔' },
+  { k: 'lanche', e: '🍔' },
+  { k: 'porç', e: '🍗' },
+  { k: 'frango', e: '🍗' },
+  { k: 'marmit', e: '🍱' },
+  { k: 'jap', e: '🍣' },
+  { k: 'sushi', e: '🍣' },
+  { k: 'aça', e: '🍇' },
+  { k: 'acai', e: '🍇' },
+  { k: 'doce', e: '🍩' },
+  { k: 'confeit', e: '🧁' },
+  { k: 'salgad', e: '🥟' },
+  { k: 'padar', e: '🥖' },
+  { k: 'café', e: '☕' },
+  { k: 'cafe', e: '☕' },
+  { k: 'sorvet', e: '🍦' },
+  { k: 'saud', e: '🥗' },
+  { k: 'bebid', e: '🥤' },
+  { k: 'adega', e: '🍷' },
+  { k: 'mercad', e: '🛒' },
+  { k: 'farm', e: '💊' },
+  { k: 'pet', e: '🐾' },
+  { k: 'churr', e: '🍖' },
 ]
 
 function saudacao() {
@@ -48,6 +58,27 @@ function resolverCidadePadraoCliente(cliente) {
 
   const endereco = enderecos.find((e) => e?.padrao) || enderecos[0]
   return String(endereco?.cidade || '').trim()
+}
+
+function emojiCategoria(nome) {
+  const n = String(nome || '').toLowerCase()
+  const match = CATEGORIA_ICONES.find((i) => n.includes(i.k))
+  return match?.e || '🏷️'
+}
+
+function extrairCategorias(lojas) {
+  const set = new Set()
+  for (const loja of lojas || []) {
+    const raw = String(loja?.categoria_negocio || '')
+    raw
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .forEach((c) => set.add(c))
+  }
+  return Array.from(set)
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+    .map((nome) => ({ nome, emoji: emojiCategoria(nome) }))
 }
 
 async function resolverCidadePorCoordenadas(latitude, longitude) {
@@ -215,6 +246,7 @@ export default function HomePage() {
 
   const lojasAbertas = useMemo(() => lojas.filter((l) => l.aberta_agora ?? l.aberta), [lojas])
   const lojasFechadas = useMemo(() => lojas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojas])
+  const categoriasDinamicas = useMemo(() => extrairCategorias(lojas), [lojas])
 
   const lojasFiltradas = useMemo(() => {
     let lista = [...lojasAbertas, ...lojasFechadas]
@@ -387,7 +419,7 @@ export default function HomePage() {
 
       {/* Categorias */}
       <div ref={catRef} className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
-        {CATEGORIAS.map((cat) => {
+        {categoriasDinamicas.map((cat) => {
           const ativo = categoriaSel === cat.nome
           return (
             <button
