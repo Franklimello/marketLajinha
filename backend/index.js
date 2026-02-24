@@ -23,6 +23,7 @@ const routes = require('./routes');
 const { errorHandler } = require('./middleware');
 const { initSocket } = require('./config/socket');
 const { getRedis } = require('./config/redis');
+const { startWeeklyReportJob } = require('./jobs/weeklyReportJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,6 +103,7 @@ initSocket(server, allowedOrigins);
 // ── Graceful shutdown ──
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}] (WebSocket ativo)`);
+  startWeeklyReportJob();
 });
 
 function gracefulShutdown(signal) {
