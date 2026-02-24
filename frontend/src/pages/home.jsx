@@ -3,6 +3,24 @@ import { Link } from 'react-router-dom'
 import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Pizza,
+  Hamburger,
+  BowlFood,
+  Fish,
+  IceCream,
+  Cake,
+  Cookie,
+  Coffee,
+  BeerBottle,
+  ShoppingCartSimple,
+  Pill,
+  PawPrint,
+  Drumstick,
+  Leaf,
+  Storefront,
+  Tag,
+} from '@phosphor-icons/react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
@@ -19,31 +37,31 @@ const GEO_CITY_CACHE_KEY = 'geoCityCache'
 const GEO_CITY_CACHE_TTL = 1000 * 60 * 60 * 6
 
 const CATEGORIA_ICONES = [
-  { k: 'pizza', e: '🍕' },
-  { k: 'hamb', e: '🍔' },
-  { k: 'burg', e: '🍔' },
-  { k: 'lanche', e: '🍔' },
-  { k: 'porç', e: '🍗' },
-  { k: 'frango', e: '🍗' },
-  { k: 'marmit', e: '🍱' },
-  { k: 'jap', e: '🍣' },
-  { k: 'sushi', e: '🍣' },
-  { k: 'aça', e: '🍇' },
-  { k: 'acai', e: '🍇' },
-  { k: 'doce', e: '🍩' },
-  { k: 'confeit', e: '🧁' },
-  { k: 'salgad', e: '🥟' },
-  { k: 'padar', e: '🥖' },
-  { k: 'café', e: '☕' },
-  { k: 'cafe', e: '☕' },
-  { k: 'sorvet', e: '🍦' },
-  { k: 'saud', e: '🥗' },
-  { k: 'bebid', e: '🥤' },
-  { k: 'adega', e: '🍷' },
-  { k: 'mercad', e: '🛒' },
-  { k: 'farm', e: '💊' },
-  { k: 'pet', e: '🐾' },
-  { k: 'churr', e: '🍖' },
+  { k: 'pizza', Icon: Pizza },
+  { k: 'hamb', Icon: Hamburger },
+  { k: 'burg', Icon: Hamburger },
+  { k: 'lanche', Icon: Hamburger },
+  { k: 'porç', Icon: Drumstick },
+  { k: 'frango', Icon: Drumstick },
+  { k: 'marmit', Icon: BowlFood },
+  { k: 'jap', Icon: Fish },
+  { k: 'sushi', Icon: Fish },
+  { k: 'aça', Icon: IceCream },
+  { k: 'acai', Icon: IceCream },
+  { k: 'doce', Icon: Cake },
+  { k: 'confeit', Icon: Cake },
+  { k: 'salgad', Icon: Cookie },
+  { k: 'padar', Icon: Cookie },
+  { k: 'café', Icon: Coffee },
+  { k: 'cafe', Icon: Coffee },
+  { k: 'sorvet', Icon: IceCream },
+  { k: 'saud', Icon: Leaf },
+  { k: 'bebid', Icon: BeerBottle },
+  { k: 'adega', Icon: BeerBottle },
+  { k: 'mercad', Icon: ShoppingCartSimple },
+  { k: 'farm', Icon: Pill },
+  { k: 'pet', Icon: PawPrint },
+  { k: 'churr', Icon: Drumstick },
 ]
 
 function saudacao() {
@@ -77,10 +95,10 @@ function normalizeText(value) {
     .toLowerCase()
 }
 
-function emojiCategoria(nome) {
+function iconCategoria(nome) {
   const n = String(nome || '').toLowerCase()
   const match = CATEGORIA_ICONES.find((i) => n.includes(i.k))
-  return match?.e || '🏷️'
+  return match?.Icon || Storefront
 }
 
 function formatarTempoEntrega(tempo) {
@@ -102,10 +120,11 @@ function extrairCategorias(lojas) {
   }
   return Array.from(set)
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-    .map((nome) => ({ nome, emoji: emojiCategoria(nome) }))
+    .map((nome) => ({ nome, Icon: iconCategoria(nome) }))
 }
 
 const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggle }) {
+  const Icon = categoria.Icon || Tag
   return (
     <motion.button
       type="button"
@@ -135,11 +154,11 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
           <motion.div
             layout
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className={`w-11 h-11 rounded-full flex items-center justify-center text-xl ${
+            className={`w-11 h-11 rounded-full flex items-center justify-center ${
               isActive ? 'bg-white/20 text-white' : 'bg-stone-100'
             }`}
           >
-            {categoria.emoji}
+            <Icon size={22} weight={isActive ? 'fill' : 'duotone'} />
           </motion.div>
           <span className={`text-[11px] font-semibold whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-600'}`}>
             {categoria.nome}
