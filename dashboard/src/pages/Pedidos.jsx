@@ -35,6 +35,7 @@ function formatDate(d) {
 export default function Pedidos() {
   const { loja } = useAuth()
   const [pedidos, setPedidos] = useState([])
+  const [alertaPedidosIds, setAlertaPedidosIds] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [busca, setBusca] = useState('')
@@ -46,6 +47,8 @@ export default function Pedidos() {
   const socketRef = useRef(null)
   const intervaloRef = useRef(null)
   const pedidosCountRef = useRef(0)
+  const pedidoIdsRef = useRef(new Set())
+  const primeiraCargaRef = useRef(true)
 
   const carregarPedidos = useCallback(async (silencioso = false) => {
     if (!silencioso) setCarregando(true)
@@ -57,6 +60,17 @@ export default function Pedidos() {
         try { audioRef.current?.play() } catch {}
       }
       pedidosCountRef.current = lista.length
+      const idsAtuais = new Set(lista.map((p) => p.id))
+      if (!primeiraCargaRef.current) {
+        const novosAprovados = lista
+          .filter((p) => !pedidoIdsRef.current.has(p.id) && p.status === 'APPROVED')
+          .map((p) => p.id)
+        if (novosAprovados.length) {
+          setAlertaPedidosIds((prev) => [...new Set([...prev, ...novosAprovados])])
+        }
+      }
+      pedidoIdsRef.current = idsAtuais
+      if (primeiraCargaRef.current) primeiraCargaRef.current = false
 
       setPedidos(lista)
       setUltimaAtualizacao(new Date())
@@ -87,6 +101,10 @@ export default function Pedidos() {
       setPedidos((prev) => {
         if (prev.some((p) => p.id === pedido.id)) return prev
         pedidosCountRef.current = prev.length + 1
+        pedidoIdsRef.current = new Set([pedido.id, ...prev.map((p) => p.id)])
+        if (pedido.status === 'APPROVED') {
+          setAlertaPedidosIds((antigos) => [...new Set([...antigos, pedido.id])])
+        }
         return [pedido, ...prev]
       })
       setUltimaAtualizacao(new Date())
@@ -94,7 +112,16 @@ export default function Pedidos() {
     })
 
     socket.on('pedido:atualizado', (pedidoAtualizado) => {
-      setPedidos((prev) => prev.map((p) => p.id === pedidoAtualizado.id ? pedidoAtualizado : p))
+      setPedidos((prev) => {
+        const anterior = prev.find((p) => p.id === pedidoAtualizado.id)
+        if (pedidoAtualizado.status === 'APPROVED' && anterior?.status !== 'APPROVED') {
+          setAlertaPedidosIds((ids) => [...new Set([...ids, pedidoAtualizado.id])])
+        }
+        if (pedidoAtualizado.status !== 'APPROVED') {
+          setAlertaPedidosIds((ids) => ids.filter((id) => id !== pedidoAtualizado.id))
+        }
+        return prev.map((p) => p.id === pedidoAtualizado.id ? pedidoAtualizado : p)
+      })
       setUltimaAtualizacao(new Date())
     })
 
@@ -121,12 +148,19 @@ export default function Pedidos() {
     try {
       await api.pedidos.atualizarStatus(id, novoStatus)
       setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, status: novoStatus } : p)))
+      if (novoStatus !== 'APPROVED') {
+        setAlertaPedidosIds((ids) => ids.filter((pid) => pid !== id))
+      }
       if (pedidoAberto?.id === id) {
         setPedidoAberto((prev) => ({ ...prev, status: novoStatus }))
       }
     } catch (err) {
       alert(err.message)
     }
+  }
+
+  function confirmarVisualizacaoAlertas() {
+    setAlertaPedidosIds([])
   }
 
   const filtrados = pedidos
@@ -150,6 +184,7 @@ export default function Pedidos() {
     DELIVERED: pedidos.filter((p) => p.status === 'DELIVERED').length,
     CANCELLED: pedidos.filter((p) => p.status === 'CANCELLED').length,
   }
+  const alertaVisualAtivo = filtroStatus === 'APPROVED' && alertaPedidosIds.length > 0
 
   if (carregando) {
     return <div className="flex items-center justify-center py-20 text-stone-400">Carregando pedidos...</div>
@@ -157,6 +192,22 @@ export default function Pedidos() {
 
   return (
     <div className="space-y-6">
+      {alertaVisualAtivo && (
+        <>
+          <div className="fixed inset-0 z-40 pointer-events-none">
+            <div className="absolute inset-0 border-14 border-green-500 animate-pulse" />
+            <div className="absolute inset-0 bg-green-500/10 animate-pulse" />
+          </div>
+          <div className="fixed top-24 right-6 z-50">
+            <button
+              onClick={confirmarVisualizacaoAlertas}
+              className="px-4 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:bg-green-700 transition-colors"
+            >
+              Vi os pedidos confirmados ({alertaPedidosIds.length})
+            </button>
+          </div>
+        </>
+      )}
       <div>
         <div className="flex items-center justify-between">
           <div>
@@ -225,7 +276,13 @@ export default function Pedidos() {
             return (
               <div
                 key={p.id}
-                onClick={() => { setPedidoAberto(p); setNaoLidasMap((prev) => ({ ...prev, [p.id]: 0 })) }}
+                onClick={() => {
+                  setPedidoAberto(p)
+                  setNaoLidasMap((prev) => ({ ...prev, [p.id]: 0 }))
+                  if (p.status === 'APPROVED') {
+                    setAlertaPedidosIds((ids) => ids.filter((id) => id !== p.id))
+                  }
+                }}
                 className="bg-white rounded-xl border border-stone-200 p-4 hover:border-amber-300 hover:shadow-sm transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-4">
@@ -248,7 +305,7 @@ export default function Pedidos() {
                         : <>{p.endereco || '—'}{p.bairro ? ` · ${p.bairro}` : ''}</>}
                     </p>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right shrink-0">
                     <p className="font-bold text-stone-900">{formatCurrency(p.total)}</p>
                     <p className="text-xs text-stone-400">{PAGAMENTO_MAP[p.forma_pagamento] || p.forma_pagamento}</p>
                   </div>
