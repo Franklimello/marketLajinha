@@ -199,6 +199,7 @@ export default function LojaPage() {
   const [produtosCarregando, setProdutosCarregando] = useState(true)
   const cartStorageKey = `cart:${slug}`
   const checkoutStorageKey = `checkout:${slug}`
+  const checkoutPersistentKey = `checkout:persist:${slug}`
 
   useEffect(() => {
     if (!slug) return
@@ -228,7 +229,10 @@ export default function LojaPage() {
     const restored = restaurarCarrinho(snapshot, produtos.dados, combos)
     if (Object.keys(restored).length > 0) setCarrinho(restored)
 
-    const checkout = getSessionItem(checkoutStorageKey, null)
+    const checkout = getLocalItem(
+      checkoutPersistentKey,
+      getSessionItem(checkoutStorageKey, null)
+    )
     if (checkout && typeof checkout === 'object') {
       if (checkout.etapa) setEtapa(checkout.etapa)
       if (checkout.tipoEntrega) setTipoEntrega(checkout.tipoEntrega)
@@ -236,7 +240,7 @@ export default function LojaPage() {
       if (checkout.enderecoSel) setEnderecoSel(checkout.enderecoSel)
     }
     restoredCartRef.current = true
-  }, [produtosCarregando, produtos.dados, combos, cartStorageKey, checkoutStorageKey])
+  }, [produtosCarregando, produtos.dados, combos, cartStorageKey, checkoutStorageKey, checkoutPersistentKey])
 
   useEffect(() => {
     if (!slug) return
@@ -245,13 +249,16 @@ export default function LojaPage() {
 
   useEffect(() => {
     if (!slug) return
-    setSessionItem(checkoutStorageKey, {
+    const checkoutDraft = {
       etapa,
       tipoEntrega,
       formPedido,
       enderecoSel,
-    })
-  }, [checkoutStorageKey, etapa, tipoEntrega, formPedido, enderecoSel, slug])
+    }
+    // Mantém em session e local para persistir mesmo após fechar o app.
+    setSessionItem(checkoutStorageKey, checkoutDraft)
+    setLocalItem(checkoutPersistentKey, checkoutDraft)
+  }, [checkoutStorageKey, checkoutPersistentKey, etapa, tipoEntrega, formPedido, enderecoSel, slug])
 
   useEffect(() => {
     const cleanup = setupAutoSync((draft) => api.pedidos.criar(draft))
@@ -501,6 +508,7 @@ export default function LojaPage() {
         setCodigoCupom('')
         removeLocalItem(cartStorageKey)
         removeSessionItem(checkoutStorageKey)
+        removeLocalItem(checkoutPersistentKey)
       }
     } catch (err) {
       if (!navigator.onLine) {
@@ -521,6 +529,7 @@ export default function LojaPage() {
     setCodigoCupom('')
     removeLocalItem(cartStorageKey)
     removeSessionItem(checkoutStorageKey)
+    removeLocalItem(checkoutPersistentKey)
   }
 
   async function copiarPayload() {
@@ -569,6 +578,7 @@ export default function LojaPage() {
   const linkComprovanteWhatsapp = telefoneLojaWhatsapp
     ? `https://wa.me/${telefoneLojaWhatsapp}?text=${textoComprovante}`
     : ''
+  const devePedirComprovantePix = formPedido.forma_pagamento === 'PIX' && formPedido._tipoPag === 'online'
 
   // ---- Confirmado ----
   if (etapa === 'confirmado') {
@@ -653,6 +663,32 @@ export default function LojaPage() {
             <div>
               <p className="text-sm font-semibold text-red-800">Tempo estimado: {loja.tempo_entrega}</p>
               <p className="text-[11px] text-red-600">Fique de olho nos status do seu pedido</p>
+            </div>
+          </div>
+        )}
+
+        {devePedirComprovantePix && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-left">
+            <p className="text-xs font-semibold text-amber-800">
+              Para agilizar a confirmação, envie o comprovante do PIX para a loja.
+            </p>
+            <div className="mt-2 grid grid-cols-1 gap-2">
+              {linkComprovanteWhatsapp && (
+                <a
+                  href={linkComprovanteWhatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-full py-2.5 bg-amber-500 text-white rounded-lg text-xs font-semibold hover:bg-amber-600 transition-colors"
+                >
+                  Enviar no WhatsApp da loja
+                </a>
+              )}
+              <Link
+                to="/pedidos"
+                className="inline-flex items-center justify-center w-full py-2.5 bg-white border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors"
+              >
+                Enviar dentro do sistema (chat)
+              </Link>
             </div>
           </div>
         )}
@@ -745,7 +781,7 @@ export default function LojaPage() {
       ? 'Enviando...'
       : agendado
         ? `Agendar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
-        : `Ir para pagamento — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+        : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
 
     return (
       <div className={`max-w-lg mx-auto px-4 py-2 pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
@@ -1552,6 +1588,8 @@ export default function LojaPage() {
           </>
         )}
       </div>
+
+      {totalItens > 0 && aberta && <div className="h-24" />}
 
       {totalItens > 0 && aberta && (
         <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-2">
