@@ -42,7 +42,7 @@ export default function DashLayout() {
   const { canInstall, isIOS, installed, showIOSGuide, promptInstall, dismissIOSGuide } = usePWA()
   const showInstallBtn = canInstall || (isIOS && !installed)
 
-  const registrarNovoAprovado = useCallback((pedido) => {
+  const registrarNovoPedido = useCallback((pedido) => {
     const id = String(pedido?.id || '')
     if (!id) return
     setAlertaPedidosIds((prev) => {
@@ -65,8 +65,9 @@ export default function DashLayout() {
         const statusAnterior = statusPedidoRef.current.get(id)
         statusPedidoRef.current.set(id, pedido.status)
 
-        if (!primeiraCargaPedidosRef.current && pedido.status === 'APPROVED' && statusAnterior !== 'APPROVED') {
-          registrarNovoAprovado(pedido)
+        const pedidoEhNovo = statusAnterior === undefined
+        if (!primeiraCargaPedidosRef.current && pedidoEhNovo) {
+          registrarNovoPedido(pedido)
         }
       }
 
@@ -74,7 +75,7 @@ export default function DashLayout() {
     } catch {
       // noop
     }
-  }, [registrarNovoAprovado])
+  }, [registrarNovoPedido])
 
   useEffect(() => {
     if (!loja?.id || isSuperAdmin) return undefined
@@ -96,7 +97,7 @@ export default function DashLayout() {
       const id = String(pedido?.id || '')
       if (!id) return
       statusPedidoRef.current.set(id, pedido.status)
-      if (pedido.status === 'APPROVED') registrarNovoAprovado(pedido)
+      registrarNovoPedido(pedido)
     })
 
     socket.on('pedido:atualizado', (pedidoAtualizado) => {
@@ -104,11 +105,9 @@ export default function DashLayout() {
       if (!id) return
       const statusAnterior = statusPedidoRef.current.get(id)
       statusPedidoRef.current.set(id, pedidoAtualizado.status)
-      if (pedidoAtualizado.status === 'APPROVED' && statusAnterior !== 'APPROVED') {
-        registrarNovoAprovado(pedidoAtualizado)
-      }
-      if (pedidoAtualizado.status !== 'APPROVED') {
-        setAlertaPedidosIds((ids) => ids.filter((pid) => pid !== id))
+      const pedidoEhNovo = statusAnterior === undefined
+      if (pedidoEhNovo) {
+        registrarNovoPedido(pedidoAtualizado)
       }
     })
 
@@ -117,7 +116,7 @@ export default function DashLayout() {
       socket.disconnect()
       setWsPedidosConectado(false)
     }
-  }, [loja?.id, isSuperAdmin, registrarNovoAprovado, carregarPedidosEmBackground])
+  }, [loja?.id, isSuperAdmin, registrarNovoPedido, carregarPedidosEmBackground])
 
   function irParaPedidos() {
     setModalNovoPedidoAberto(false)
@@ -291,7 +290,7 @@ export default function DashLayout() {
               <button
                 onClick={() => setModalNovoPedidoAberto(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors animate-pulse"
-                title="Novo pedido confirmado"
+                title="Novo pedido recebido"
               >
                 <FiBell size={14} />
                 <span>{alertaPedidosIds.length} novo(s)</span>
@@ -376,7 +375,7 @@ export default function DashLayout() {
         <div className="fixed inset-0 z-90 bg-black/45 flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-red-100 overflow-hidden">
             <div className="px-5 py-4 bg-red-50 border-b border-red-100">
-              <p className="text-sm font-semibold text-red-700">Novo pedido confirmado</p>
+              <p className="text-sm font-semibold text-red-700">Novo pedido recebido</p>
               <h3 className="text-xl font-extrabold text-stone-900 mt-1">
                 {alertaPedidosIds.length} pedido(s) aguardando atenção
               </h3>
