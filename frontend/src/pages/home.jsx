@@ -41,21 +41,21 @@ const HOME_BANNERS = [
     titulo: 'Entrega rápida e sem complicação',
     subtitulo: 'Peça em segundos e acompanhe tudo em tempo real pelo app.',
     destaque: 'Pedido chegando quentinho',
-    gradiente: 'from-fuchsia-600 via-purple-600 to-indigo-600',
+    gradiente: 'from-red-700 via-red-600 to-amber-500',
   },
   {
     id: 'cupom',
     titulo: 'Cupons ativos todo dia',
     subtitulo: 'Aproveite ofertas especiais das lojas da sua cidade.',
     destaque: 'Economize no almoço e no jantar',
-    gradiente: 'from-rose-600 via-red-500 to-orange-500',
+    gradiente: 'from-red-600 via-red-500 to-yellow-500',
   },
   {
     id: 'variedade',
     titulo: 'Tudo em um só lugar',
     subtitulo: 'Restaurantes, mercado, farmácia e muito mais no UaiFood.',
     destaque: 'Mais opções para sua rotina',
-    gradiente: 'from-cyan-600 via-sky-600 to-blue-700',
+    gradiente: 'from-amber-500 via-orange-500 to-red-600',
   },
 ]
 
