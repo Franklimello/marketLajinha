@@ -519,6 +519,164 @@ async function marcarCobrancaComoPaga(req, res, next) {
   }
 }
 
+function parseDateOnly(raw) {
+  const s = String(raw || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(`${s}T00:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function ymdUTC(date) {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+async function gerarCobrancaLoja(req, res, next) {
+  try {
+    const lojaId = req.params.id;
+    const loja = await prisma.lojas.findUnique({
+      where: { id: lojaId },
+      select: { id: true, nome: true },
+    });
+    if (!loja) return res.status(404).json({ erro: 'Loja não encontrada.' });
+
+    const inicioRaw = parseDateOnly(req.body?.data_inicio);
+    const fimRaw = parseDateOnly(req.body?.data_fim);
+    if (!inicioRaw || !fimRaw) {
+      return res.status(400).json({ erro: 'Datas inválidas. Use o formato YYYY-MM-DD.' });
+    }
+    if (inicioRaw > fimRaw) {
+      return res.status(400).json({ erro: 'Período inválido. A data inicial deve ser menor ou igual à final.' });
+    }
+
+    const percentual = Number(req.body?.percentual ?? PERCENTUAL_PADRAO);
+    if (!Number.isFinite(percentual) || percentual < 0 || percentual > 100) {
+      return res.status(400).json({ erro: 'Percentual inválido. Use valor entre 0 e 100.' });
+    }
+
+    const inicio = new Date(inicioRaw);
+    inicio.setUTCHours(0, 0, 0, 0);
+    const fim = new Date(fimRaw);
+    fim.setUTCHours(23, 59, 59, 999);
+    const competencia = `${ymdUTC(inicio)}__${ymdUTC(fim)}`;
+
+    const pedidos = await prisma.pedidos.findMany({
+      where: {
+        loja_id: lojaId,
+        created_at: { gte: inicio, lte: fim },
+      },
+      select: {
+        id: true,
+        total: true,
+        status: true,
+        created_at: true,
+      },
+    });
+
+    const faturamentoBruto = pedidos.reduce((acc, p) => acc + Number(p.total || 0), 0);
+    const pedidosCount = pedidos.length;
+    const valorComissao = Number(((faturamentoBruto * percentual) / 100).toFixed(2));
+
+    const cobranca = await prisma.cobrancaLojista.upsert({
+      where: {
+        loja_id_competencia: {
+          loja_id: lojaId,
+          competencia,
+        },
+      },
+      create: {
+        loja_id: lojaId,
+        competencia,
+        periodo_inicio: inicio,
+        periodo_fim: fim,
+        percentual,
+        faturamento_bruto: faturamentoBruto,
+        pedidos_count: pedidosCount,
+        valor_comissao: valorComissao,
+        status: 'FECHADA',
+        fechado_em: new Date(),
+        vencimento_em: null,
+      },
+      update: {
+        periodo_inicio: inicio,
+        periodo_fim: fim,
+        percentual,
+        faturamento_bruto: faturamentoBruto,
+        pedidos_count: pedidosCount,
+        valor_comissao: valorComissao,
+        status: 'FECHADA',
+        fechado_em: new Date(),
+        vencimento_em: null,
+        pago_em: null,
+      },
+    });
+
+    await prisma.cobrancaPedido.deleteMany({ where: { cobranca_id: cobranca.id } });
+    if (pedidos.length > 0) {
+      await prisma.cobrancaPedido.createMany({
+        data: pedidos.map((p) => ({
+          cobranca_id: cobranca.id,
+          pedido_id: p.id,
+          loja_id: lojaId,
+          total: Number(p.total || 0),
+          status_pedido: String(p.status || ''),
+          pedido_criado_em: p.created_at,
+        })),
+      });
+    }
+
+    res.json({
+      mensagem: `Cobrança gerada para "${loja.nome}".`,
+      cobranca: {
+        ...cobranca,
+        percentual: Number(cobranca.percentual || 0),
+        faturamento_bruto: Number(cobranca.faturamento_bruto || 0),
+        valor_comissao: Number(cobranca.valor_comissao || 0),
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function listarCobrancasPorLoja(req, res, next) {
+  try {
+    const lojaId = req.params.id;
+    const cobrancas = await prisma.cobrancaLojista.findMany({
+      where: { loja_id: lojaId },
+      orderBy: { periodo_inicio: 'desc' },
+      take: 24,
+      select: {
+        id: true,
+        competencia: true,
+        periodo_inicio: true,
+        periodo_fim: true,
+        percentual: true,
+        faturamento_bruto: true,
+        pedidos_count: true,
+        valor_comissao: true,
+        status: true,
+        fechado_em: true,
+        pago_em: true,
+      },
+    });
+
+    res.json(
+      cobrancas.map((c) => ({
+        ...c,
+        percentual: Number(c.percentual || 0),
+        faturamento_bruto: Number(c.faturamento_bruto || 0),
+        valor_comissao: Number(c.valor_comissao || 0),
+      }))
+    );
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   listarTodasLojas,
   buscarLoja,
@@ -534,4 +692,6 @@ module.exports = {
   listarCobrancas,
   fecharCobrancas,
   marcarCobrancaComoPaga,
+  gerarCobrancaLoja,
+  listarCobrancasPorLoja,
 };

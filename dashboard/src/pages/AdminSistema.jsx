@@ -22,6 +22,17 @@ function competenciaAtual() {
   return `${ano}-${mes}`
 }
 
+function dataInputHojeMenosDias(dias) {
+  const d = new Date()
+  d.setDate(d.getDate() - dias)
+  return d.toISOString().slice(0, 10)
+}
+
+function formatDateBR(v) {
+  if (!v) return '—'
+  return new Date(v).toLocaleDateString('pt-BR')
+}
+
 export default function AdminSistema() {
   const [stats, setStats] = useState(null)
   const [lojas, setLojas] = useState([])
@@ -36,6 +47,11 @@ export default function AdminSistema() {
   const [carregando, setCarregando] = useState(true)
   const [modal, setModal] = useState(null)
   const [processando, setProcessando] = useState(false)
+  const [modalCobranca, setModalCobranca] = useState(null)
+  const [processandoCobrancaLoja, setProcessandoCobrancaLoja] = useState(false)
+  const [cobrancasLojaMap, setCobrancasLojaMap] = useState({})
+  const [mostrandoCobrancasMap, setMostrandoCobrancasMap] = useState({})
+  const [carregandoCobrancasLojaMap, setCarregandoCobrancasLojaMap] = useState({})
 
   const carregar = useCallback(async () => {
     try {
@@ -144,6 +160,58 @@ export default function AdminSistema() {
     } catch (e) {
       alert(e.message)
     }
+  }
+
+  function abrirModalCobranca(loja) {
+    setModalCobranca({
+      loja_id: loja.id,
+      loja_nome: loja.nome,
+      data_inicio: dataInputHojeMenosDias(6),
+      data_fim: dataInputHojeMenosDias(0),
+      percentual: String(percentualCobranca || 12),
+    })
+  }
+
+  async function gerarCobrancaDaLoja() {
+    if (!modalCobranca?.loja_id) return
+    setProcessandoCobrancaLoja(true)
+    try {
+      await api.admin.gerarCobrancaLoja(modalCobranca.loja_id, {
+        data_inicio: modalCobranca.data_inicio,
+        data_fim: modalCobranca.data_fim,
+        percentual: Number(modalCobranca.percentual),
+      })
+      const lista = await api.admin.listarCobrancasLoja(modalCobranca.loja_id)
+      setCobrancasLojaMap((prev) => ({ ...prev, [modalCobranca.loja_id]: lista }))
+      setMostrandoCobrancasMap((prev) => ({ ...prev, [modalCobranca.loja_id]: true }))
+      setModalCobranca(null)
+      alert('Cobrança gerada com sucesso.')
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setProcessandoCobrancaLoja(false)
+    }
+  }
+
+  async function toggleCobrancasLoja(lojaId) {
+    const visivel = !!mostrandoCobrancasMap[lojaId]
+    if (visivel) {
+      setMostrandoCobrancasMap((prev) => ({ ...prev, [lojaId]: false }))
+      return
+    }
+
+    if (!cobrancasLojaMap[lojaId]) {
+      setCarregandoCobrancasLojaMap((prev) => ({ ...prev, [lojaId]: true }))
+      try {
+        const lista = await api.admin.listarCobrancasLoja(lojaId)
+        setCobrancasLojaMap((prev) => ({ ...prev, [lojaId]: lista }))
+      } catch (e) {
+        alert(e.message)
+      } finally {
+        setCarregandoCobrancasLojaMap((prev) => ({ ...prev, [lojaId]: false }))
+      }
+    }
+    setMostrandoCobrancasMap((prev) => ({ ...prev, [lojaId]: true }))
   }
 
   const lojasFiltradas = lojas.filter(
@@ -364,6 +432,20 @@ export default function AdminSistema() {
                   {/* Actions */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button
+                      onClick={() => abrirModalCobranca(loja)}
+                      className="px-2 py-1 text-[11px] rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+                      title="Gerar cobrança por período"
+                    >
+                      Cobrar
+                    </button>
+                    <button
+                      onClick={() => toggleCobrancasLoja(loja.id)}
+                      className="px-2 py-1 text-[11px] rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200"
+                      title="Mostrar ou esconder cobranças"
+                    >
+                      {mostrandoCobrancasMap[loja.id] ? 'Esconder' : 'Cobranças'}
+                    </button>
+                    <button
                       onClick={() => verDetalhes(loja.id)}
                       className="p-2 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition-colors"
                       title="Ver detalhes"
@@ -399,6 +481,48 @@ export default function AdminSistema() {
                     </button>
                   </div>
                 </div>
+
+                {mostrandoCobrancasMap[loja.id] && (
+                  <div className="px-4 pb-3 bg-blue-50/40 border-t border-blue-100">
+                    <div className="text-[11px] font-semibold text-blue-700 pt-2 pb-1">Cobranças feitas</div>
+                    {carregandoCobrancasLojaMap[loja.id] ? (
+                      <div className="text-xs text-stone-400 py-2">Carregando cobranças...</div>
+                    ) : !(cobrancasLojaMap[loja.id] || []).length ? (
+                      <div className="text-xs text-stone-400 py-2">Nenhuma cobrança gerada para esta loja.</div>
+                    ) : (
+                      <div className="border border-blue-100 rounded-lg overflow-hidden bg-white">
+                        <div className="grid grid-cols-12 px-3 py-2 bg-blue-50 text-[10px] font-semibold text-blue-700">
+                          <div className="col-span-4">Período</div>
+                          <div className="col-span-2 text-right">Bruto</div>
+                          <div className="col-span-2 text-right">Comissão</div>
+                          <div className="col-span-1 text-right">%</div>
+                          <div className="col-span-1 text-right">Pedidos</div>
+                          <div className="col-span-2 text-right">Status</div>
+                        </div>
+                        {(cobrancasLojaMap[loja.id] || []).map((c) => (
+                          <div key={c.id} className="grid grid-cols-12 px-3 py-2 text-[11px] border-t border-blue-50">
+                            <div className="col-span-4 text-stone-700">
+                              {formatDateBR(c.periodo_inicio)} até {formatDateBR(c.periodo_fim)}
+                            </div>
+                            <div className="col-span-2 text-right text-stone-700">{formatCurrency(c.faturamento_bruto)}</div>
+                            <div className="col-span-2 text-right text-stone-700">{formatCurrency(c.valor_comissao)}</div>
+                            <div className="col-span-1 text-right text-stone-500">{Number(c.percentual || 0).toFixed(1)}%</div>
+                            <div className="col-span-1 text-right text-stone-500">{c.pedidos_count}</div>
+                            <div className="col-span-2 text-right">
+                              <span className={`px-2 py-0.5 rounded-full ${
+                                c.status === 'PAGA'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {c.status === 'PAGA' ? 'Paga' : 'Fechada'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Expanded details */}
                 {expandida === loja.id && detalheLoja && (
@@ -524,6 +648,66 @@ export default function AdminSistema() {
                 } disabled:opacity-50`}
               >
                 {processando ? 'Processando...' : modal.tipo === 'excluir' ? 'Excluir' : 'Bloquear'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalCobranca && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !processandoCobrancaLoja && setModalCobranca(null)}>
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-stone-900 mb-1">Gerar cobrança</h3>
+            <p className="text-xs text-stone-500 mb-4">Loja: {modalCobranca.loja_nome}</p>
+
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label className="block text-xs text-stone-500 mb-1">Data inicial</label>
+                <input
+                  type="date"
+                  value={modalCobranca.data_inicio}
+                  onChange={(e) => setModalCobranca((prev) => ({ ...prev, data_inicio: e.target.value }))}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-stone-500 mb-1">Data final</label>
+                <input
+                  type="date"
+                  value={modalCobranca.data_fim}
+                  onChange={(e) => setModalCobranca((prev) => ({ ...prev, data_fim: e.target.value }))}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs text-stone-500 mb-1">% comissão</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={modalCobranca.percentual}
+                onChange={(e) => setModalCobranca((prev) => ({ ...prev, percentual: e.target.value }))}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setModalCobranca(null)}
+                disabled={processandoCobrancaLoja}
+                className="flex-1 px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={gerarCobrancaDaLoja}
+                disabled={processandoCobrancaLoja || !modalCobranca.data_inicio || !modalCobranca.data_fim}
+                className="flex-1 px-4 py-2 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {processandoCobrancaLoja ? 'Gerando...' : 'Gerar cobrança'}
               </button>
             </div>
           </div>
