@@ -8,6 +8,8 @@ import { getItem as getLocalItem, setItem as setLocalItem, removeItem as removeL
 import { getItem as getSessionItem, setItem as setSessionItem, removeItem as removeSessionItem } from '../storage/sessionStorageService'
 import { addLocalOrderHistory, enqueuePendingOrder, setupAutoSync } from '../storage/offlineDatabase'
 
+const AVISO_PIX_ONLINE = '[PIX ONLINE] Conferir comprovante antes de aprovar.'
+
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
 }
@@ -648,6 +650,7 @@ export default function LojaPage() {
     setShowSubmitOverlay(true)
     setSubmitStage(0)
     setEnviando(true)
+    const pagamentoPixOnline = formPedido._tipoPag === 'online' && formPedido.forma_pagamento === 'PIX'
     const payloadPedido = {
       loja_id: loja.id,
       tipo_entrega: tipoEntrega,
@@ -663,6 +666,7 @@ export default function LojaPage() {
       agendado_para: agendado && agendadoPara ? new Date(agendadoPara).toISOString() : null,
       observacao: [
         formPedido.observacao,
+        pagamentoPixOnline ? AVISO_PIX_ONLINE : '',
         formPedido.forma_pagamento === 'CASH' && trocoPara ? `Troco para R$ ${Number(trocoPara).toFixed(2).replace('.', ',')}` : '',
         agendado && agendadoPara ? `Agendado para ${new Date(agendadoPara).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '',
         ...itensCarrinho.filter(([, i]) => i.obs).map(([, i]) => `${i.produto.nome}: ${i.obs}`),
@@ -691,7 +695,7 @@ export default function LojaPage() {
       await new Promise((resolve) => setTimeout(resolve, 420))
       setPedidoCriado(pedido)
       addLocalOrderHistory(pedido).catch(() => {})
-      const pagarOnline = formPedido._tipoPag === 'online' && formPedido.forma_pagamento === 'PIX' && loja.pix_chave
+      const pagarOnline = pagamentoPixOnline && loja.pix_chave
       if (pagarOnline) {
         setEtapa('pix')
         setPixCarregando(true)

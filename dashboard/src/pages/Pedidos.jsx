@@ -22,6 +22,7 @@ const PAGAMENTO_MAP = {
   CREDIT: 'Crédito',
   CASH: 'Dinheiro',
 }
+const PIX_ONLINE_TAG = '[PIX ONLINE]'
 
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -31,6 +32,10 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function isPixOnline(pedido) {
+  return pedido?.forma_pagamento === 'PIX' && String(pedido?.observacao || '').includes(PIX_ONLINE_TAG)
 }
 
 export default function Pedidos() {
@@ -230,6 +235,7 @@ export default function Pedidos() {
         <div className="space-y-3">
           {filtrados.map((p) => {
             const st = STATUS_MAP[p.status] || STATUS_MAP.PENDING
+            const pixOnline = isPixOnline(p)
             return (
               <div
                 key={p.id}
@@ -249,6 +255,11 @@ export default function Pedidos() {
                       {(naoLidasMap[p.id] || 0) > 0 && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                           <FiMessageCircle size={11} /> {naoLidasMap[p.id]}
+                        </span>
+                      )}
+                      {pixOnline && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          PIX online - conferir comprovante
                         </span>
                       )}
                     </div>
@@ -455,6 +466,7 @@ function ChatLoja({ pedidoId, socketRef }) {
 
 function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
+  const pixOnline = isPixOnline(pedido)
   const [imprimindo, setImprimindo] = useState(false)
 
   async function handleImprimir() {
@@ -499,6 +511,13 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
         </div>
 
         <div className="p-5 space-y-5">
+          {pixOnline && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <p className="text-sm font-semibold text-amber-800">
+                Pagamento PIX online. Confira o comprovante antes de aprovar.
+              </p>
+            </div>
+          )}
           {/* Cliente */}
           <div className="grid grid-cols-2 gap-4">
             <div>

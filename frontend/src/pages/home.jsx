@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram } from 'react-icons/fi'
+import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -262,6 +262,8 @@ const StoryViewerModal = memo(function StoryViewerModal({
   progress,
   onPrev,
   onNext,
+  onNextStore,
+  hasNextStore,
   onClose,
 }) {
   if (groupIndex < 0 || !grupos[groupIndex]) return null
@@ -304,14 +306,41 @@ const StoryViewerModal = memo(function StoryViewerModal({
           <img src={story.image_url} alt="" className="w-full h-full object-contain" />
         </div>
 
+        <button
+          type="button"
+          onClick={onPrev}
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/45 text-white inline-flex items-center justify-center hover:bg-black/60"
+          aria-label="Story anterior"
+        >
+          <FiChevronLeft size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/45 text-white inline-flex items-center justify-center hover:bg-black/60"
+          aria-label="Próximo story"
+        >
+          <FiChevronRight size={20} />
+        </button>
+
         <div className="absolute bottom-6 left-4 right-4 z-20">
-          <Link
-            to={`/loja/${grupo.restaurant_slug}`}
-            onClick={onClose}
-            className="w-full inline-flex items-center justify-center py-3 rounded-xl bg-red-600 text-white font-semibold text-sm"
-          >
-            Pedir agora
-          </Link>
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              to={`/loja/${grupo.restaurant_slug}`}
+              onClick={onClose}
+              className="inline-flex items-center justify-center py-3 rounded-xl bg-red-600 text-white font-semibold text-sm"
+            >
+              Pedir agora
+            </Link>
+            <button
+              type="button"
+              disabled={!hasNextStore}
+              onClick={onNextStore}
+              className="inline-flex items-center justify-center gap-1.5 py-3 rounded-xl bg-white/12 text-white font-semibold text-sm border border-white/25 disabled:opacity-50"
+            >
+              Próxima loja <FiChevronRight size={16} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -731,12 +760,37 @@ export default function HomePage() {
       setStoryProgress(0)
       return
     }
+    if (storyGroupIndex < storiesGroups.length - 1) {
+      setStoryGroupIndex((prev) => prev + 1)
+      setStoryIndex(0)
+      setStoryProgress(0)
+      return
+    }
     closeStories()
   }
 
   function prevStory() {
     if (storyIndex > 0) {
       setStoryIndex((prev) => prev - 1)
+      setStoryProgress(0)
+      return
+    }
+    if (storyGroupIndex > 0) {
+      const prevGroupIdx = storyGroupIndex - 1
+      const prevGroupStories = storiesGroups?.[prevGroupIdx]?.stories || []
+      const lastIndex = Math.max(0, prevGroupStories.length - 1)
+      setStoryGroupIndex(prevGroupIdx)
+      setStoryIndex(lastIndex)
+      setStoryProgress(0)
+      return
+    }
+    closeStories()
+  }
+
+  function nextStoreStories() {
+    if (storyGroupIndex < storiesGroups.length - 1) {
+      setStoryGroupIndex((prev) => prev + 1)
+      setStoryIndex(0)
       setStoryProgress(0)
       return
     }
@@ -839,6 +893,8 @@ export default function HomePage() {
       'query-input': 'required name=search_term_string',
     },
   }
+
+  const hasNextStore = storyGroupIndex >= 0 && storyGroupIndex < storiesGroups.length - 1
 
   return (
     <div className="max-w-lg mx-auto px-4">
@@ -1051,6 +1107,8 @@ export default function HomePage() {
               progress={storyProgress}
               onPrev={prevStory}
               onNext={nextStory}
+              onNextStore={nextStoreStories}
+              hasNextStore={hasNextStore}
               onClose={closeStories}
             />
           </motion.div>

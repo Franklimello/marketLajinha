@@ -6,8 +6,10 @@ const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const ALL_CACHES = [STATIC_CACHE, DYNAMIC_CACHE];
+const INJECTED_MANIFEST = self.__WB_MANIFEST || [];
 
 const PRECACHE_URLS = [
+  ...INJECTED_MANIFEST.map((entry) => entry.url),
   '/',
   '/manifest.json',
   '/offline.html',

@@ -16,6 +16,7 @@ const PAGAMENTO_MAP = {
   CREDIT: 'Crédito',
   CASH: 'Dinheiro',
 }
+const PIX_ONLINE_TAG = '[PIX ONLINE]'
 
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -25,6 +26,10 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function isPixOnline(pedido) {
+  return pedido?.forma_pagamento === 'PIX' && String(pedido?.observacao || '').includes(PIX_ONLINE_TAG)
 }
 
 export default function PedidoDetalhe() {
@@ -66,6 +71,7 @@ export default function PedidoDetalhe() {
   }
 
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
+  const pixOnline = isPixOnline(pedido)
 
   const TIMELINE = ['PENDING', 'APPROVED', 'DELIVERED']
   const statusIndex = TIMELINE.indexOf(pedido.status)
@@ -96,7 +102,7 @@ export default function PedidoDetalhe() {
                 <div key={s} className="flex flex-col items-center flex-1 relative">
                   {i > 0 && (
                     <div
-                      className={`absolute top-3 right-1/2 w-full h-0.5 -z-0 ${
+                      className={`absolute top-3 right-1/2 w-full h-0.5 z-0 ${
                         statusIndex >= i ? 'bg-amber-400' : 'bg-stone-200'
                       }`}
                     />
@@ -122,6 +128,14 @@ export default function PedidoDetalhe() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-center">
           <FiXCircle className="text-3xl text-red-400 mx-auto mb-2" />
           <p className="font-semibold text-red-700">Pedido cancelado</p>
+        </div>
+      )}
+
+      {pixOnline && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-sm font-semibold text-amber-800">
+            Pagamento PIX online. Confira o comprovante antes de aprovar.
+          </p>
         </div>
       )}
 
