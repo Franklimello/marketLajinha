@@ -292,6 +292,10 @@ export default function LojaPage() {
     return () => cancelAnimationFrame(raf)
   }, [slug])
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [slug, etapa, categoriaSel, produtoDetalhe?.id])
+
   const pageTransitionClass = pageVisible
     ? 'opacity-100 translate-y-0'
     : 'opacity-0 translate-y-1'
@@ -1602,10 +1606,8 @@ export default function LojaPage() {
         )}
       </div>
 
-      {totalItens > 0 && aberta && <div className="h-24" />}
-
       {totalItens > 0 && aberta && (
-        <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-2">
+        <div className="fixed bottom-16 left-0 right-0 z-60 px-4 pb-2">
           <button onClick={irParaCheckout} className="w-full max-w-lg mx-auto flex items-center justify-between bg-red-600 text-white px-5 py-3.5 rounded-xl shadow-lg hover:bg-red-700 transition-colors">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
