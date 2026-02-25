@@ -6,13 +6,15 @@
   "scope": "/",
   "id": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"]
   "orientation": "portrait",
   "dir": "ltr",
   "theme_color": "#0a0a0a",
   "background_color": "#0a0a0a",
   "lang": "pt-BR",
-  "categories": ["food", "shopping"],
+  "categories": [
+    "food",
+    "shopping"
+  ],
   "prefer_related_applications": false,
   "related_applications": [],
   "shortcuts": [

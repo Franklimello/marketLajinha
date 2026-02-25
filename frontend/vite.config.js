@@ -9,13 +9,9 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      registerType: 'autoUpdate', // SW atualiza automaticamente
+      registerType: 'autoUpdate',
       injectRegister: 'auto',
       manifest: false,
-      workbox: {
-        clientsClaim: true, // SW assume controle de todas as abas imediatamente
-        skipWaiting: true,  // Pula a fase de espera e ativa o SW novo direto
-      },
       devOptions: {
         enabled: true,
       },

@@ -8,3 +8,4 @@ serviceAccountKey.json
 # Agente impressao - build output
 agente-impressao/dist/
 agente-impressao/node_modules/
+.vercel
