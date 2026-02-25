@@ -528,14 +528,14 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
           {(loja.nota_media ?? 0) > 0 && (
             <>
               <FiStar className="text-yellow-500 fill-yellow-500 text-[11px]" />
-              <span className="font-medium text-stone-700">{Number(loja.nota_media).toFixed(1).replace('.', ',')}</span>
+              <span className="font-medium text-stone-700 font-numeric">{Number(loja.nota_media).toFixed(1).replace('.', ',')}</span>
               <span className="text-stone-300">&bull;</span>
             </>
           )}
           {taxa === 0 ? (
             <span className="font-semibold text-green-600">Entrega grátis</span>
           ) : (
-            <span>R$ {taxa.toFixed(2).replace('.', ',')}</span>
+            <span className="font-numeric">R$ {taxa.toFixed(2).replace('.', ',')}</span>
           )}
           {loja.tempo_entrega && (
             <>

@@ -133,7 +133,7 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
                 <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover" />
               </div>
               <p className="text-xs font-semibold text-stone-900 mt-1.5 line-clamp-1">{p.nome}</p>
-              <p className="text-xs text-red-700 font-bold">
+              <p className="text-xs text-red-700 font-bold font-numeric">
                 {p.variacoes?.length > 0 && 'a partir de '}R$ {preco.toFixed(2).replace('.', ',')}
               </p>
             </button>
@@ -953,7 +953,7 @@ export default function LojaPage() {
         <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Pagar com PIX</h2>
           <p className="text-stone-500 text-sm mb-4">Escaneie o QR Code ou copie o código</p>
-          <div className="bg-red-50 rounded-xl px-4 py-2 mb-4 inline-block"><span className="text-2xl font-bold text-red-700">R$ {totalPedido.toFixed(2).replace('.', ',')}</span></div>
+          <div className="bg-red-50 rounded-xl px-4 py-2 mb-4 inline-block"><span className="text-2xl font-bold text-red-700 font-numeric">R$ {totalPedido.toFixed(2).replace('.', ',')}</span></div>
           {pixCarregando ? (
             <div className="py-12"><div className="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin mx-auto" /><p className="text-stone-400 text-sm mt-3">Gerando QR Code...</p></div>
           ) : pixData ? (
@@ -1059,7 +1059,7 @@ export default function LojaPage() {
                   {i.isCombo && <span className="text-[9px] font-bold bg-amber-100 text-red-700 px-1 py-0.5 rounded">COMBO</span>}
                   <span className="text-stone-600">{i.qtd}x {i.produto.nome}</span>
                 </div>
-                <span className="text-stone-900 font-medium">R$ {(i.precoUnit * i.qtd).toFixed(2).replace('.', ',')}</span>
+                <span className="text-stone-900 font-medium font-numeric">R$ {(i.precoUnit * i.qtd).toFixed(2).replace('.', ',')}</span>
               </div>
               {i.isCombo && i.comboItens && <p className="text-[10px] text-stone-400 ml-4">{i.comboItens.map(ci => `${ci.quantidade}x ${ci.produto?.nome}`).join(', ')}</p>}
               {i.variacao && <p className="text-[10px] text-stone-400 ml-4">Tamanho: {i.variacao.nome}</p>}
@@ -1091,18 +1091,18 @@ export default function LojaPage() {
               </div>
             </div>
           ))}
-          <div className="border-t border-stone-100 mt-2 pt-2 flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="font-medium">R$ {subtotal.toFixed(2).replace('.', ',')}</span></div>
+          <div className="border-t border-stone-100 mt-2 pt-2 flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="font-medium font-numeric">R$ {subtotal.toFixed(2).replace('.', ',')}</span></div>
           <div className="flex justify-between text-sm mt-1">
             <span className="text-stone-500">{tipoEntrega === 'RETIRADA' ? 'Retirada no balcão' : `Entrega ${formPedido.bairro ? `(${formPedido.bairro})` : ''}`}</span>
-            <span className="font-medium">{tipoEntrega === 'RETIRADA' ? 'Grátis' : (taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis')}</span>
+            <span className="font-medium font-numeric">{tipoEntrega === 'RETIRADA' ? 'Grátis' : (taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis')}</span>
           </div>
           {descontoCupom > 0 && (
             <div className="flex justify-between text-sm mt-1">
               <span className="text-green-600">Desconto (cupom)</span>
-              <span className="font-medium text-green-600">- R$ {descontoCupom.toFixed(2).replace('.', ',')}</span>
+              <span className="font-medium text-green-600 font-numeric">- R$ {descontoCupom.toFixed(2).replace('.', ',')}</span>
             </div>
           )}
-          <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-red-700 transition-all duration-200">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</span></div>
+          <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-red-700 transition-all duration-200 font-numeric">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</span></div>
         </div>
 
         {/* Tipo de entrega */}
@@ -1420,7 +1420,7 @@ export default function LojaPage() {
             <div className="w-full max-w-lg mx-auto bg-white/95 backdrop-blur rounded-2xl border border-stone-200 shadow-lg p-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] text-stone-500">total</p>
-                <p className="text-2xl leading-none font-extrabold text-red-700 transition-all duration-200">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</p>
+                <p className="text-2xl leading-none font-extrabold text-red-700 transition-all duration-200 font-numeric">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</p>
               </div>
               <button
                 type="submit"
@@ -1495,7 +1495,7 @@ export default function LojaPage() {
                     </div>
                     <span className="text-sm text-stone-800">{v.nome}</span>
                   </div>
-                  <span className="text-sm font-semibold text-emerald-600">R$ {Number(v.preco).toFixed(2).replace('.', ',')}</span>
+                  <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(v.preco).toFixed(2).replace('.', ',')}</span>
                 </button>
               )
             })}
@@ -1513,7 +1513,7 @@ export default function LojaPage() {
                 <div key={a.id} className="flex items-center justify-between py-3.5 border-b border-stone-100">
                   <span className="text-sm text-stone-800">{a.nome}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-emerald-600">R$ {Number(a.preco).toFixed(2).replace('.', ',')}</span>
+                    <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(a.preco).toFixed(2).replace('.', ',')}</span>
                     <button onClick={() => toggleAdicional(a.id)} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${sel ? 'bg-emerald-500 text-white' : 'border-2 border-emerald-500 text-emerald-500 hover:bg-emerald-50'}`}>
                       {sel ? <FiCheck /> : <FiPlus />}
                     </button>
@@ -1528,7 +1528,7 @@ export default function LojaPage() {
         <div className="px-4 pt-6 pb-4">
           <p className="text-base font-bold text-stone-900 mb-4">quantos?</p>
           <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-stone-500">valor unitário: <span className="font-bold text-stone-900">R$ {precoUnitario.toFixed(2).replace('.', ',')}</span></p>
+            <p className="text-sm text-stone-500">valor unitário: <span className="font-bold text-stone-900 font-numeric">R$ {precoUnitario.toFixed(2).replace('.', ',')}</span></p>
             <div className="flex items-center gap-5">
               <button onClick={() => setQtdDetalhe((q) => Math.max(1, q - 1))} className="w-10 h-10 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors">
                 <FiMinus />
@@ -1785,11 +1785,11 @@ export default function LojaPage() {
                     {Number(promo.preco_promocional || 0) > 0 && (
                       <div className="mt-2">
                         {Number(promo.produto?.preco || 0) > 0 && (
-                          <p className="text-xs text-stone-400 line-through">
+                          <p className="text-xs text-stone-400 line-through font-numeric">
                             R$ {Number(promo.produto.preco).toFixed(2).replace('.', ',')}
                           </p>
                         )}
-                        <p className="text-lg font-extrabold text-red-700">
+                        <p className="text-lg font-extrabold text-red-700 font-numeric">
                           R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
                         </p>
                       </div>
@@ -1857,12 +1857,12 @@ export default function LojaPage() {
                       <div className="flex items-end justify-between">
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-lg font-extrabold text-red-700">R$ {Number(c.preco).toFixed(2).replace('.', ',')}</span>
+                            <span className="text-lg font-extrabold text-red-700 font-numeric">R$ {Number(c.preco).toFixed(2).replace('.', ',')}</span>
                           </div>
                           {economia > 0 && (
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-xs text-stone-400 line-through">R$ {original.toFixed(2).replace('.', ',')}</span>
-                              <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">-R$ {economia.toFixed(2).replace('.', ',')}</span>
+                              <span className="text-xs text-stone-400 line-through font-numeric">R$ {original.toFixed(2).replace('.', ',')}</span>
+                              <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-numeric">-R$ {economia.toFixed(2).replace('.', ',')}</span>
                             </div>
                           )}
                         </div>
@@ -1933,7 +1933,7 @@ export default function LojaPage() {
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-red-600 font-bold text-sm">
+                        <p className="text-red-600 font-bold text-sm font-numeric">
                           {p.variacoes?.length > 0 ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}` : `R$ ${Number(p.preco).toFixed(2).replace('.', ',')}`}
                         </p>
                         {temConfig && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">personalizar</span>}
@@ -1955,7 +1955,7 @@ export default function LojaPage() {
           <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full max-w-lg mx-auto flex items-center justify-between bg-red-600 text-white px-5 py-3.5 rounded-xl shadow-lg hover:bg-red-700 transition-all">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
-            <span className="font-bold">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>
+            <span className="font-bold font-numeric">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>
           </button>
         </div>
       )}
