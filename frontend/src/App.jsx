@@ -65,6 +65,7 @@ export default function App() {
   const { getToken, cliente, firebaseUser, carregando } = useAuth()
   const { pathname } = useLocation()
   const isLojaPage = pathname.startsWith('/loja/')
+  const showGlobalHeader = !isLojaPage
   const [aceitouAgora, setAceitouAgora] = useState(false)
   const [standaloneMode, setStandaloneMode] = useState(false)
 
@@ -145,11 +146,13 @@ export default function App() {
 
   return (
     <div className={`app-shell min-h-screen flex flex-col ${standaloneMode ? 'app-shell--standalone' : ''}`}>
-      <Header />
+      {showGlobalHeader && <Header />}
       <main
-        className={`app-main flex-1 ${isLojaPage ? 'pt-20' : 'pt-24'} ${
+        className={`app-main flex-1 ${showGlobalHeader ? (isLojaPage ? 'pt-20' : 'pt-24') : 'pt-0'} ${
           standaloneMode
-            ? (isLojaPage ? 'pt-[calc(5rem+env(safe-area-inset-top))]' : 'pt-[calc(6rem+env(safe-area-inset-top))]')
+            ? (showGlobalHeader
+              ? (isLojaPage ? 'pt-[calc(5rem+env(safe-area-inset-top))]' : 'pt-[calc(6rem+env(safe-area-inset-top))]')
+              : 'pt-0')
             : ''
         } pb-[calc(5rem+env(safe-area-inset-bottom))]`}
       >

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import ModalProduto from '../components/ModalProduto'
-import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiPackage } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiPackage, FiStar, FiX } from 'react-icons/fi'
 
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -56,6 +56,12 @@ export default function Produtos() {
     return todosProdutos.filter((p) => !p.categoria)
   }, [todosProdutos])
 
+  const produtosDestaque = useMemo(() => {
+    return todosProdutos
+      .filter((p) => p.destaque === true)
+      .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+  }, [todosProdutos])
+
   const produtosFiltrados = useMemo(() => {
     if (!busca) return todosProdutos
     const q = busca.toLowerCase()
@@ -91,6 +97,18 @@ export default function Produtos() {
       setTodosProdutos((prev) => prev.filter((p) => p.id !== id))
     } catch (err) {
       alert(err.message)
+    }
+  }
+
+  async function removerDestaqueRapido(produto) {
+    if (!produto?.id) return
+    try {
+      await api.produtos.atualizar(produto.id, { destaque: false })
+      setTodosProdutos((prev) =>
+        prev.map((p) => (p.id === produto.id ? { ...p, destaque: false } : p))
+      )
+    } catch (err) {
+      alert(err.message || 'Não foi possível remover o destaque.')
     }
   }
 
@@ -217,6 +235,36 @@ export default function Produtos() {
             onChange={(e) => setBusca(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
           />
+        </div>
+      )}
+
+      {/* Sessão de destaques para desmarcar rápido */}
+      {produtosDestaque.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <FiStar className="text-amber-600" />
+            <h2 className="text-sm font-bold text-stone-900">Produtos em destaque</h2>
+            <span className="text-xs bg-white border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
+              {produtosDestaque.length}
+            </span>
+          </div>
+          <p className="text-xs text-stone-500 mb-3">
+            Use esta área para remover rapidamente produtos marcados como destaque.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {produtosDestaque.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => removerDestaqueRapido(p)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-amber-200 text-stone-700 rounded-lg text-xs hover:bg-amber-100 transition-colors"
+                title={`Remover destaque de ${p.nome}`}
+              >
+                <span className="max-w-[180px] truncate">{p.nome}</span>
+                <FiX className="text-amber-700" />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

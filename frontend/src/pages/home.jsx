@@ -131,6 +131,19 @@ function markStoryAsSeen(storyId) {
   setLocalItem(STORIES_SEEN_KEY, next)
 }
 
+function orderStoriesGroups(groups) {
+  if (!Array.isArray(groups)) return []
+  return groups.map((group) => {
+    const orderedStories = [...(group?.stories || [])].sort((a, b) => {
+      const timeA = new Date(a?.created_at || 0).getTime() || 0
+      const timeB = new Date(b?.created_at || 0).getTime() || 0
+      if (timeA !== timeB) return timeA - timeB
+      return String(a?.id || '').localeCompare(String(b?.id || ''))
+    })
+    return { ...group, stories: orderedStories }
+  })
+}
+
 function iconCategoria(nome) {
   const n = String(nome || '').toLowerCase()
   const match = CATEGORIA_ICONES.find((i) => n.includes(i.k))
@@ -589,7 +602,7 @@ export default function HomePage() {
   useEffect(() => {
     api.stories
       .listarAtivas()
-      .then((data) => setStoriesGroups(Array.isArray(data) ? data : []))
+      .then((data) => setStoriesGroups(orderStoriesGroups(data)))
       .catch(() => setStoriesGroups([]))
   }, [])
 

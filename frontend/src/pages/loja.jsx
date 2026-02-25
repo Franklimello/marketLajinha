@@ -1420,19 +1420,23 @@ export default function LojaPage() {
     }
 
     return (
-      <div className={`max-w-lg mx-auto pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-stone-100">
-          <button onClick={() => setProdutoDetalhe(null)} className="text-stone-500 hover:text-stone-900">
-            <FiChevronLeft className="text-xl" />
-          </button>
-          <h1 className="text-lg font-bold text-stone-900">{p.nome}</h1>
-        </div>
+      <div className={`relative max-w-lg mx-auto pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+        <button
+          onClick={() => setProdutoDetalhe(null)}
+          className="absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 w-9 h-9 rounded-full bg-white/90 backdrop-blur border border-stone-200 text-stone-700 inline-flex items-center justify-center shadow"
+          aria-label="Voltar para o cardápio"
+        >
+          <FiChevronLeft className="text-xl" />
+        </button>
 
         {/* Imagem */}
         {p.imagem_url && (
-          <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-48 object-cover" />
+          <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-60 object-cover" />
         )}
+
+        <div className="px-4 pt-3">
+          <h1 className="text-2xl font-extrabold text-stone-900 leading-tight">{p.nome}</h1>
+        </div>
 
         {/* Descrição */}
         {p.descricao && (
@@ -1576,10 +1580,16 @@ export default function LojaPage() {
           jsonLd={lojaJsonLd}
         />
       )}
-      <Link to="/" className="absolute top-4 left-4 z-20 w-8 h-8 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow text-stone-700 hover:bg-white"><FiChevronLeft /></Link>
+      <Link
+        to="/"
+        className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 w-9 h-9 bg-white/90 backdrop-blur rounded-full border border-stone-200 flex items-center justify-center shadow text-stone-700 hover:bg-white"
+        aria-label="Voltar para lojas"
+      >
+        <FiChevronLeft />
+      </Link>
 
       {/* Banner */}
-      <div className="relative w-full h-44 bg-stone-200 overflow-hidden">
+      <div className="relative w-full h-60 bg-stone-200 overflow-hidden">
         {String(loja.banner_url || '').trim() ? (
           <img
             src={loja.banner_url}
@@ -1598,11 +1608,11 @@ export default function LojaPage() {
             </div>
           </div>
         )}
-        <div className="absolute bottom-3 right-4 w-20 h-20 rounded-2xl overflow-hidden border-3 border-white shadow-lg bg-white">
+        <div className="absolute bottom-4 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-white">
           <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           <div className="w-full h-full items-center justify-center text-2xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
         </div>
-        {horaFecha && aberta && <span className="absolute bottom-3 right-28 bg-white/90 backdrop-blur-sm text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full">fecha às {horaFecha}</span>}
+        {horaFecha && aberta && <span className="absolute bottom-5 right-32 bg-white/90 backdrop-blur-sm text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full">fecha às {horaFecha}</span>}
         {!aberta && <div className="absolute inset-0 bg-black/30 flex items-center justify-center"><span className="bg-black/60 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
