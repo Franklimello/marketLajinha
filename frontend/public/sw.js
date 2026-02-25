@@ -2,13 +2,14 @@
 // UaiFood – Service Worker (Cache + FCM)
 // ─────────────────────────────────────────────
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const ALL_CACHES = [STATIC_CACHE, DYNAMIC_CACHE];
 
 const PRECACHE_URLS = [
   '/',
+  '/manifest.json',
   '/offline.html',
   '/icons/icon-192.png',
   '/icons/icon-maskable-192.png',
@@ -18,37 +19,42 @@ const PRECACHE_URLS = [
 ];
 
 const API_PATTERN = /\/(lojas|produtos|pedidos|clientes|cupons|bairros|usuarios|admin|impressoras|health)/;
+const MAX_DYNAMIC_ENTRIES = 120;
 
 // ──────────── Firebase Cloud Messaging ────────────
 
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  apiKey: 'AIzaSyDF51FzoLyRU52X4-jXMW1evIr3DKw9vQ8',
-  authDomain: 'marcketlainha.firebaseapp.com',
-  projectId: 'marcketlainha',
-  storageBucket: 'marcketlainha.firebasestorage.app',
-  messagingSenderId: '910649841875',
-  appId: '1:910649841875:web:3ea1a73381a6914f56dc26',
-});
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification || {};
-  const data = payload.data || {};
-
-  self.registration.showNotification(title || 'UaiFood', {
-    body: body || 'Você tem uma atualização.',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: { url: data.url || '/pedidos' },
-    requireInteraction: true,
-    tag: data.pedidoId || 'pedido',
+  firebase.initializeApp({
+    apiKey: 'AIzaSyDF51FzoLyRU52X4-jXMW1evIr3DKw9vQ8',
+    authDomain: 'marcketlainha.firebaseapp.com',
+    projectId: 'marcketlainha',
+    storageBucket: 'marcketlainha.firebasestorage.app',
+    messagingSenderId: '910649841875',
+    appId: '1:910649841875:web:3ea1a73381a6914f56dc26',
   });
-});
+
+  const messaging = firebase.messaging();
+  messaging.onBackgroundMessage((payload) => {
+    const { title, body } = payload.notification || {};
+    const data = payload.data || {};
+
+    self.registration.showNotification(title || 'UaiFood', {
+      body: body || 'Você tem uma atualização.',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      vibrate: [200, 100, 200],
+      data: { url: data.url || '/pedidos' },
+      requireInteraction: true,
+      tag: data.pedidoId || 'pedido',
+    });
+  });
+} catch (err) {
+  // Mantém cache/offline funcionando mesmo sem FCM.
+  console.warn('[SW] Firebase Messaging indisponível:', err?.message || err);
+}
 
 // ──────────── Install ────────────
 
@@ -63,13 +69,17 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
+    (async () => {
+      await Promise.all(
+        (await caches.keys())
           .filter((key) => !ALL_CACHES.includes(key))
           .map((key) => caches.delete(key))
-      )
-    )
+      );
+
+      if (self.registration.navigationPreload) {
+        await self.registration.navigationPreload.enable();
+      }
+    })()
   );
   self.clients.claim();
 });
@@ -112,6 +122,7 @@ async function networkFirst(request) {
     if (response.ok) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, response.clone());
+      await trimCache(cache, MAX_DYNAMIC_ENTRIES);
     }
     return response;
   } catch {
@@ -124,9 +135,32 @@ async function networkFirst(request) {
   }
 }
 
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  const cached = await cache.match(request);
+
+  const networkPromise = fetch(request)
+    .then((response) => {
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => null);
+
+  return cached || networkPromise || new Response('', { status: 503 });
+}
+
+async function trimCache(cache, maxItems) {
+  const keys = await cache.keys();
+  if (keys.length <= maxItems) return;
+  await cache.delete(keys[0]);
+  await trimCache(cache, maxItems);
+}
+
 // Network First: navegação com fallback offline
-async function navigationHandler(request) {
+async function navigationHandler(request, preloadResponsePromise) {
   try {
+    const preloadResponse = await preloadResponsePromise;
+    if (preloadResponse) return preloadResponse;
     return await fetch(request);
   } catch {
     const cached = await caches.match(request);
@@ -142,7 +176,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   if (isNavigationRequest(event.request)) {
-    event.respondWith(navigationHandler(event.request));
+    event.respondWith(navigationHandler(event.request, event.preloadResponse));
     return;
   }
 
@@ -152,7 +186,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isStaticAsset(url)) {
-    event.respondWith(cacheFirst(event.request));
+    event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
