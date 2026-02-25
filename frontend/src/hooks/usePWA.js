@@ -43,10 +43,17 @@ if (typeof window !== 'undefined') {
 
 export function usePWA() {
   // Estado que guarda o evento deferido (necessário para chamar .prompt())
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  // Lazy initializer: lê window.__pwaPrompt na montagem, capturando eventos
+  // que chegaram ANTES do React inicializar (resolve a race condition).
+  const [deferredPrompt, setDeferredPrompt] = useState(
+    () => window.__pwaPrompt ?? null
+  )
 
-  // true quando o app pode ser instalado (há um prompt disponível)
-  const [canInstall, setCanInstall] = useState(false)
+  // true quando o app pode ser instalado.
+  // Inicializado como lazy também: se já há prompt global, começa como true.
+  const [canInstall, setCanInstall] = useState(
+    () => Boolean(window.__pwaPrompt)
+  )
 
   // true quando o app já está instalado (rodando em modo standalone)
   const [installed, setInstalled] = useState(isRunningStandalone)
@@ -60,19 +67,12 @@ export function usePWA() {
   // Referência ao SW em estado "waiting" para podermos ativá-lo
   const [waitingWorker, setWaitingWorker] = useState(null)
 
-  // ── Efeito principal: gerencia o prompt de instalação ──
+  // ── Efeito principal: registra listeners de eventos de instalação ──
+  // Os estados deferredPrompt e canInstall já foram inicializados via lazy
+  // initializer, então não precisamos de setState síncrono no body do effect.
   useEffect(() => {
-    // Se já está instalado, não precisa ouvir nada
-    if (isRunningStandalone()) {
-      setInstalled(true)
-      return
-    }
-
-    // Lê o evento que pode ter sido capturado ANTES do React montar
-    if (window.__pwaPrompt) {
-      setDeferredPrompt(window.__pwaPrompt)
-      setCanInstall(true)
-    }
+    // Se já está instalado (standalone), não precisa registrar listeners
+    if (installed) return
 
     // Ouve novos eventos (ex.: depois de uma rejeição, o navegador pode
     // disparar novamente em sessões futuras)
@@ -108,7 +108,8 @@ export function usePWA() {
       window.removeEventListener('pwa:promptready', onPromptReady)
       window.removeEventListener('appinstalled', onAppInstalled)
     }
-  }, [])
+
+  }, [installed])
 
   // ── Efeito secundário: detecta atualização de Service Worker ──
   useEffect(() => {

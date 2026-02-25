@@ -12,7 +12,7 @@ const PRECACHE_URLS = [
   ...INJECTED_MANIFEST.map((entry) => entry.url),
   '/',
   '/manifest.json',
-  
+
   '/icons/icon-192.png',
   '/icons/icon-maskable-192.png',
   '/icons/icon-maskable-512.png',
@@ -72,17 +72,22 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // Remove caches de versões anteriores.
       await Promise.all(
         (await caches.keys())
           .filter((key) => !ALL_CACHES.includes(key))
           .map((key) => caches.delete(key))
       );
 
+      // Habilita Navigation Preload: o navegador dispara a requisição de rede
+      // em paralelo com a inicialização do SW, reduzindo latência em navegações.
+      // A resposta é entregue via event.preloadResponse no fetch handler.
       if (self.registration.navigationPreload) {
         await self.registration.navigationPreload.enable();
       }
     })()
   );
+  // Assume controle imediatamente sem esperar próxima navegação.
   self.clients.claim();
 });
 
@@ -158,16 +163,24 @@ async function trimCache(cache, maxItems) {
   await trimCache(cache, maxItems);
 }
 
-// Network First: navegação com fallback offline
+// Network First: navegação com fallback offline.
+// O preloadResponse DEVE ser sempre consumido (await ou .catch) para evitar
+// o aviso "cancelled before preloadResponse settled" no console.
 async function navigationHandler(request, preloadResponsePromise) {
   try {
-    const preloadResponse = await preloadResponsePromise;
-    if (preloadResponse) return preloadResponse;
+    // Tenta usar o preload (resposta paralela do navegador).
+    // O .catch garante que um cancelamento não vire uma exceção não tratada.
+    const preloadResponse = await Promise.resolve(preloadResponsePromise).catch(() => null);
+    if (preloadResponse && preloadResponse.ok) return preloadResponse;
+
+    // Em SPAs o preload raramente chega — faz fetch normal.
     return await fetch(request);
   } catch {
+    // Offline: tenta cache e depois retorna a raiz (SPA funciona mesmo offline).
     const cached = await caches.match(request);
     if (cached) return cached;
-    return caches.match('/offline.html');
+    // Fallback para '/' em vez de offline.html (já que offline.html foi removido).
+    return caches.match('/');
   }
 }
 
