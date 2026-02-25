@@ -110,6 +110,10 @@ export default function App() {
     setAceitouAgora(false)
   }, [termosInfo?.keyAtual])
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname])
+
   function aceitarTermos() {
     if (!termosInfo) return
 

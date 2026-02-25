@@ -143,8 +143,6 @@ export default function LojaPage() {
   const { logado, cliente, carregando: authCarregando } = useAuth()
   const [loja, setLoja] = useState(null)
   const [produtos, setProdutos] = useState({ dados: [], total: 0 })
-  const [paginaAtual, setPaginaAtual] = useState(1)
-  const [carregandoMais, setCarregandoMais] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const [categoriaSel, setCategoriaSel] = useState(null)
@@ -209,7 +207,30 @@ export default function LojaPage() {
         setCarregando(false)
 
         if (lojaData?.id) {
-          api.lojas.produtos(slug, 1).then(setProdutos).catch(() => {}).finally(() => setProdutosCarregando(false))
+          ;(async () => {
+            try {
+              const primeira = await api.lojas.produtos(slug, 1)
+              const base = Array.isArray(primeira?.dados) ? primeira.dados : []
+              const total = Number(primeira?.total || base.length || 0)
+              let acumulado = [...base]
+              let pagina = 2
+
+              // Remove paginação visual: carrega todas as páginas em sequência.
+              while (acumulado.length < total) {
+                const prox = await api.lojas.produtos(slug, pagina)
+                const dadosProx = Array.isArray(prox?.dados) ? prox.dados : []
+                if (!dadosProx.length) break
+                acumulado = [...acumulado, ...dadosProx]
+                pagina += 1
+              }
+
+              setProdutos({ dados: acumulado, total: acumulado.length || total })
+            } catch {
+              setProdutos({ dados: [], total: 0 })
+            } finally {
+              setProdutosCarregando(false)
+            }
+          })()
           api.lojas.bairros(lojaData.id).then(setBairros).catch(() => {})
           api.combos.listarPorLoja(lojaData.id).then(setCombos).catch(() => {})
           api.promocoes.listarPorLoja(lojaData.id).then((r) => setPromocoes(Array.isArray(r) ? r : [])).catch(() => {})
@@ -274,23 +295,6 @@ export default function LojaPage() {
   const pageTransitionClass = pageVisible
     ? 'opacity-100 translate-y-0'
     : 'opacity-0 translate-y-1'
-
-  const temMaisProdutos = produtos.dados.length < produtos.total
-
-  async function carregarMaisProdutos() {
-    if (carregandoMais || !temMaisProdutos) return
-    setCarregandoMais(true)
-    try {
-      const proxPagina = paginaAtual + 1
-      const novos = await api.lojas.produtos(slug, proxPagina)
-      setProdutos((prev) => ({
-        dados: [...prev.dados, ...novos.dados],
-        total: novos.total,
-      }))
-      setPaginaAtual(proxPagina)
-    } catch {}
-    finally { setCarregandoMais(false) }
-  }
 
   // ---- Carrinho ----
   const addItemDireto = useCallback((produto) => {
@@ -1565,22 +1569,6 @@ export default function LojaPage() {
               })}
             </div>
 
-            {temMaisProdutos && (
-              <button
-                onClick={carregarMaisProdutos}
-                disabled={carregandoMais}
-                className="w-full mt-4 py-3 bg-stone-100 text-stone-600 font-medium rounded-xl hover:bg-stone-200 transition-colors text-sm disabled:opacity-50"
-              >
-                {carregandoMais ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-stone-400 border-t-transparent rounded-full animate-spin" />
-                    Carregando...
-                  </span>
-                ) : (
-                  `Ver mais produtos (${produtos.dados.length} de ${produtos.total})`
-                )}
-              </button>
-            )}
           </>
         ) : (
           <>
@@ -1610,22 +1598,6 @@ export default function LojaPage() {
               })}
             </div>
 
-            {temMaisProdutos && (
-              <button
-                onClick={carregarMaisProdutos}
-                disabled={carregandoMais}
-                className="w-full mt-4 py-3 bg-stone-100 text-stone-600 font-medium rounded-xl hover:bg-stone-200 transition-colors text-sm disabled:opacity-50"
-              >
-                {carregandoMais ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-stone-400 border-t-transparent rounded-full animate-spin" />
-                    Carregando...
-                  </span>
-                ) : (
-                  `Ver mais produtos (${produtos.dados.length} de ${produtos.total})`
-                )}
-              </button>
-            )}
           </>
         )}
       </div>
