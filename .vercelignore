@@ -2,6 +2,11 @@
 !.vercel/**
 !frontend
 !frontend/**
+!dashboard
+!dashboard/**
 frontend/node_modules/**
 frontend/dist/**
 frontend/.env
+dashboard/node_modules/**
+dashboard/dist/**
+dashboard/.env

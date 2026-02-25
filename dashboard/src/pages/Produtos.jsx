@@ -19,6 +19,10 @@ export default function Produtos() {
   const [categoriasAbertas, setCategoriasAbertas] = useState({})
   const [modalCategoria, setModalCategoria] = useState(false)
   const [novaCategoriaNome, setNovaCategoriaNome] = useState('')
+  const [modalEditarCategoria, setModalEditarCategoria] = useState(false)
+  const [categoriaAtualEdicao, setCategoriaAtualEdicao] = useState('')
+  const [categoriaNovoNome, setCategoriaNovoNome] = useState('')
+  const [salvandoEdicaoCategoria, setSalvandoEdicaoCategoria] = useState(false)
 
   useEffect(() => {
     if (loja) carregarProdutos()
@@ -116,6 +120,63 @@ export default function Produtos() {
     setNovaCategoriaNome('')
   }
 
+  function abrirEditarCategoria(categoria) {
+    setCategoriaAtualEdicao(categoria)
+    setCategoriaNovoNome(categoria)
+    setModalEditarCategoria(true)
+  }
+
+  function fecharEditarCategoria() {
+    if (salvandoEdicaoCategoria) return
+    setModalEditarCategoria(false)
+    setCategoriaAtualEdicao('')
+    setCategoriaNovoNome('')
+  }
+
+  async function salvarEdicaoCategoria() {
+    const origem = String(categoriaAtualEdicao || '').trim()
+    const destino = String(categoriaNovoNome || '').trim()
+
+    if (!origem || !destino) return
+    if (origem === destino) {
+      fecharEditarCategoria()
+      return
+    }
+
+    const produtosDaCategoria = todosProdutos.filter((p) => String(p.categoria || '').trim() === origem)
+    if (!produtosDaCategoria.length) {
+      fecharEditarCategoria()
+      return
+    }
+
+    setSalvandoEdicaoCategoria(true)
+    try {
+      await Promise.all(
+        produtosDaCategoria.map((p) => api.produtos.atualizar(p.id, { categoria: destino }))
+      )
+
+      setTodosProdutos((prev) =>
+        prev.map((p) =>
+          String(p.categoria || '').trim() === origem ? { ...p, categoria: destino } : p
+        )
+      )
+
+      setCategoriasAbertas((prev) => {
+        const next = { ...prev }
+        const estavaAberta = prev[origem] !== false
+        delete next[origem]
+        if (next[destino] === undefined) next[destino] = estavaAberta
+        return next
+      })
+
+      fecharEditarCategoria()
+    } catch (err) {
+      alert(err.message || 'Não foi possível renomear a categoria.')
+    } finally {
+      setSalvandoEdicaoCategoria(false)
+    }
+  }
+
   if (carregando) {
     return <div className="flex items-center justify-center py-20 text-stone-400">Carregando...</div>
   }
@@ -205,6 +266,14 @@ export default function Produtos() {
                         className="text-xs text-amber-600 hover:text-amber-700 hover:underline px-2 py-1"
                       >
                         + Adicionar
+                      </span>
+                    )}
+                    {cat && (
+                      <span
+                        onClick={(e) => { e.stopPropagation(); abrirEditarCategoria(cat) }}
+                        className="text-xs text-stone-500 hover:text-amber-700 hover:underline px-2 py-1"
+                      >
+                        Renomear
                       </span>
                     )}
                     {aberta ? (
@@ -302,6 +371,43 @@ export default function Produtos() {
                 className="w-full py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
               >
                 Criar e adicionar produto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar categoria */}
+      {modalEditarCategoria && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b border-stone-200 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-stone-900">Editar categoria</h2>
+              <button onClick={fecharEditarCategoria} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">
+                &times;
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Novo nome da categoria *</label>
+                <input
+                  value={categoriaNovoNome}
+                  onChange={(e) => setCategoriaNovoNome(e.target.value)}
+                  placeholder="ex: Hambúrgueres Tradicionais"
+                  autoFocus
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+                  onKeyDown={(e) => e.key === 'Enter' && salvarEdicaoCategoria()}
+                />
+              </div>
+              <p className="text-xs text-stone-400">
+                Todos os produtos da categoria "{categoriaAtualEdicao}" serão atualizados para o novo nome.
+              </p>
+              <button
+                onClick={salvarEdicaoCategoria}
+                disabled={!categoriaNovoNome.trim() || salvandoEdicaoCategoria}
+                className="w-full py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+              >
+                {salvandoEdicaoCategoria ? 'Salvando...' : 'Salvar categoria'}
               </button>
             </div>
           </div>
