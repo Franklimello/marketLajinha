@@ -302,7 +302,11 @@ export default function LojaPage() {
         setCarregando(false)
 
         if (lojaData?.id) {
-          ;(async () => {
+          const lojaId = lojaData.id
+
+          // Dispara TODOS os requests em paralelo ao mesmo tempo
+          // Produtos: primeira página + dados secundários simultâneos
+          const produtosPromise = (async () => {
             try {
               const primeira = await api.lojas.produtos(slug, 1)
               const base = Array.isArray(primeira?.dados) ? primeira.dados : []
@@ -310,7 +314,7 @@ export default function LojaPage() {
               let acumulado = [...base]
               let pagina = 2
 
-              // Remove paginação visual: carrega todas as páginas em sequência.
+              // Paginação adicional só se necessário (sequencial por dependência)
               while (acumulado.length < total) {
                 const prox = await api.lojas.produtos(slug, pagina)
                 const dadosProx = Array.isArray(prox?.dados) ? prox.dados : []
@@ -326,16 +330,31 @@ export default function LojaPage() {
               setProdutosCarregando(false)
             }
           })()
-          api.lojas.bairros(lojaData.id).then(setBairros).catch(() => {})
-          api.combos.listarPorLoja(lojaData.id).then(setCombos).catch(() => {})
-          api.promocoes.listarPorLoja(lojaData.id).then((r) => setPromocoes(Array.isArray(r) ? r : [])).catch(() => {})
-          api.avaliacoes.mediaPorLoja(lojaData.id).then(setNotaMedia).catch(() => {})
-          api.avaliacoes.listarPorLoja(lojaData.id).then((r) => setAvaliacoes(r.dados || [])).catch(() => {})
+
+          // Requests secundários todos em paralelo, independentes entre si
+          const secundariosPromise = Promise.allSettled([
+            api.lojas.bairros(lojaId),
+            api.combos.listarPorLoja(lojaId),
+            api.promocoes.listarPorLoja(lojaId),
+            api.avaliacoes.mediaPorLoja(lojaId),
+            api.avaliacoes.listarPorLoja(lojaId),
+          ]).then(([bairrosRes, combosRes, promocoesRes, notaRes, avaliacoesRes]) => {
+            if (bairrosRes.status === 'fulfilled') setBairros(bairrosRes.value)
+            if (combosRes.status === 'fulfilled') setCombos(combosRes.value)
+            if (promocoesRes.status === 'fulfilled') setPromocoes(Array.isArray(promocoesRes.value) ? promocoesRes.value : [])
+            if (notaRes.status === 'fulfilled') setNotaMedia(notaRes.value)
+            if (avaliacoesRes.status === 'fulfilled') setAvaliacoes(avaliacoesRes.value?.dados || [])
+          })
+
+          // Cupons em paralelo com os demais
           setCuponsDisponiveisCarregando(true)
-          api.cupons.listarDisponiveis(lojaData.id)
+          api.cupons.listarDisponiveis(lojaId)
             .then((r) => setCuponsDisponiveis(Array.isArray(r) ? r : []))
             .catch(() => setCuponsDisponiveis([]))
             .finally(() => setCuponsDisponiveisCarregando(false))
+
+          // Aguarda ambos em background sem bloquear a UI
+          Promise.all([produtosPromise, secundariosPromise]).catch(() => { })
         } else {
           setProdutosCarregando(false)
         }
@@ -715,7 +734,7 @@ export default function LojaPage() {
       setSubmitStage(2)
       await new Promise((resolve) => setTimeout(resolve, 420))
       setPedidoCriado(pedido)
-      addLocalOrderHistory(pedido).catch(() => {})
+      addLocalOrderHistory(pedido).catch(() => { })
       const pagarOnline = pagamentoPixOnline && loja.pix_chave
       if (pagarOnline) {
         setEtapa('pix')
@@ -1038,400 +1057,400 @@ export default function LojaPage() {
         <div className={`absolute inset-x-0 bottom-0 bg-stone-50 rounded-t-3xl max-h-[92vh] overflow-y-auto transition-transform duration-300 ease-out ${checkoutSheetOpen ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className={`max-w-lg mx-auto px-4 py-2 pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
             <button onClick={() => setEtapa('cardapio')} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-3"><FiChevronLeft /> Voltar</button>
-        <h2 className="text-2xl font-extrabold text-red-700 mb-1">ticket</h2>
-        <p className="text-sm text-stone-500 mb-4">Confira os itens e escolha como deseja pagar.</p>
-        <button
-          type="button"
-          onClick={() => setEtapa('cardapio')}
-          className="mb-4 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-semibold hover:bg-red-50"
-        >
-          <FiPlus size={14} />
-          Adicionar mais itens
-        </button>
-
-        {/* Resumo itens */}
-        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
-          <h3 className="text-sm font-semibold text-red-700 mb-2">Resumo</h3>
-          {itensCarrinho.map(([chave, i]) => (
-            <div key={chave} className="py-1.5 border-b border-stone-50 last:border-0">
-              <div className="flex justify-between text-sm">
-                <div className="flex items-center gap-1.5">
-                  {i.isCombo && <span className="text-[9px] font-bold bg-amber-100 text-red-700 px-1 py-0.5 rounded">COMBO</span>}
-                  <span className="text-stone-600">{i.qtd}x {i.produto.nome}</span>
-                </div>
-                <span className="text-stone-900 font-medium font-numeric">R$ {(i.precoUnit * i.qtd).toFixed(2).replace('.', ',')}</span>
-              </div>
-              {i.isCombo && i.comboItens && <p className="text-[10px] text-stone-400 ml-4">{i.comboItens.map(ci => `${ci.quantidade}x ${ci.produto?.nome}`).join(', ')}</p>}
-              {i.variacao && <p className="text-[10px] text-stone-400 ml-4">Tamanho: {i.variacao.nome}</p>}
-              {i.adicionais?.length > 0 && <p className="text-[10px] text-stone-400 ml-4">+ {i.adicionais.map((a) => a.nome).join(', ')}</p>}
-              {!i.isCombo && i.obs && <p className="text-[10px] text-stone-400 ml-4 italic">Obs: {i.obs}</p>}
-              <div className="ml-4 mt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => removeItem(chave)}
-                  className="w-7 h-7 rounded-full border border-stone-300 text-stone-700 inline-flex items-center justify-center hover:bg-stone-100"
-                >
-                  <FiMinus size={12} />
-                </button>
-                <span className="text-xs font-semibold text-stone-700 min-w-4 text-center">{i.qtd}</span>
-                <button
-                  type="button"
-                  onClick={() => addItemByKey(chave)}
-                  className="w-7 h-7 rounded-full border border-stone-300 text-stone-700 inline-flex items-center justify-center hover:bg-stone-100"
-                >
-                  <FiPlus size={12} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeItemCompletely(chave)}
-                  className="ml-1 text-[11px] font-semibold text-red-600 hover:text-red-700"
-                >
-                  Remover item
-                </button>
-              </div>
-            </div>
-          ))}
-          <div className="border-t border-stone-100 mt-2 pt-2 flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="font-medium font-numeric">R$ {subtotal.toFixed(2).replace('.', ',')}</span></div>
-          <div className="flex justify-between text-sm mt-1">
-            <span className="text-stone-500">{tipoEntrega === 'RETIRADA' ? 'Retirada no balcão' : `Entrega ${formPedido.bairro ? `(${formPedido.bairro})` : ''}`}</span>
-            <span className="font-medium font-numeric">{tipoEntrega === 'RETIRADA' ? 'Grátis' : (taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis')}</span>
-          </div>
-          {descontoCupom > 0 && (
-            <div className="flex justify-between text-sm mt-1">
-              <span className="text-green-600">Desconto (cupom)</span>
-              <span className="font-medium text-green-600 font-numeric">- R$ {descontoCupom.toFixed(2).replace('.', ',')}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-red-700 transition-all duration-200 font-numeric">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</span></div>
-        </div>
-
-        {/* Tipo de entrega */}
-        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
-          <h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-1"><FiTruck className="text-red-600" /> Entrega</h3>
-          {aceitaEntrega && aceitaRetirada ? (
-            <div className="bg-stone-100 rounded-full p-1 grid grid-cols-2 gap-1">
-              <button type="button" onClick={() => { setTipoEntrega('ENTREGA'); if (!enderecoSel) { const ends = cliente?.enderecos || []; if (ends.length) { const ep = ends.find(e => e.padrao) || ends[0]; selecionarEndereco(ep) } } }} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'ENTREGA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
-                <FiTruck className="text-base" />
-                <span>entrega</span>
-              </button>
-              <button type="button" onClick={() => setTipoEntrega('RETIRADA')} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'RETIRADA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
-                <FiShoppingBag className="text-base" />
-                <span>retirada</span>
-              </button>
-            </div>
-          ) : (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-              <p className="text-sm font-semibold text-amber-800">
-                {aceitaEntrega
-                  ? 'Esta loja atende somente por entrega.'
-                  : 'Esta loja atende somente retirada no balcão.'}
-              </p>
-            </div>
-          )}
-          {aceitaEntrega && tipoEntrega !== 'RETIRADA' && (
-            <p className="text-xs text-stone-500 mt-3">
-              entrega: {loja.tempo_entrega || '40-60 min'} {taxaEntrega > 0 ? ` • R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : ' • grátis'}
-            </p>
-          )}
-        </div>
-
-        {/* Cupom de desconto */}
-        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiTag className="text-red-600" /> Cupom de desconto</h3>
+            <h2 className="text-2xl font-extrabold text-red-700 mb-1">ticket</h2>
+            <p className="text-sm text-stone-500 mb-4">Confira os itens e escolha como deseja pagar.</p>
             <button
               type="button"
-              onClick={() => setMostrarCuponsDisponiveis((v) => !v)}
-              className="text-[11px] font-semibold text-red-600 hover:text-red-700"
+              onClick={() => setEtapa('cardapio')}
+              className="mb-4 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-semibold hover:bg-red-50"
             >
-              {mostrarCuponsDisponiveis ? 'Ocultar cupons' : 'Ver cupons disponíveis'}
+              <FiPlus size={14} />
+              Adicionar mais itens
             </button>
-          </div>
 
-          {mostrarCuponsDisponiveis && (
-            <div className="mb-3 bg-red-50/50 border border-red-100 rounded-xl p-2.5 space-y-2">
-              {cuponsDisponiveisCarregando ? (
-                <p className="text-xs text-stone-500">Carregando cupons...</p>
-              ) : cuponsDisponiveis.length === 0 ? (
-                <p className="text-xs text-stone-500">Nenhum cupom disponível no momento.</p>
-              ) : (
-                cuponsDisponiveis.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => { setCodigoCupom(c.codigo); setCupomErro('') }}
-                    className="w-full text-left bg-white border border-red-100 rounded-lg p-2.5 hover:border-red-300 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-extrabold text-red-700 font-mono">{String(c.codigo || '').toUpperCase()}</p>
-                      <span className="text-[10px] text-stone-400">válido até {formatarValidadeCupom(c.data_fim)}</span>
+            {/* Resumo itens */}
+            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
+              <h3 className="text-sm font-semibold text-red-700 mb-2">Resumo</h3>
+              {itensCarrinho.map(([chave, i]) => (
+                <div key={chave} className="py-1.5 border-b border-stone-50 last:border-0">
+                  <div className="flex justify-between text-sm">
+                    <div className="flex items-center gap-1.5">
+                      {i.isCombo && <span className="text-[9px] font-bold bg-amber-100 text-red-700 px-1 py-0.5 rounded">COMBO</span>}
+                      <span className="text-stone-600">{i.qtd}x {i.produto.nome}</span>
                     </div>
-                    <p className="text-[11px] text-stone-700 mt-0.5">
-                      {c.tipo_desconto === 'PERCENTAGE'
-                        ? `${Number(c.valor_desconto || 0)}% de desconto`
-                        : `R$ ${Number(c.valor_desconto || 0).toFixed(2).replace('.', ',')} de desconto`}
-                    </p>
-                    <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] text-stone-500">
-                      <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
-                        mín. {c.valor_minimo !== null ? `R$ ${Number(c.valor_minimo).toFixed(2).replace('.', ',')}` : 'sem mínimo'}
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
-                        limite geral {c.max_usos !== null ? `${c.usos_restantes} restante(s)` : 'ilimitado'}
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
-                        por cliente {c.usos_por_cliente !== null ? `${c.usos_por_cliente} uso(s)` : 'ilimitado'}
-                      </span>
-                    </div>
+                    <span className="text-stone-900 font-medium font-numeric">R$ {(i.precoUnit * i.qtd).toFixed(2).replace('.', ',')}</span>
+                  </div>
+                  {i.isCombo && i.comboItens && <p className="text-[10px] text-stone-400 ml-4">{i.comboItens.map(ci => `${ci.quantidade}x ${ci.produto?.nome}`).join(', ')}</p>}
+                  {i.variacao && <p className="text-[10px] text-stone-400 ml-4">Tamanho: {i.variacao.nome}</p>}
+                  {i.adicionais?.length > 0 && <p className="text-[10px] text-stone-400 ml-4">+ {i.adicionais.map((a) => a.nome).join(', ')}</p>}
+                  {!i.isCombo && i.obs && <p className="text-[10px] text-stone-400 ml-4 italic">Obs: {i.obs}</p>}
+                  <div className="ml-4 mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => removeItem(chave)}
+                      className="w-7 h-7 rounded-full border border-stone-300 text-stone-700 inline-flex items-center justify-center hover:bg-stone-100"
+                    >
+                      <FiMinus size={12} />
+                    </button>
+                    <span className="text-xs font-semibold text-stone-700 min-w-4 text-center">{i.qtd}</span>
+                    <button
+                      type="button"
+                      onClick={() => addItemByKey(chave)}
+                      className="w-7 h-7 rounded-full border border-stone-300 text-stone-700 inline-flex items-center justify-center hover:bg-stone-100"
+                    >
+                      <FiPlus size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItemCompletely(chave)}
+                      className="ml-1 text-[11px] font-semibold text-red-600 hover:text-red-700"
+                    >
+                      Remover item
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t border-stone-100 mt-2 pt-2 flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="font-medium font-numeric">R$ {subtotal.toFixed(2).replace('.', ',')}</span></div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-stone-500">{tipoEntrega === 'RETIRADA' ? 'Retirada no balcão' : `Entrega ${formPedido.bairro ? `(${formPedido.bairro})` : ''}`}</span>
+                <span className="font-medium font-numeric">{tipoEntrega === 'RETIRADA' ? 'Grátis' : (taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis')}</span>
+              </div>
+              {descontoCupom > 0 && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-green-600">Desconto (cupom)</span>
+                  <span className="font-medium text-green-600 font-numeric">- R$ {descontoCupom.toFixed(2).replace('.', ',')}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-red-700 transition-all duration-200 font-numeric">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</span></div>
+            </div>
+
+            {/* Tipo de entrega */}
+            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
+              <h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-1"><FiTruck className="text-red-600" /> Entrega</h3>
+              {aceitaEntrega && aceitaRetirada ? (
+                <div className="bg-stone-100 rounded-full p-1 grid grid-cols-2 gap-1">
+                  <button type="button" onClick={() => { setTipoEntrega('ENTREGA'); if (!enderecoSel) { const ends = cliente?.enderecos || []; if (ends.length) { const ep = ends.find(e => e.padrao) || ends[0]; selecionarEndereco(ep) } } }} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'ENTREGA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
+                    <FiTruck className="text-base" />
+                    <span>entrega</span>
                   </button>
-                ))
+                  <button type="button" onClick={() => setTipoEntrega('RETIRADA')} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'RETIRADA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
+                    <FiShoppingBag className="text-base" />
+                    <span>retirada</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  <p className="text-sm font-semibold text-amber-800">
+                    {aceitaEntrega
+                      ? 'Esta loja atende somente por entrega.'
+                      : 'Esta loja atende somente retirada no balcão.'}
+                  </p>
+                </div>
+              )}
+              {aceitaEntrega && tipoEntrega !== 'RETIRADA' && (
+                <p className="text-xs text-stone-500 mt-3">
+                  entrega: {loja.tempo_entrega || '40-60 min'} {taxaEntrega > 0 ? ` • R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : ' • grátis'}
+                </p>
               )}
             </div>
-          )}
-          {cupomAplicado ? (
-            <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
-              <div>
-                <p className="text-sm font-semibold text-green-800 font-mono">{codigoCupom.toUpperCase()}</p>
-                <p className="text-xs text-green-600 mt-0.5">
-                  {cupomAplicado.tipo_desconto === 'PERCENTAGE'
-                    ? `${cupomAplicado.valor_desconto}% de desconto`
-                    : `R$ ${cupomAplicado.valor_desconto.toFixed(2).replace('.', ',')} de desconto`}
-                  {' · '}Você economiza R$ {cupomAplicado.desconto.toFixed(2).replace('.', ',')}
-                </p>
-              </div>
-              <button onClick={handleRemoverCupom} className="text-red-600 hover:text-red-700 text-xs font-medium">Remover</button>
-            </div>
-          ) : (
-            <div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={codigoCupom}
-                  onChange={(e) => { setCodigoCupom(e.target.value); setCupomErro('') }}
-                  placeholder="Digite o código"
-                  className="flex-1 px-3 py-2.5 border border-stone-300 rounded-lg text-sm uppercase font-mono placeholder:normal-case placeholder:font-sans focus:ring-2 focus:ring-red-500"
-                />
+
+            {/* Cupom de desconto */}
+            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiTag className="text-red-600" /> Cupom de desconto</h3>
                 <button
                   type="button"
-                  onClick={handleAplicarCupom}
-                  disabled={cupomCarregando || !codigoCupom.trim()}
-                  className="px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                  onClick={() => setMostrarCuponsDisponiveis((v) => !v)}
+                  className="text-[11px] font-semibold text-red-600 hover:text-red-700"
                 >
-                  {cupomCarregando ? '...' : 'Aplicar'}
+                  {mostrarCuponsDisponiveis ? 'Ocultar cupons' : 'Ver cupons disponíveis'}
                 </button>
               </div>
-              {cupomErro && <p className="text-red-500 text-xs mt-2">{cupomErro}</p>}
-            </div>
-          )}
-        </div>
 
-        {/* Endereço de entrega (apenas para ENTREGA) */}
-        {tipoEntrega === 'ENTREGA' && (
-          <div className="bg-amber-50/70 rounded-2xl border border-amber-200 p-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiMapPin className="text-red-600" /> endereço de entrega</h3>
-              <Link to="/perfil" className="text-[11px] text-emerald-600 font-semibold hover:underline">trocar</Link>
+              {mostrarCuponsDisponiveis && (
+                <div className="mb-3 bg-red-50/50 border border-red-100 rounded-xl p-2.5 space-y-2">
+                  {cuponsDisponiveisCarregando ? (
+                    <p className="text-xs text-stone-500">Carregando cupons...</p>
+                  ) : cuponsDisponiveis.length === 0 ? (
+                    <p className="text-xs text-stone-500">Nenhum cupom disponível no momento.</p>
+                  ) : (
+                    cuponsDisponiveis.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => { setCodigoCupom(c.codigo); setCupomErro('') }}
+                        className="w-full text-left bg-white border border-red-100 rounded-lg p-2.5 hover:border-red-300 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-extrabold text-red-700 font-mono">{String(c.codigo || '').toUpperCase()}</p>
+                          <span className="text-[10px] text-stone-400">válido até {formatarValidadeCupom(c.data_fim)}</span>
+                        </div>
+                        <p className="text-[11px] text-stone-700 mt-0.5">
+                          {c.tipo_desconto === 'PERCENTAGE'
+                            ? `${Number(c.valor_desconto || 0)}% de desconto`
+                            : `R$ ${Number(c.valor_desconto || 0).toFixed(2).replace('.', ',')} de desconto`}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] text-stone-500">
+                          <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
+                            mín. {c.valor_minimo !== null ? `R$ ${Number(c.valor_minimo).toFixed(2).replace('.', ',')}` : 'sem mínimo'}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
+                            limite geral {c.max_usos !== null ? `${c.usos_restantes} restante(s)` : 'ilimitado'}
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
+                            por cliente {c.usos_por_cliente !== null ? `${c.usos_por_cliente} uso(s)` : 'ilimitado'}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+              {cupomAplicado ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div>
+                    <p className="text-sm font-semibold text-green-800 font-mono">{codigoCupom.toUpperCase()}</p>
+                    <p className="text-xs text-green-600 mt-0.5">
+                      {cupomAplicado.tipo_desconto === 'PERCENTAGE'
+                        ? `${cupomAplicado.valor_desconto}% de desconto`
+                        : `R$ ${cupomAplicado.valor_desconto.toFixed(2).replace('.', ',')} de desconto`}
+                      {' · '}Você economiza R$ {cupomAplicado.desconto.toFixed(2).replace('.', ',')}
+                    </p>
+                  </div>
+                  <button onClick={handleRemoverCupom} className="text-red-600 hover:text-red-700 text-xs font-medium">Remover</button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={codigoCupom}
+                      onChange={(e) => { setCodigoCupom(e.target.value); setCupomErro('') }}
+                      placeholder="Digite o código"
+                      className="flex-1 px-3 py-2.5 border border-stone-300 rounded-lg text-sm uppercase font-mono placeholder:normal-case placeholder:font-sans focus:ring-2 focus:ring-red-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAplicarCupom}
+                      disabled={cupomCarregando || !codigoCupom.trim()}
+                      className="px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {cupomCarregando ? '...' : 'Aplicar'}
+                    </button>
+                  </div>
+                  {cupomErro && <p className="text-red-500 text-xs mt-2">{cupomErro}</p>}
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
-              {enderecosCliente.map((end) => {
-                const sel = enderecoSel?.id === end.id
-                return (
-                  <button key={end.id} type="button" onClick={() => selecionarEndereco(end)} className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${sel ? 'border-red-500 bg-white' : 'border-amber-200 bg-white/80 hover:border-amber-300'}`}>
-                    <div className="flex items-center gap-2">
-                      {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
-                      {end.padrao && <span className="text-[9px] bg-amber-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
-                    </div>
-                    <p className="text-sm text-stone-800 mt-0.5">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
-                    <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}</p>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
-        {tipoEntrega === 'RETIRADA' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-sm text-amber-800 flex items-start gap-2">
-            <FiInfo className="text-amber-600 mt-0.5 shrink-0" />
-            <div>
-              <p className="font-semibold">Retirada no balcão</p>
-              <p className="text-xs text-amber-700 mt-0.5">Retire seu pedido diretamente na loja. Sem taxa de entrega.</p>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleCriarPedido} className="space-y-4">
-          {/* Agendar pedido */}
-          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiCalendar className="text-red-600" /> Agendar para depois?</h3>
-              <button type="button" onClick={() => { setAgendado(!agendado); if (agendado) setAgendadoPara('') }} className={`relative w-11 h-6 rounded-full transition-colors ${agendado ? 'bg-red-500' : 'bg-stone-300'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${agendado ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-            {agendado && (
-              <div className="mt-3">
-                <input
-                  type="datetime-local"
-                  value={agendadoPara}
-                  onChange={(e) => setAgendadoPara(e.target.value)}
-                  min={formatDateTimeLocalValue(new Date(Date.now() + 30 * 60 * 1000))}
-                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                />
-                <p className="text-[10px] text-stone-400 mt-1">Mínimo 30 min a partir de agora. A loja receberá o pedido como agendado.</p>
+            {/* Endereço de entrega (apenas para ENTREGA) */}
+            {tipoEntrega === 'ENTREGA' && (
+              <div className="bg-amber-50/70 rounded-2xl border border-amber-200 p-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiMapPin className="text-red-600" /> endereço de entrega</h3>
+                  <Link to="/perfil" className="text-[11px] text-emerald-600 font-semibold hover:underline">trocar</Link>
+                </div>
+                <div className="space-y-2">
+                  {enderecosCliente.map((end) => {
+                    const sel = enderecoSel?.id === end.id
+                    return (
+                      <button key={end.id} type="button" onClick={() => selecionarEndereco(end)} className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${sel ? 'border-red-500 bg-white' : 'border-amber-200 bg-white/80 hover:border-amber-300'}`}>
+                        <div className="flex items-center gap-2">
+                          {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
+                          {end.padrao && <span className="text-[9px] bg-amber-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
+                        </div>
+                        <p className="text-sm text-stone-800 mt-0.5">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
+                        <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}</p>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Observação */}
-          <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
-            <label className="block text-xs font-medium text-stone-600 mb-1">Observação</label>
-            <textarea name="observacao" value={formPedido.observacao} onChange={handleFormChange} rows={2} placeholder="alguma observação? • opcional" className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 resize-none" />
-          </div>
+            {tipoEntrega === 'RETIRADA' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-sm text-amber-800 flex items-start gap-2">
+                <FiInfo className="text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold">Retirada no balcão</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Retire seu pedido diretamente na loja. Sem taxa de entrega.</p>
+                </div>
+              </div>
+            )}
 
-          {/* Pagamento */}
-          {(() => {
-            const formasAceitas = (loja.formas_pagamento || 'PIX,CREDIT,DEBIT,CASH').split(',').filter(Boolean)
-            const aceitaPix = formasAceitas.includes('PIX')
-            const formasPresenciais = [
-              { value: 'PIX', label: 'PIX' },
-              { value: 'CREDIT', label: 'Crédito' },
-              { value: 'DEBIT', label: 'Débito' },
-              { value: 'CASH', label: 'Dinheiro' },
-            ].filter((o) => formasAceitas.includes(o.value))
-            const temPixOnline = aceitaPix && loja.pix_chave
-
-            return (
+            <form onSubmit={handleCriarPedido} className="space-y-4">
+              {/* Agendar pedido */}
               <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-red-700 mb-3">pagamento</h3>
-
-                {temPixOnline ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <button type="button" onClick={() => escolherTipoPag('online')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'online' ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                        <span className="text-sm font-semibold text-stone-900">Pagar online</span>
-                        <span className="text-[10px] text-stone-400">PIX com QR Code</span>
-                      </button>
-                      <button type="button" onClick={() => escolherTipoPag('entrega')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'entrega' ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                        <span className="text-sm font-semibold text-stone-900">{tipoEntrega === 'RETIRADA' ? 'Pagar na retirada' : 'Pagar na entrega'}</span>
-                        <span className="text-[10px] text-stone-400">Presencial</span>
-                      </button>
-                    </div>
-                    {tipoPagamento === 'online' && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700 flex items-center gap-2">
-                        <FiCheck className="text-amber-600 shrink-0" />
-                        <span>Pagamento via <strong>PIX</strong> — você receberá o QR Code após confirmar.</span>
-                      </div>
-                    )}
-                    {tipoPagamento === 'entrega' && formasPresenciais.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {formasPresenciais.map((opt) => (
-                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                            <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
-                            <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    {formPedido.forma_pagamento === 'CASH' && (
-                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                        <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-stone-600">R$</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="0.01"
-                            value={trocoPara}
-                            onChange={(e) => setTrocoPara(e.target.value)}
-                            placeholder="Ex: 100"
-                            className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
-                          />
-                        </div>
-                        {trocoPara && Number(trocoPara) > totalPedido && (
-                          <p className="text-xs text-amber-800 mt-1.5 font-medium">
-                            Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
-                          </p>
-                        )}
-                        {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
-                          <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
-                        )}
-                        {!trocoPara && (
-                          <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {formasPresenciais.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {formasPresenciais.map((opt) => (
-                          <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
-                            <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
-                            <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    {formPedido.forma_pagamento === 'CASH' && (
-                      <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                        <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-stone-600">R$</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="0.01"
-                            value={trocoPara}
-                            onChange={(e) => setTrocoPara(e.target.value)}
-                            placeholder="Ex: 100"
-                            className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
-                          />
-                        </div>
-                        {trocoPara && Number(trocoPara) > totalPedido && (
-                          <p className="text-xs text-amber-800 mt-1.5 font-medium">
-                            Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
-                          </p>
-                        )}
-                        {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
-                          <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
-                        )}
-                        {!trocoPara && (
-                          <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
-                        )}
-                      </div>
-                    )}
-                  </>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiCalendar className="text-red-600" /> Agendar para depois?</h3>
+                  <button type="button" onClick={() => { setAgendado(!agendado); if (agendado) setAgendadoPara('') }} className={`relative w-11 h-6 rounded-full transition-colors ${agendado ? 'bg-red-500' : 'bg-stone-300'}`}>
+                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${agendado ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                {agendado && (
+                  <div className="mt-3">
+                    <input
+                      type="datetime-local"
+                      value={agendadoPara}
+                      onChange={(e) => setAgendadoPara(e.target.value)}
+                      min={formatDateTimeLocalValue(new Date(Date.now() + 30 * 60 * 1000))}
+                      className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    />
+                    <p className="text-[10px] text-stone-400 mt-1">Mínimo 30 min a partir de agora. A loja receberá o pedido como agendado.</p>
+                  </div>
                 )}
               </div>
-            )
-          })()}
 
-          {Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
-              <p className="text-xs text-amber-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — adicione mais R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}.</p>
-            </div>
-          )}
-
-          <div className="h-24" />
-          <div className="sticky bottom-0 left-0 right-0 z-40 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-            <div className="w-full max-w-lg mx-auto bg-white/95 backdrop-blur rounded-2xl border border-stone-200 shadow-lg p-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] text-stone-500">total</p>
-                <p className="text-2xl leading-none font-extrabold text-red-700 transition-all duration-200 font-numeric">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</p>
+              {/* Observação */}
+              <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
+                <label className="block text-xs font-medium text-stone-600 mb-1">Observação</label>
+                <textarea name="observacao" value={formPedido.observacao} onChange={handleFormChange} rows={2} placeholder="alguma observação? • opcional" className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 resize-none" />
               </div>
-              <button
-                type="submit"
-                disabled={!checkoutPodeEnviar}
-                className="px-5 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all text-sm"
-              >
-                {labelBotaoCheckout}
-              </button>
-            </div>
-          </div>
-        </form>
+
+              {/* Pagamento */}
+              {(() => {
+                const formasAceitas = (loja.formas_pagamento || 'PIX,CREDIT,DEBIT,CASH').split(',').filter(Boolean)
+                const aceitaPix = formasAceitas.includes('PIX')
+                const formasPresenciais = [
+                  { value: 'PIX', label: 'PIX' },
+                  { value: 'CREDIT', label: 'Crédito' },
+                  { value: 'DEBIT', label: 'Débito' },
+                  { value: 'CASH', label: 'Dinheiro' },
+                ].filter((o) => formasAceitas.includes(o.value))
+                const temPixOnline = aceitaPix && loja.pix_chave
+
+                return (
+                  <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
+                    <h3 className="text-sm font-semibold text-red-700 mb-3">pagamento</h3>
+
+                    {temPixOnline ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <button type="button" onClick={() => escolherTipoPag('online')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'online' ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                            <span className="text-sm font-semibold text-stone-900">Pagar online</span>
+                            <span className="text-[10px] text-stone-400">PIX com QR Code</span>
+                          </button>
+                          <button type="button" onClick={() => escolherTipoPag('entrega')} className={`flex flex-col items-center gap-1 p-4 border-2 rounded-xl transition-colors ${tipoPagamento === 'entrega' ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                            <span className="text-sm font-semibold text-stone-900">{tipoEntrega === 'RETIRADA' ? 'Pagar na retirada' : 'Pagar na entrega'}</span>
+                            <span className="text-[10px] text-stone-400">Presencial</span>
+                          </button>
+                        </div>
+                        {tipoPagamento === 'online' && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700 flex items-center gap-2">
+                            <FiCheck className="text-amber-600 shrink-0" />
+                            <span>Pagamento via <strong>PIX</strong> — você receberá o QR Code após confirmar.</span>
+                          </div>
+                        )}
+                        {tipoPagamento === 'entrega' && formasPresenciais.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {formasPresenciais.map((opt) => (
+                              <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                                <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
+                                <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {formPedido.forma_pagamento === 'CASH' && (
+                          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                            <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-stone-600">R$</span>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
+                                value={trocoPara}
+                                onChange={(e) => setTrocoPara(e.target.value)}
+                                placeholder="Ex: 100"
+                                className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
+                              />
+                            </div>
+                            {trocoPara && Number(trocoPara) > totalPedido && (
+                              <p className="text-xs text-amber-800 mt-1.5 font-medium">
+                                Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
+                              </p>
+                            )}
+                            {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
+                              <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+                            )}
+                            {!trocoPara && (
+                              <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {formasPresenciais.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {formasPresenciais.map((opt) => (
+                              <label key={opt.value} className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${formPedido.forma_pagamento === opt.value ? 'border-red-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'}`}>
+                                <input type="radio" name="forma_pagamento" value={opt.value} checked={formPedido.forma_pagamento === opt.value} onChange={handleFormChange} className="sr-only" />
+                                <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {formPedido.forma_pagamento === 'CASH' && (
+                          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                            <label className="block text-xs font-medium text-amber-800 mb-1.5">Precisa de troco? Para quanto?</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-stone-600">R$</span>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
+                                value={trocoPara}
+                                onChange={(e) => setTrocoPara(e.target.value)}
+                                placeholder="Ex: 100"
+                                className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 bg-white"
+                              />
+                            </div>
+                            {trocoPara && Number(trocoPara) > totalPedido && (
+                              <p className="text-xs text-amber-800 mt-1.5 font-medium">
+                                Troco: R$ {(Number(trocoPara) - totalPedido).toFixed(2).replace('.', ',')}
+                              </p>
+                            )}
+                            {trocoPara && Number(trocoPara) > 0 && Number(trocoPara) <= totalPedido && (
+                              <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+                            )}
+                            {!trocoPara && (
+                              <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                  <p className="text-xs text-amber-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — adicione mais R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}.</p>
+                </div>
+              )}
+
+              <div className="h-24" />
+              <div className="sticky bottom-0 left-0 right-0 z-40 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+                <div className="w-full max-w-lg mx-auto bg-white/95 backdrop-blur rounded-2xl border border-stone-200 shadow-lg p-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] text-stone-500">total</p>
+                    <p className="text-2xl leading-none font-extrabold text-red-700 transition-all duration-200 font-numeric">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!checkoutPodeEnviar}
+                    className="px-5 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all text-sm"
+                  >
+                    {labelBotaoCheckout}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -1577,18 +1596,18 @@ export default function LojaPage() {
   const DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
   const DIAS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   let horariosSemana = []
-  try { horariosSemana = JSON.parse(loja.horarios_semana || '[]') } catch {}
+  try { horariosSemana = JSON.parse(loja.horarios_semana || '[]') } catch { }
   const temSemana = Array.isArray(horariosSemana) && horariosSemana.length === 7
   const horarioHoje = temSemana ? horariosSemana[new Date().getDay()] : null
   const horaFecha = horarioHoje?.fechamento || loja.horario_fechamento || null
 
   const openingHoursSpec = temSemana
     ? horariosSemana.filter(h => h.aberto).map(h => ({
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: DIAS_EN[h.dia],
-        opens: h.abertura,
-        closes: h.fechamento,
-      }))
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: DIAS_EN[h.dia],
+      opens: h.abertura,
+      closes: h.fechamento,
+    }))
     : loja.horario_abertura && loja.horario_fechamento
       ? { '@type': 'OpeningHoursSpecification', dayOfWeek: DIAS_EN, opens: loja.horario_abertura, closes: loja.horario_fechamento }
       : undefined
