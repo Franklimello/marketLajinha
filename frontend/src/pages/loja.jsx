@@ -297,8 +297,8 @@ export default function LojaPage() {
   }, [slug, etapa, categoriaSel, produtoDetalhe?.id])
 
   const pageTransitionClass = pageVisible
-    ? 'opacity-100 translate-y-0'
-    : 'opacity-0 translate-y-1'
+    ? 'opacity-100'
+    : 'opacity-0'
 
   // ---- Carrinho ----
   const addItemDireto = useCallback((produto) => {
