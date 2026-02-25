@@ -29,6 +29,11 @@ function normalizeText(value) {
     .toLowerCase()
 }
 
+function formatDateTimeLocalValue(date) {
+  const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return d.toISOString().slice(0, 16)
+}
+
 function serializarCarrinho(carrinho) {
   return Object.entries(carrinho).map(([key, item]) => ({
     key,
@@ -1269,7 +1274,7 @@ export default function LojaPage() {
                   type="datetime-local"
                   value={agendadoPara}
                   onChange={(e) => setAgendadoPara(e.target.value)}
-                  min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                  min={formatDateTimeLocalValue(new Date(Date.now() + 30 * 60 * 1000))}
                   className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                 />
                 <p className="text-[10px] text-stone-400 mt-1">Mínimo 30 min a partir de agora. A loja receberá o pedido como agendado.</p>
