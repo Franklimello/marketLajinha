@@ -53,7 +53,8 @@ model Lojas {
   cobrancas       CobrancaLojista[]
   promocoes       Promocao[]
   stories         LojaStory[]
-  token_impressao String    @default("")
+  token_impressao          String    @default("")
+  categorias_desativadas   String    @default("[]")
 
   @@index([ativa, cidade])
   @@index([categoria_negocio])

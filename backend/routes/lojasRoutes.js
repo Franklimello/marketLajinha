@@ -21,6 +21,7 @@ router.post('/', authMiddleware, validar(schemaLojas), lojasController.criar);
 router.put('/:id', authMiddleware, requireAuth, requireAdmin, requireSameStore('id'), validar(schemaLojasPut), lojasController.atualizar);
 router.patch('/:id/toggle', authMiddleware, requireAuth, lojasController.toggle);
 router.patch('/:id/automatico', authMiddleware, requireAuth, lojasController.voltarAutomatico);
+router.patch('/:id/categorias-desativadas', authMiddleware, requireAuth, lojasController.atualizarCategoriasDesativadas);
 router.post('/:id/pix', lojasController.gerarPix);
 router.delete('/:id', authMiddleware, requireAuth, requireAdmin, requireSameStore('id'), lojasController.excluir);
 

@@ -32,6 +32,8 @@ export const api = {
     atualizar: (id, data) => request(`/lojas/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     toggle: (id, aberta) => request(`/lojas/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ aberta }) }),
     voltarAutomatico: (id) => request(`/lojas/${id}/automatico`, { method: 'PATCH' }),
+    atualizarCategoriasDesativadas: (id, categorias) =>
+      request(`/lojas/${id}/categorias-desativadas`, { method: 'PATCH', body: JSON.stringify({ categorias }) }),
   },
   produtos: {
     listar: (lojaId, pagina = 1) => request(`/produtos?loja_id=${lojaId}&pagina=${pagina}&limite=200`),

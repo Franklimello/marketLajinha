@@ -131,6 +131,37 @@ async function excluir(req, res, next) {
   }
 }
 
+async function atualizarCategoriasDesativadas(req, res, next) {
+  try {
+    const loja = await lojasService.buscarPorId(req.params.id);
+    if (!loja) return res.status(404).json({ erro: 'Loja não encontrada.' });
+    if (loja.id !== req.user.loja_id) return res.status(403).json({ erro: 'Acesso negado.' });
+
+    // Validação: body deve conter { categorias: string[] }
+    const { categorias } = req.body;
+    if (!Array.isArray(categorias)) {
+      return res.status(400).json({ erro: 'O campo "categorias" deve ser um array.' });
+    }
+    const categoriasValidas = categorias
+      .filter((c) => typeof c === 'string')
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    const { prisma } = require('../config/database');
+    const { invalidarCache } = require('../config/redis');
+    await prisma.lojas.update({
+      where: { id: loja.id },
+      data: { categorias_desativadas: JSON.stringify(categoriasValidas) },
+    });
+    await invalidarCache(`produtos:loja:${loja.id}:*`);
+    await invalidarCache(`produtos:loja:${loja.slug}:*`);
+
+    res.json({ categorias_desativadas: categoriasValidas });
+  } catch (e) {
+    next(e);
+  }
+}
+
 async function gerarPix(req, res, next) {
   try {
     const loja = await lojasService.buscarPorId(req.params.id);
@@ -182,4 +213,5 @@ module.exports = {
   voltarAutomatico,
   excluir,
   gerarPix,
+  atualizarCategoriasDesativadas,
 };

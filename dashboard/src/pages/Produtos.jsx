@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import ModalProduto from '../components/ModalProduto'
@@ -6,6 +6,27 @@ import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiPack
 
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+/** Toggle switch simples */
+function ToggleSwitch({ checked, onChange, title, disabled = false }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      title={title}
+      disabled={disabled}
+      onClick={(e) => { e.stopPropagation(); onChange(!checked) }}
+      className={`relative inline-flex items-center shrink-0 h-5 w-9 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${checked ? 'bg-amber-500' : 'bg-stone-300'
+        }`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : 'translate-x-1'
+          }`}
+      />
+    </button>
+  )
 }
 
 export default function Produtos() {
@@ -23,6 +44,13 @@ export default function Produtos() {
   const [categoriaAtualEdicao, setCategoriaAtualEdicao] = useState('')
   const [categoriaNovoNome, setCategoriaNovoNome] = useState('')
   const [salvandoEdicaoCategoria, setSalvandoEdicaoCategoria] = useState(false)
+
+  // Categorias desativadas (nomes em um Set para lookup O(1))
+  const [catsDesativadas, setCatsDesativadas] = useState(new Set())
+  const [salvandoCatToggle, setSalvandoCatToggle] = useState(false)
+
+  // Produtos com toggle em loading
+  const [produtoToggleLoading, setProdutoToggleLoading] = useState(new Set())
 
   useEffect(() => {
     if (loja) carregarProdutos()
@@ -44,6 +72,17 @@ export default function Produtos() {
       setTodosProdutos([])
     } finally {
       setCarregando(false)
+    }
+
+    // Carrega categorias desativadas da loja
+    try {
+      const minhaLoja = await api.lojas.minha()
+      let parsed = []
+      try { parsed = JSON.parse(minhaLoja.categorias_desativadas || '[]') } catch { parsed = [] }
+      if (!Array.isArray(parsed)) parsed = []
+      setCatsDesativadas(new Set(parsed.filter((c) => typeof c === 'string')))
+    } catch {
+      // silencioso — mantém estado atual
     }
   }
 
@@ -112,6 +151,57 @@ export default function Produtos() {
     }
   }
 
+  /** Toggle ativo/inativo de um produto */
+  const handleToggleProduto = useCallback(async (produto, novoValor) => {
+    if (produtoToggleLoading.has(produto.id)) return
+    setProdutoToggleLoading((prev) => new Set([...prev, produto.id]))
+    // Otimista
+    setTodosProdutos((prev) =>
+      prev.map((p) => (p.id === produto.id ? { ...p, ativo: novoValor } : p))
+    )
+    try {
+      await api.produtos.atualizar(produto.id, { ativo: novoValor })
+    } catch (err) {
+      // Reverte
+      setTodosProdutos((prev) =>
+        prev.map((p) => (p.id === produto.id ? { ...p, ativo: !novoValor } : p))
+      )
+      alert(err.message || 'Não foi possível alterar o status do produto.')
+    } finally {
+      setProdutoToggleLoading((prev) => {
+        const next = new Set(prev)
+        next.delete(produto.id)
+        return next
+      })
+    }
+  }, [produtoToggleLoading])
+
+  /** Toggle ativo/inativo de uma categoria */
+  const handleToggleCategoria = useCallback(async (cat, ativar) => {
+    if (!loja?.id || salvandoCatToggle) return
+    setSalvandoCatToggle(true)
+
+    const novasCats = new Set(catsDesativadas)
+    if (ativar) {
+      novasCats.delete(cat)
+    } else {
+      novasCats.add(cat)
+    }
+
+    // Otimista
+    setCatsDesativadas(novasCats)
+
+    try {
+      await api.lojas.atualizarCategoriasDesativadas(loja.id, [...novasCats])
+    } catch (err) {
+      // Reverte
+      setCatsDesativadas(catsDesativadas)
+      alert(err.message || 'Não foi possível alterar o status da categoria.')
+    } finally {
+      setSalvandoCatToggle(false)
+    }
+  }, [loja, catsDesativadas, salvandoCatToggle])
+
   function abrirNovoProduto(categoria = '') {
     setProdutoEditando(null)
     setCategoriaModal(categoria)
@@ -178,6 +268,15 @@ export default function Produtos() {
           String(p.categoria || '').trim() === origem ? { ...p, categoria: destino } : p
         )
       )
+
+      // Atualiza categorias desativadas se a categoria renomeada estava desativada
+      if (catsDesativadas.has(origem)) {
+        const novasCats = new Set(catsDesativadas)
+        novasCats.delete(origem)
+        novasCats.add(destino)
+        setCatsDesativadas(novasCats)
+        await api.lojas.atualizarCategoriasDesativadas(loja.id, [...novasCats]).catch(() => { })
+      }
 
       setCategoriasAbertas((prev) => {
         const next = { ...prev }
@@ -293,21 +392,42 @@ export default function Produtos() {
             const produtos = porCategoria[cat] || []
             const aberta = categoriasAbertas[cat] === true
             const nomeCategoria = cat || 'Sem categoria'
+            const catDesativada = cat ? catsDesativadas.has(cat) : false
 
             return (
-              <div key={cat} className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+              <div
+                key={cat}
+                className={`bg-white rounded-xl border overflow-hidden transition-opacity ${catDesativada ? 'border-stone-200 opacity-60' : 'border-stone-200'
+                  }`}
+              >
                 {/* Header da categoria */}
                 <button
                   onClick={() => toggleCategoria(cat)}
                   className="w-full flex items-center justify-between p-4 hover:bg-stone-50 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <h2 className="font-semibold text-stone-900 text-lg">{nomeCategoria}</h2>
-                    <span className="text-xs bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <h2 className="font-semibold text-stone-900 text-lg truncate">{nomeCategoria}</h2>
+                    <span className="text-xs bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full shrink-0">
                       {produtos.length} item(ns)
                     </span>
+                    {catDesativada && (
+                      <span className="text-[10px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full shrink-0 font-medium">
+                        Inativa
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Toggle de categoria — só para categorias nomeadas */}
+                    {cat && (
+                      <div className="flex items-center gap-1.5" title={catDesativada ? 'Ativar categoria' : 'Desativar categoria'}>
+                        <ToggleSwitch
+                          checked={!catDesativada}
+                          onChange={(ativar) => handleToggleCategoria(cat, ativar)}
+                          title={catDesativada ? 'Ativar categoria no cardápio' : 'Desativar categoria no cardápio'}
+                          disabled={salvandoCatToggle}
+                        />
+                      </div>
+                    )}
                     {cat && (
                       <span
                         onClick={(e) => { e.stopPropagation(); abrirNovoProduto(cat) }}
@@ -336,7 +456,11 @@ export default function Produtos() {
                 {aberta && (
                   <div className="border-t border-stone-100 divide-y divide-stone-50">
                     {produtos.map((p) => (
-                      <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors">
+                      <div
+                        key={p.id}
+                        className={`flex items-center gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors ${!p.ativo ? 'opacity-50' : ''
+                          }`}
+                      >
                         {p.imagem_url ? (
                           <img src={p.imagem_url} alt={p.nome} className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0" />
                         ) : (
@@ -362,7 +486,14 @@ export default function Produtos() {
                             <p className="text-xs text-stone-400">Est: {p.estoque}</p>
                           )}
                         </div>
-                        <div className="flex gap-0.5 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Toggle ativo/inativo do produto */}
+                          <ToggleSwitch
+                            checked={p.ativo}
+                            onChange={(val) => handleToggleProduto(p, val)}
+                            title={p.ativo ? 'Desativar produto' : 'Ativar produto'}
+                            disabled={produtoToggleLoading.has(p.id)}
+                          />
                           <button
                             onClick={() => abrirEditar(p)}
                             className="p-2 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"

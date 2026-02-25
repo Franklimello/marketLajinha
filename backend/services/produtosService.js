@@ -45,15 +45,32 @@ async function listarPorLoja(lojaIdOuSlug, pagina = 1) {
     });
     if (!loja) return { loja: null, dados: [], total: 0, pagina: 1, total_paginas: 0 };
 
+    // Parse categorias desativadas com fallback seguro
+    let catsDesativadas = [];
+    try {
+      const parsed = JSON.parse(loja.categorias_desativadas || '[]');
+      catsDesativadas = Array.isArray(parsed) ? parsed.filter((c) => typeof c === 'string' && c.trim()) : [];
+    } catch {
+      catsDesativadas = [];
+    }
+
+    // Filtro base: apenas produtos ativos
+    const whereBase = { loja_id: loja.id, ativo: true };
+
+    // Só aplica notIn se houver categorias para excluir (array vazio não quebra a query)
+    if (catsDesativadas.length > 0) {
+      whereBase.categoria = { notIn: catsDesativadas };
+    }
+
     const [dados, total] = await Promise.all([
       prisma.produtos.findMany({
-        where: { loja_id: loja.id, ativo: true },
+        where: whereBase,
         skip: (paginaNum - 1) * ITENS_POR_PAGINA,
         take: ITENS_POR_PAGINA,
         orderBy: { nome: 'asc' },
         include: INCLUDE_COMPLETO,
       }),
-      prisma.produtos.count({ where: { loja_id: loja.id, ativo: true } }),
+      prisma.produtos.count({ where: whereBase }),
     ]);
     return {
       loja: { id: loja.id, nome: loja.nome, slug: loja.slug },
