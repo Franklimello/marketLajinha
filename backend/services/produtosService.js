@@ -8,7 +8,7 @@ const INCLUDE_COMPLETO = {
   adicionais: { orderBy: { nome: 'asc' } },
 };
 
-async function listar(filtros = {}, pagina = 1) {
+async function listar(filtros = {}, pagina = 1, limite) {
   const { loja_id, ativo, categoria } = filtros;
   const where = {};
   if (loja_id) where.loja_id = loja_id;
@@ -16,17 +16,23 @@ async function listar(filtros = {}, pagina = 1) {
   if (categoria) where.categoria = categoria;
 
   const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
+  // Permite que o dashboard passe limite=200 para buscar todos os produtos de uma vez.
+  // Máximo de 200 para evitar sobrecarga.
+  const limiteNum = limite
+    ? Math.min(200, Math.max(1, parseInt(limite, 10) || ITENS_POR_PAGINA))
+    : ITENS_POR_PAGINA;
+
   const [dados, total] = await Promise.all([
     prisma.produtos.findMany({
       where,
-      skip: (paginaNum - 1) * ITENS_POR_PAGINA,
-      take: ITENS_POR_PAGINA,
+      skip: (paginaNum - 1) * limiteNum,
+      take: limiteNum,
       orderBy: { nome: 'asc' },
       include: INCLUDE_COMPLETO,
     }),
     prisma.produtos.count({ where }),
   ]);
-  return { dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / ITENS_POR_PAGINA) };
+  return { dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / limiteNum) };
 }
 
 async function listarPorLoja(lojaIdOuSlug, pagina = 1) {

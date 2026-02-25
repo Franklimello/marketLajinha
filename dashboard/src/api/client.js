@@ -34,7 +34,7 @@ export const api = {
     voltarAutomatico: (id) => request(`/lojas/${id}/automatico`, { method: 'PATCH' }),
   },
   produtos: {
-    listar: (lojaId, pagina = 1) => request(`/produtos?loja_id=${lojaId}&pagina=${pagina}`),
+    listar: (lojaId, pagina = 1) => request(`/produtos?loja_id=${lojaId}&pagina=${pagina}&limite=200`),
     criar: (data) => request('/produtos', { method: 'POST', body: JSON.stringify(data) }),
     atualizar: (id, data) => request(`/produtos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     excluir: (id) => request(`/produtos/${id}`, { method: 'DELETE' }),

@@ -2,8 +2,8 @@ const produtosService = require('../services/produtosService');
 
 async function listar(req, res, next) {
   try {
-    const { loja_id, pagina, ativo, categoria } = req.query;
-    const resultado = await produtosService.listar({ loja_id, ativo, categoria }, pagina);
+    const { loja_id, pagina, ativo, categoria, limite } = req.query;
+    const resultado = await produtosService.listar({ loja_id, ativo, categoria }, pagina, limite);
     res.json(resultado);
   } catch (e) {
     next(e);
