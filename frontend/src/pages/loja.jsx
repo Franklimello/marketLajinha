@@ -1855,7 +1855,10 @@ export default function LojaPage() {
                     className="group w-full flex items-center gap-3 bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 transition-all duration-200 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
                   >
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base leading-tight font-extrabold text-stone-900">{cat}</h3>
+                      <h3 className="text-base leading-tight font-serif font-bold text-stone-900 flex items-center gap-1.5">
+                        <span aria-hidden="true">🔹</span>
+                        <span className="truncate">{cat}</span>
+                      </h3>
                       <p className="text-xs text-stone-500 mt-0.5">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
                     </div>
                     <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-1">
@@ -1871,7 +1874,10 @@ export default function LojaPage() {
         ) : (
           <>
             <button onClick={() => setCategoriaSel(null)} className="flex items-center gap-1 text-stone-400 hover:text-stone-700 text-sm mb-3"><FiChevronLeft /> Voltar às categorias</button>
-            <h2 className="text-base font-bold text-stone-900 mb-3">{categoriaSel}</h2>
+            <h2 className="text-base font-serif font-bold text-stone-900 mb-3 flex items-center gap-1.5">
+              <span aria-hidden="true">🔹</span>
+              <span>{categoriaSel}</span>
+            </h2>
             <div className="space-y-2">
               {(produtosPorCategoria[categoriaSel] || []).map((p) => {
                 const qtd = qtdProduto(p.id)
