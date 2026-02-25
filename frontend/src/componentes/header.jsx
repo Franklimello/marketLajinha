@@ -3,12 +3,12 @@ import { FiDownload } from 'react-icons/fi'
 import { usePWA } from '../hooks/usePWA'
 
 export default function Header() {
-  const { canInstall, isIOS, installed, promptInstall } = usePWA()
+  const { canInstall, isIOS, installed, isStandalone, promptInstall } = usePWA()
   const showInstall = (canInstall || (isIOS && !installed))
 
   return (
-    <header className="bg-stone-950 fixed top-0 left-0 right-0 z-50 h-20">
-      <div className="max-w-lg mx-auto px-4 h-full flex items-center justify-between">
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-stone-950 border-b border-stone-800/80 ${isStandalone ? 'h-[calc(5rem+env(safe-area-inset-top))]' : 'h-20'}`}>
+      <div className={`max-w-lg mx-auto px-4 h-full flex items-center justify-between ${isStandalone ? 'pt-[env(safe-area-inset-top)]' : ''}`}>
         <Link
           to="/"
           className="flex items-center gap-2 transition-opacity hover:opacity-90"

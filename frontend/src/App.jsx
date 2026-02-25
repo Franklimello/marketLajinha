@@ -66,6 +66,7 @@ export default function App() {
   const { pathname } = useLocation()
   const isLojaPage = pathname.startsWith('/loja/')
   const [aceitouAgora, setAceitouAgora] = useState(false)
+  const [standaloneMode, setStandaloneMode] = useState(false)
 
   const termosInfo = useMemo(() => {
     if (carregando) return null
@@ -114,6 +115,24 @@ export default function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [pathname])
 
+  useEffect(() => {
+    const media = window.matchMedia('(display-mode: standalone)')
+    const computeStandalone = () => {
+      const isStandalone = media.matches || window.navigator.standalone === true
+      setStandaloneMode(!!isStandalone)
+      document.documentElement.classList.toggle('app-standalone', !!isStandalone)
+    }
+
+    computeStandalone()
+    media.addEventListener('change', computeStandalone)
+    window.addEventListener('appinstalled', computeStandalone)
+
+    return () => {
+      media.removeEventListener('change', computeStandalone)
+      window.removeEventListener('appinstalled', computeStandalone)
+    }
+  }, [])
+
   function aceitarTermos() {
     if (!termosInfo) return
 
@@ -125,9 +144,15 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`app-shell min-h-screen flex flex-col ${standaloneMode ? 'app-shell--standalone' : ''}`}>
       <Header />
-      <main className={`flex-1 pb-20 ${isLojaPage ? 'pt-20' : 'pt-24'}`}>
+      <main
+        className={`app-main flex-1 ${isLojaPage ? 'pt-20' : 'pt-24'} ${
+          standaloneMode
+            ? (isLojaPage ? 'pt-[calc(5rem+env(safe-area-inset-top))]' : 'pt-[calc(6rem+env(safe-area-inset-top))]')
+            : ''
+        } pb-[calc(5rem+env(safe-area-inset-bottom))]`}
+      >
         <Outlet />
       </main>
       <Footer />

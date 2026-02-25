@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+:root {
+  --uaifood-bg: #fafaf9;
+}
+
+html, body, #root {
+  min-height: 100dvh;
+}
+
+body {
+  background: var(--uaifood-bg);
+}
+
+.app-shell {
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #fafaf9 0%, #f5f5f4 100%);
+}
+
+.app-main {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.app-shell--standalone {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @keyframes slide-up {
   from { transform: translateY(100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
