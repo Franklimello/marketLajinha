@@ -1,81 +1,75 @@
 import { useState, useEffect, useCallback } from 'react'
 
-// ── Detecção de iOS (Safari não dispara beforeinstallprompt) ──
-const isIOSDevice = () =>
-  /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+// ── Helpers puros (sem side-effects) ────────────────────────────────────────
 
-// ── Verifica se já está instalado como PWA (modo standalone) ──
-const isRunningStandalone = () =>
-  window.matchMedia('(display-mode: standalone)').matches ||
-  window.navigator.standalone === true
+/** true se o dispositivo é iOS (Safari não dispara beforeinstallprompt) */
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+}
 
-/**
- * SOLUÇÃO PARA O PROBLEMA DO BOTÃO SUMINDO:
- *
- * O evento `beforeinstallprompt` é disparado pelo navegador logo no
- * carregamento da página, muitas vezes ANTES do React montar qualquer
- * componente. Se ninguém estiver ouvindo nesse momento, o evento é perdido
- * e o botão nunca aparece.
- *
- * A correção é capturar o evento em uma variável global (`window.__pwaPrompt`)
- * o mais cedo possível. O hook então lê essa variável ao montar e continua
- * ouvindo novos eventos caso a página seja recarregada.
- */
+/** true se o app está rodando como PWA instalado (modo standalone) */
+function isRunningStandalone() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  )
+}
 
-// Captura o evento imediatamente, antes do React inicializar.
-// Este listener é registrado na importação do módulo (tempo de execução do bundle).
+// ── Captura global do prompt (resolve a race condition) ──────────────────────
+//
+// O evento `beforeinstallprompt` é disparado pelo navegador logo no
+// carregamento da página — muitas vezes ANTES do React montar qualquer
+// componente. Se ninguém estiver ouvindo nessa janela de tempo, o evento
+// é perdido e o botão de instalação nunca aparece.
+//
+// A solução: registrar um listener assim que este módulo é importado
+// (antes do React renderizar qualquer coisa) e guardar o evento em
+// window.__pwaPrompt. O hook lê essa variável no useState lazy initializer.
+
 if (typeof window !== 'undefined') {
-  window.__pwaPrompt = window.__pwaPrompt || null
+  // Garante que a flag exista mesmo se o hook montar antes do evento
+  window.__pwaPrompt = window.__pwaPrompt ?? null
 
   window.addEventListener(
     'beforeinstallprompt',
     (e) => {
-      // Impede que o mini-infobar nativo apareça no Chrome Android
+      // Impede o mini-infobar nativo do Chrome Android de aparecer.
+      // O app exibirá o botão personalizado no lugar.
       e.preventDefault()
-      // Armazena o evento globalmente para o hook poder acessar depois
       window.__pwaPrompt = e
-      // Dispara um evento customizado para que hooks já montados sejam notificados
+      // Notifica hooks já montados (ex.: se o evento re-disparar)
       window.dispatchEvent(new Event('pwa:promptready'))
     },
     { once: false }
   )
 }
 
+// ── Hook principal ───────────────────────────────────────────────────────────
+
 export function usePWA() {
-  // Estado que guarda o evento deferido (necessário para chamar .prompt())
-  // Lazy initializer: lê window.__pwaPrompt na montagem, capturando eventos
-  // que chegaram ANTES do React inicializar (resolve a race condition).
+  // Lazy initializers: leem o estado do mundo no momento da montagem,
+  // sem precisar de setState síncrono dentro de useEffect (evita lint).
   const [deferredPrompt, setDeferredPrompt] = useState(
-    () => window.__pwaPrompt ?? null
+    () => window.__pwaPrompt ?? null     // prompt já capturado globalmente
   )
-
-  // true quando o app pode ser instalado.
-  // Inicializado como lazy também: se já há prompt global, começa como true.
   const [canInstall, setCanInstall] = useState(
-    () => Boolean(window.__pwaPrompt)
+    () => Boolean(window.__pwaPrompt)    // true se há prompt disponível
   )
+  const [installed, setInstalled] = useState(isRunningStandalone)  // já é PWA?
+  const [isIOS, setIsIOS] = useState(isIOSDevice)                  // iOS?
+  const [showIOSGuide, setShowIOSGuide] = useState(false)          // guia manual iOS
+  const [updateAvailable, setUpdateAvailable] = useState(false)    // nova versão do SW
+  const [waitingWorker, setWaitingWorker] = useState(null)         // SW esperando
 
-  // true quando o app já está instalado (rodando em modo standalone)
-  const [installed, setInstalled] = useState(isRunningStandalone)
-
-  // true quando é iOS — exibe guia manual em vez do prompt nativo
-  const [showIOSGuide, setShowIOSGuide] = useState(false)
-
-  // true quando há uma nova versão do SW esperando para ativar
-  const [updateAvailable, setUpdateAvailable] = useState(false)
-
-  // Referência ao SW em estado "waiting" para podermos ativá-lo
-  const [waitingWorker, setWaitingWorker] = useState(null)
-
-  // ── Efeito principal: registra listeners de eventos de instalação ──
-  // Os estados deferredPrompt e canInstall já foram inicializados via lazy
-  // initializer, então não precisamos de setState síncrono no body do effect.
+  // ── Efeito 1: listeners de instalação ──────────────────────────────────────
   useEffect(() => {
-    // Se já está instalado (standalone), não precisa registrar listeners
+    // Atualiza isIOS (necessário caso o hook monte em SSR ou ambiente sem window)
+    setIsIOS(isIOSDevice())
+
+    // Se já está instalado, não precisa ouvir eventos de instalação
     if (installed) return
 
-    // Ouve novos eventos (ex.: depois de uma rejeição, o navegador pode
-    // disparar novamente em sessões futuras)
+    // Ouve novos eventos beforeinstallprompt (ex.: sessões futuras após rejeição)
     function onBeforeInstall(e) {
       e.preventDefault()
       window.__pwaPrompt = e
@@ -83,7 +77,7 @@ export function usePWA() {
       setCanInstall(true)
     }
 
-    // Evento customizado disparado pelo listener global acima
+    // Evento customizado: o listener global (topo do arquivo) avisa hooks montados
     function onPromptReady() {
       if (window.__pwaPrompt) {
         setDeferredPrompt(window.__pwaPrompt)
@@ -91,7 +85,7 @@ export function usePWA() {
       }
     }
 
-    // Quando o usuário aceita instalar, o navegador dispara 'appinstalled'
+    // O navegador dispara 'appinstalled' quando o usuário aceita instalar
     function onAppInstalled() {
       setInstalled(true)
       setCanInstall(false)
@@ -111,25 +105,25 @@ export function usePWA() {
 
   }, [installed])
 
-  // ── Efeito secundário: detecta atualização de Service Worker ──
+  // ── Efeito 2: detecta atualização de Service Worker ───────────────────────
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
     navigator.serviceWorker.getRegistration().then((reg) => {
       if (!reg) return
 
-      // Se já há um SW esperando ao montar, notifica imediatamente
+      // SW já estava esperando quando o hook montou
       if (reg.waiting) {
         setUpdateAvailable(true)
         setWaitingWorker(reg.waiting)
       }
 
-      // Observa quando um novo SW termina de instalar
+      // Observa instalações futuras de novo SW
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing
         if (!sw) return
         sw.addEventListener('statechange', () => {
-          // "installed" + controller ativo = nova versão pronta para uso
+          // "installed" + controller ativo = nova versão pronta, aguardando ativação
           if (sw.state === 'installed' && navigator.serviceWorker.controller) {
             setUpdateAvailable(true)
             setWaitingWorker(sw)
@@ -138,7 +132,7 @@ export function usePWA() {
       })
     })
 
-    // Quando o SW em waiting assume o controle, recarrega a página
+    // Quando o SW em waiting assume o controle, recarrega a página suavemente
     let refreshing = false
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!refreshing) {
@@ -148,47 +142,42 @@ export function usePWA() {
     })
   }, [])
 
-  // ── Aciona o prompt nativo de instalação ──
+  // ── Aciona o prompt nativo de instalação ──────────────────────────────────
   const promptInstall = useCallback(async () => {
-    // iOS não tem suporte ao prompt nativo — exibe o guia manual
-    if (isIOSDevice()) {
+    // iOS não suporta o prompt nativo — exibe guia "Add to Home Screen"
+    if (isIOS) {
       setShowIOSGuide(true)
       return 'ios'
     }
 
     if (!deferredPrompt) return 'unavailable'
 
-    // Exibe o prompt nativo do navegador
+    // Exibe o diálogo nativo do navegador
     deferredPrompt.prompt()
 
-    // Aguarda a escolha do usuário (accepted ou dismissed)
+    // Aguarda a escolha do usuário
     const { outcome } = await deferredPrompt.userChoice
 
-    // Após o uso, o prompt não pode mais ser reutilizado
+    // Após o uso, o prompt não pode ser reutilizado — limpa o estado
     setDeferredPrompt(null)
     setCanInstall(false)
     window.__pwaPrompt = null
 
     return outcome // 'accepted' | 'dismissed'
-  }, [deferredPrompt])
+  }, [deferredPrompt, isIOS])
 
-  // ── Fecha o guia iOS ──
-  const dismissIOSGuide = useCallback(() => {
-    setShowIOSGuide(false)
-  }, [])
+  /** Fecha o guia de instalação iOS */
+  const dismissIOSGuide = useCallback(() => setShowIOSGuide(false), [])
 
-  // ── Aplica a atualização do SW: pede para ele pular a fase de espera ──
+  /** Envia SKIP_WAITING ao SW que está aguardando ativação */
   const applyUpdate = useCallback(() => {
-    if (waitingWorker) {
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' })
-    }
+    waitingWorker?.postMessage({ type: 'SKIP_WAITING' })
   }, [waitingWorker])
 
   return {
-    // true quando o botão de instalação deve aparecer
-    canInstall: canInstall && !installed,
+    canInstall: canInstall && !installed,  // mostra botão só se instalável
     installed,
-    isIOS: isIOSDevice(),
+    isIOS,
     isStandalone: isRunningStandalone(),
     showIOSGuide,
     updateAvailable,
