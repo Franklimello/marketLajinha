@@ -1715,11 +1715,8 @@ export default function LojaPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoriaSel(cat)}
-                    className="group w-full flex items-center gap-3.5 bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 transition-all duration-200 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                    className="group w-full flex items-center gap-3 bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 transition-all duration-200 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-red-50 to-amber-50 border border-red-100/70 flex items-center justify-center shrink-0">
-                      <span className="text-xl">🍽️</span>
-                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base leading-tight font-extrabold text-stone-900">{cat}</h3>
                       <p className="text-xs text-stone-500 mt-0.5">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
