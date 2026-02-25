@@ -7,6 +7,13 @@ async function listar(req, res, next) {
   } catch (e) { next(e); }
 }
 
+async function listarDisponiveisPublico(req, res, next) {
+  try {
+    const cupons = await cuponsService.listarDisponiveisPublico(req.params.lojaId);
+    res.json(cupons);
+  } catch (e) { next(e); }
+}
+
 async function buscarPorId(req, res, next) {
   try {
     const cupom = await cuponsService.buscarPorId(req.params.id);
@@ -70,4 +77,4 @@ async function aplicar(req, res, next) {
   }
 }
 
-module.exports = { listar, buscarPorId, criar, atualizar, excluir, aplicar };
+module.exports = { listar, listarDisponiveisPublico, buscarPorId, criar, atualizar, excluir, aplicar };

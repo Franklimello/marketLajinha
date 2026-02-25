@@ -9,6 +9,45 @@ async function listarPorLoja(lojaId) {
   });
 }
 
+async function listarDisponiveisPublico(lojaId) {
+  const agora = new Date();
+  return prisma.cupom.findMany({
+    where: {
+      loja_id: lojaId,
+      ativo: true,
+      data_inicio: { lte: agora },
+      data_fim: { gte: agora },
+      OR: [
+        { max_usos: null },
+        { max_usos: { gt: 0 } },
+      ],
+    },
+    orderBy: { data_fim: 'asc' },
+    select: {
+      id: true,
+      codigo: true,
+      tipo_desconto: true,
+      valor_desconto: true,
+      valor_minimo: true,
+      max_usos: true,
+      usos_count: true,
+      usos_por_cliente: true,
+      data_inicio: true,
+      data_fim: true,
+      ativo: true,
+    },
+  }).then((cupons) =>
+    cupons
+      .filter((c) => c.max_usos === null || c.usos_count < c.max_usos)
+      .map((c) => ({
+        ...c,
+        valor_desconto: Number(c.valor_desconto),
+        valor_minimo: c.valor_minimo === null ? null : Number(c.valor_minimo),
+        usos_restantes: c.max_usos === null ? null : Math.max(0, c.max_usos - c.usos_count),
+      }))
+  );
+}
+
 async function buscarPorId(id) {
   return prisma.cupom.findUnique({
     where: { id },
@@ -132,4 +171,4 @@ async function registrarUso(cupomId, clienteId, pedidoId) {
   ]);
 }
 
-module.exports = { listarPorLoja, buscarPorId, criar, atualizar, excluir, validarCupom, registrarUso };
+module.exports = { listarPorLoja, listarDisponiveisPublico, buscarPorId, criar, atualizar, excluir, validarCupom, registrarUso };

@@ -137,6 +137,85 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
   )
 })
 
+const HorizontalCards = memo(function HorizontalCards({ items, renderItem, cardStep = 268 }) {
+  const ref = useRef(null)
+  const [canPrev, setCanPrev] = useState(false)
+  const [canNext, setCanNext] = useState(items.length > 1)
+  const [pagina, setPagina] = useState(1)
+
+  const atualizarNavegacao = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth)
+    const left = el.scrollLeft
+    setCanPrev(left > 4)
+    setCanNext(left < maxScroll - 4)
+    const atual = Math.max(1, Math.min(items.length, Math.round(left / (cardStep + 12)) + 1))
+    setPagina(atual)
+  }, [items.length, cardStep])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    atualizarNavegacao()
+    const onScroll = () => atualizarNavegacao()
+    el.addEventListener('scroll', onScroll, { passive: true })
+
+    let ro = null
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => atualizarNavegacao())
+      ro.observe(el)
+    }
+
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      if (ro) ro.disconnect()
+    }
+  }, [atualizarNavegacao])
+
+  function mover(dir) {
+    ref.current?.scrollBy({ left: dir * (cardStep + 12), behavior: 'smooth' })
+  }
+
+  return (
+    <div className="relative">
+      <div
+        ref={ref}
+        className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {items.map((item) => renderItem(item))}
+      </div>
+
+      {items.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => mover(-1)}
+            disabled={!canPrev}
+            className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 border border-stone-200 text-stone-600 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center justify-center"
+            aria-label="Voltar no carrossel"
+          >
+            <FiChevronLeft size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => mover(1)}
+            disabled={!canNext}
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 border border-stone-200 text-stone-600 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center justify-center"
+            aria-label="Avançar no carrossel"
+          >
+            <FiChevronRight size={16} />
+          </button>
+          <div className="mt-1 text-right text-[10px] font-semibold text-stone-400">
+            {pagina}/{items.length}
+          </div>
+        </>
+      )}
+    </div>
+  )
+})
+
 export default function LojaPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
@@ -183,6 +262,9 @@ export default function LojaPage() {
   const [cupomAplicado, setCupomAplicado] = useState(null)
   const [cupomErro, setCupomErro] = useState('')
   const [cupomCarregando, setCupomCarregando] = useState(false)
+  const [cuponsDisponiveis, setCuponsDisponiveis] = useState([])
+  const [cuponsDisponiveisCarregando, setCuponsDisponiveisCarregando] = useState(false)
+  const [mostrarCuponsDisponiveis, setMostrarCuponsDisponiveis] = useState(false)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
   const restoredCartRef = useRef(false)
@@ -236,6 +318,11 @@ export default function LojaPage() {
           api.promocoes.listarPorLoja(lojaData.id).then((r) => setPromocoes(Array.isArray(r) ? r : [])).catch(() => {})
           api.avaliacoes.mediaPorLoja(lojaData.id).then(setNotaMedia).catch(() => {})
           api.avaliacoes.listarPorLoja(lojaData.id).then((r) => setAvaliacoes(r.dados || [])).catch(() => {})
+          setCuponsDisponiveisCarregando(true)
+          api.cupons.listarDisponiveis(lojaData.id)
+            .then((r) => setCuponsDisponiveis(Array.isArray(r) ? r : []))
+            .catch(() => setCuponsDisponiveis([]))
+            .finally(() => setCuponsDisponiveisCarregando(false))
         } else {
           setProdutosCarregando(false)
         }
@@ -396,6 +483,13 @@ export default function LojaPage() {
     setCupomAplicado(null)
     setCodigoCupom('')
     setCupomErro('')
+  }
+
+  function formatarValidadeCupom(dataFim) {
+    if (!dataFim) return 'sem validade definida'
+    const d = new Date(dataFim)
+    if (Number.isNaN(d.getTime())) return 'sem validade definida'
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
   }
 
   function irParaCheckout() {
@@ -892,7 +986,56 @@ export default function LojaPage() {
 
         {/* Cupom de desconto */}
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
-          <h3 className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-1"><FiTag className="text-red-600" /> Cupom de desconto</h3>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiTag className="text-red-600" /> Cupom de desconto</h3>
+            <button
+              type="button"
+              onClick={() => setMostrarCuponsDisponiveis((v) => !v)}
+              className="text-[11px] font-semibold text-red-600 hover:text-red-700"
+            >
+              {mostrarCuponsDisponiveis ? 'Ocultar cupons' : 'Ver cupons disponíveis'}
+            </button>
+          </div>
+
+          {mostrarCuponsDisponiveis && (
+            <div className="mb-3 bg-red-50/50 border border-red-100 rounded-xl p-2.5 space-y-2">
+              {cuponsDisponiveisCarregando ? (
+                <p className="text-xs text-stone-500">Carregando cupons...</p>
+              ) : cuponsDisponiveis.length === 0 ? (
+                <p className="text-xs text-stone-500">Nenhum cupom disponível no momento.</p>
+              ) : (
+                cuponsDisponiveis.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => { setCodigoCupom(c.codigo); setCupomErro('') }}
+                    className="w-full text-left bg-white border border-red-100 rounded-lg p-2.5 hover:border-red-300 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-extrabold text-red-700 font-mono">{String(c.codigo || '').toUpperCase()}</p>
+                      <span className="text-[10px] text-stone-400">válido até {formatarValidadeCupom(c.data_fim)}</span>
+                    </div>
+                    <p className="text-[11px] text-stone-700 mt-0.5">
+                      {c.tipo_desconto === 'PERCENTAGE'
+                        ? `${Number(c.valor_desconto || 0)}% de desconto`
+                        : `R$ ${Number(c.valor_desconto || 0).toFixed(2).replace('.', ',')} de desconto`}
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] text-stone-500">
+                      <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
+                        mín. {c.valor_minimo !== null ? `R$ ${Number(c.valor_minimo).toFixed(2).replace('.', ',')}` : 'sem mínimo'}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
+                        limite geral {c.max_usos !== null ? `${c.usos_restantes} restante(s)` : 'ilimitado'}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
+                        por cliente {c.usos_por_cliente !== null ? `${c.usos_por_cliente} uso(s)` : 'ilimitado'}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
           {cupomAplicado ? (
             <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
               <div>
@@ -1451,8 +1594,9 @@ export default function LojaPage() {
               <FiTag className="text-red-500" />
               <h2 className="text-base font-bold text-stone-900">Promoções da loja</h2>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-              {promocoes.map((promo) => (
+            <HorizontalCards
+              items={promocoes}
+              renderItem={(promo) => (
                 <div key={promo.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-amber-50 to-red-50 rounded-2xl border border-amber-200 overflow-hidden">
                   {promo.imagem_url ? (
                     <img src={promo.imagem_url} alt={promo.titulo} loading="lazy" className="w-full h-28 object-cover" />
@@ -1471,8 +1615,8 @@ export default function LojaPage() {
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            />
           </div>
         )}
 
@@ -1509,8 +1653,9 @@ export default function LojaPage() {
               <h2 className="text-base font-bold text-stone-900">Combos</h2>
               <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">OFERTA</span>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
-              {combos.map((c) => {
+            <HorizontalCards
+              items={combos}
+              renderItem={(c) => {
                 const original = c.itens.reduce((s, i) => s + Number(i.produto?.preco || 0) * i.quantidade, 0)
                 const economia = original - Number(c.preco)
                 const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
@@ -1550,24 +1695,39 @@ export default function LojaPage() {
                     </div>
                   </div>
                 )
-              })}
-            </div>
+              }}
+            />
           </div>
         )}
 
         {!produtosCarregando && categoriaSel === null ? (
           <>
-            <h2 className="text-base font-bold text-stone-900 mb-3">Cardápio</h2>
-            <div className="space-y-2">
+            <div className="mb-3 flex items-end justify-between">
+              <h2 className="text-lg font-extrabold text-stone-900">Cardápio</h2>
+              <span className="text-[11px] font-semibold text-stone-400">
+                {categorias.length} categoria{categorias.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="space-y-2.5">
               {categorias.map((cat) => {
                 const qtdCat = produtosPorCategoria[cat].length
                 return (
-                  <button key={cat} onClick={() => setCategoriaSel(cat)} className="w-full flex items-center gap-3 bg-white rounded-xl border border-stone-100 p-3 hover:bg-stone-50 active:bg-stone-100 transition-colors text-left">
-                    <div className="w-11 h-11 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-                      <span className="text-lg">🍽️</span>
+                  <button
+                    key={cat}
+                    onClick={() => setCategoriaSel(cat)}
+                    className="group w-full flex items-center gap-3.5 bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 transition-all duration-200 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-red-50 to-amber-50 border border-red-100/70 flex items-center justify-center shrink-0">
+                      <span className="text-xl">🍽️</span>
                     </div>
-                    <div className="flex-1 min-w-0"><h3 className="text-sm font-bold text-stone-900">{cat}</h3><p className="text-xs text-stone-400">{qtdCat} {qtdCat === 1 ? 'item' : 'itens'}</p></div>
-                    <FiChevronRight className="text-stone-300 text-lg shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base leading-tight font-extrabold text-stone-900">{cat}</h3>
+                      <p className="text-xs text-stone-500 mt-0.5">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
+                    </div>
+                    <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-1">
+                      Abrir
+                    </div>
+                    <FiChevronRight className="text-stone-300 group-hover:text-red-400 text-lg shrink-0 transition-colors" />
                   </button>
                 )
               })}

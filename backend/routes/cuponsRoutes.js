@@ -6,6 +6,7 @@ const { authMiddleware, requireAuth, requireAdmin, validar } = require('../middl
 const { schemaCupom, schemaCupomPut, schemaAplicarCupom } = require('../schemas/cuponsSchema');
 
 router.get('/', authMiddleware, requireAuth, cuponsController.listar);
+router.get('/disponiveis/:lojaId', cuponsController.listarDisponiveisPublico);
 router.get('/:id', authMiddleware, requireAuth, cuponsController.buscarPorId);
 router.post('/', authMiddleware, requireAuth, requireAdmin, validar(schemaCupom), cuponsController.criar);
 router.put('/:id', authMiddleware, requireAuth, requireAdmin, validar(schemaCupomPut), cuponsController.atualizar);

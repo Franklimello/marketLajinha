@@ -117,6 +117,7 @@ export const api = {
   },
   cupons: {
     aplicar: (data) => request('/cupons/aplicar', { method: 'POST', body: JSON.stringify(data) }),
+    listarDisponiveis: (lojaId) => request(`/cupons/disponiveis/${lojaId}`),
   },
   avaliacoes: {
     criar: (data) => request('/avaliacoes', { method: 'POST', body: JSON.stringify(data) }),
