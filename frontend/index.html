@@ -3,28 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>UaiFood - Peça dos melhores estabelecimentos</title>
+    <title>UaiFood em Lajinha MG - Delivery e pedidos online</title>
 
     <!-- SEO Base -->
-    <meta name="description" content="Peça dos melhores restaurantes, lanchonetes e estabelecimentos da sua cidade. Entrega rápida e segura no UaiFood." />
+    <meta name="description" content="Delivery em Lajinha MG: peça dos melhores restaurantes, lanchonetes e estabelecimentos da cidade. Entrega rápida e segura no UaiFood." />
     <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://uaifooddelivery.vercel.app/" />
+    <link rel="canonical" href="https://marketlajinha.com.br/" />
     <meta name="google-site-verification" content="WKbHrteBd7ZVAata6JEWdk1U8D2AAF8Smo41RTP5XFU" />
+    <meta name="geo.region" content="BR-MG" />
+    <meta name="geo.placename" content="Lajinha" />
+    <meta name="ICBM" content="-20.1531, -41.6227" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="UaiFood" />
-    <meta property="og:title" content="UaiFood - Peça dos melhores estabelecimentos" />
-    <meta property="og:description" content="Restaurantes, lanchonetes e muito mais com entrega rápida na sua cidade." />
-    <meta property="og:url" content="https://uaifooddelivery.vercel.app/" />
-    <meta property="og:image" content="https://uaifooddelivery.vercel.app/icons/icon-512.png" />
+    <meta property="og:title" content="UaiFood em Lajinha MG - Delivery e pedidos online" />
+    <meta property="og:description" content="Restaurantes, lanchonetes e muito mais com entrega rápida em Lajinha MG." />
+    <meta property="og:url" content="https://marketlajinha.com.br/" />
+    <meta property="og:image" content="https://marketlajinha.com.br/icons/icon-512.png" />
     <meta property="og:locale" content="pt_BR" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="UaiFood - Peça dos melhores estabelecimentos" />
-    <meta name="twitter:description" content="Restaurantes, lanchonetes e muito mais com entrega rápida na sua cidade." />
-    <meta name="twitter:image" content="https://uaifooddelivery.vercel.app/icons/icon-512.png" />
+    <meta name="twitter:title" content="UaiFood em Lajinha MG - Delivery e pedidos online" />
+    <meta name="twitter:description" content="Restaurantes, lanchonetes e muito mais com entrega rápida em Lajinha MG." />
+    <meta name="twitter:image" content="https://marketlajinha.com.br/icons/icon-512.png" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
@@ -62,17 +65,39 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "UaiFood",
-      "description": "Marketplace com os melhores estabelecimentos da sua cidade",
-      "url": "https://uaifooddelivery.vercel.app",
-      "applicationCategory": "FoodService",
-      "operatingSystem": "All",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "BRL"
-      }
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "UaiFood",
+          "url": "https://marketlajinha.com.br",
+          "inLanguage": "pt-BR"
+        },
+        {
+          "@type": "FoodDeliveryService",
+          "name": "UaiFood",
+          "url": "https://marketlajinha.com.br",
+          "description": "Plataforma de pedidos online e delivery em Lajinha MG.",
+          "areaServed": {
+            "@type": "City",
+            "name": "Lajinha",
+            "containedInPlace": {
+              "@type": "State",
+              "name": "Minas Gerais"
+            }
+          },
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Lajinha",
+            "addressRegion": "MG",
+            "addressCountry": "BR"
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "BRL"
+          }
+        }
+      ]
     }
     </script>
   </head>

@@ -896,15 +896,39 @@ export default function HomePage() {
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'UaiFood',
-    url: 'https://uaifooddelivery.vercel.app',
-    description: 'Marketplace com os melhores estabelecimentos da sua cidade',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: 'https://uaifooddelivery.vercel.app/busca?q={search_term_string}',
-      'query-input': 'required name=search_term_string',
-    },
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        name: 'UaiFood',
+        url: 'https://marketlajinha.com.br',
+        description: 'Delivery em Lajinha MG com restaurantes, lanchonetes e mais.',
+        inLanguage: 'pt-BR',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://marketlajinha.com.br/busca?q={search_term_string}',
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'FoodDeliveryService',
+        name: 'UaiFood',
+        url: 'https://marketlajinha.com.br',
+        areaServed: {
+          '@type': 'City',
+          name: 'Lajinha',
+          containedInPlace: {
+            '@type': 'State',
+            name: 'Minas Gerais',
+          },
+        },
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: 'Lajinha',
+          addressRegion: 'MG',
+          addressCountry: 'BR',
+        },
+      },
+    ],
   }
 
   const hasNextStore = storyGroupIndex >= 0 && storyGroupIndex < storiesGroups.length - 1
@@ -912,8 +936,9 @@ export default function HomePage() {
   return (
     <div className="max-w-lg mx-auto px-4">
       <SEO
-        title="Início"
-        description="Peça dos melhores restaurantes, lanchonetes e estabelecimentos da sua cidade. Entrega rápida e segura."
+        title="Delivery em Lajinha MG"
+        description="Peça online em Lajinha MG com entrega rápida. Encontre restaurantes, lanchonetes e estabelecimentos da cidade no UaiFood."
+        url="https://marketlajinha.com.br/"
         jsonLd={jsonLd}
       />
 

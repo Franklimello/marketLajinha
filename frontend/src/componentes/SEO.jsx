@@ -1,9 +1,20 @@
 import { useEffect } from 'react'
 
 const SITE_NAME = 'UaiFood'
-const DEFAULT_DESCRIPTION = 'Peça dos melhores estabelecimentos da sua cidade. Restaurantes, lanchonetes e muito mais com entrega rápida.'
+const DEFAULT_DESCRIPTION = 'Delivery em Lajinha MG: peça dos melhores estabelecimentos da cidade. Restaurantes, lanchonetes e muito mais com entrega rápida.'
 const DEFAULT_URL = 'https://marketlajinha.com.br'
 const DEFAULT_IMAGE = `${DEFAULT_URL}/icons/icon-512.png`
+
+function normalizeCanonicalUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl || DEFAULT_URL)
+    parsed.hash = ''
+    parsed.search = ''
+    return parsed.toString()
+  } catch {
+    return DEFAULT_URL
+  }
+}
 
 function setMeta(attr, key, content) {
   if (!content) return
@@ -45,6 +56,7 @@ export default function SEO({
     const fullTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME
     const desc = description || DEFAULT_DESCRIPTION
     const pageUrl = url || window.location.href
+    const canonicalUrl = normalizeCanonicalUrl(pageUrl)
     const img = image || DEFAULT_IMAGE
 
     document.title = fullTitle
@@ -54,7 +66,7 @@ export default function SEO({
 
     setMeta('property', 'og:title', fullTitle)
     setMeta('property', 'og:description', desc)
-    setMeta('property', 'og:url', pageUrl)
+    setMeta('property', 'og:url', canonicalUrl)
     setMeta('property', 'og:image', img)
     setMeta('property', 'og:type', type)
     setMeta('property', 'og:site_name', SITE_NAME)
@@ -75,7 +87,7 @@ export default function SEO({
       canonical.rel = 'canonical'
       document.head.appendChild(canonical)
     }
-    canonical.href = pageUrl
+    canonical.href = canonicalUrl
 
     return () => {
       removeJsonLd('seo-jsonld')
