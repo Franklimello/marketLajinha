@@ -1460,7 +1460,9 @@ export default function LojaPage() {
 
         {/* Imagem */}
         {p.imagem_url && (
-          <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-60 object-cover" />
+          <div className="w-full h-64 bg-linear-to-b from-stone-100 to-stone-200 overflow-hidden flex items-center justify-center">
+            <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-contain" />
+          </div>
         )}
 
         <div className="px-4 pt-3">
