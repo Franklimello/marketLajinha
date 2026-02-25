@@ -245,6 +245,8 @@ export default function LojaPage() {
   })
   const [trocoPara, setTrocoPara] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [showSubmitOverlay, setShowSubmitOverlay] = useState(false)
+  const [submitStage, setSubmitStage] = useState(0)
   const [pixData, setPixData] = useState(null)
   const [pixCarregando, setPixCarregando] = useState(false)
   const [copiado, setCopiado] = useState(false)
@@ -257,6 +259,9 @@ export default function LojaPage() {
   const [agendado, setAgendado] = useState(false)
   const [agendadoPara, setAgendadoPara] = useState('')
   const [pedidoCriado, setPedidoCriado] = useState(null)
+  const [trackingProgress, setTrackingProgress] = useState(0.15)
+  const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false)
+  const [totalAnim, setTotalAnim] = useState(0)
 
   const [codigoCupom, setCodigoCupom] = useState('')
   const [cupomAplicado, setCupomAplicado] = useState(null)
@@ -269,6 +274,7 @@ export default function LojaPage() {
   const toastTimer = useRef(null)
   const restoredCartRef = useRef(false)
   const [pageVisible, setPageVisible] = useState(false)
+  const cartButtonRef = useRef(null)
 
   function mostrarToast(msg) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -387,6 +393,61 @@ export default function LojaPage() {
     ? 'opacity-100'
     : 'opacity-0'
 
+  useEffect(() => {
+    if (etapa !== 'checkout') return undefined
+    setCheckoutSheetOpen(false)
+    const raf = requestAnimationFrame(() => setCheckoutSheetOpen(true))
+    return () => cancelAnimationFrame(raf)
+  }, [etapa])
+
+  useEffect(() => {
+    if (!showSubmitOverlay) return undefined
+    setSubmitStage(0)
+    const t = setTimeout(() => setSubmitStage(1), 900)
+    return () => clearTimeout(t)
+  }, [showSubmitOverlay])
+
+  useEffect(() => {
+    if (etapa !== 'confirmado') return undefined
+    const timer = setInterval(() => {
+      setTrackingProgress((prev) => {
+        const next = prev + 0.02
+        return next > 0.94 ? 0.2 : next
+      })
+    }, 120)
+    return () => clearInterval(timer)
+  }, [etapa])
+
+  function runFlyToCart(sourceEl, imageUrl = '') {
+    const targetEl = cartButtonRef.current
+    if (!sourceEl || !targetEl) return
+    const source = sourceEl.getBoundingClientRect()
+    const target = targetEl.getBoundingClientRect()
+    const dot = document.createElement('div')
+    dot.style.position = 'fixed'
+    dot.style.left = `${source.left + source.width / 2 - 18}px`
+    dot.style.top = `${source.top + source.height / 2 - 18}px`
+    dot.style.width = '36px'
+    dot.style.height = '36px'
+    dot.style.borderRadius = '9999px'
+    dot.style.zIndex = '120'
+    dot.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)'
+    dot.style.transition = 'transform 560ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 560ms ease'
+    dot.style.background = imageUrl ? `center / cover no-repeat url("${imageUrl}")` : 'linear-gradient(135deg,#ef4444,#f59e0b)'
+    dot.style.pointerEvents = 'none'
+    document.body.appendChild(dot)
+
+    const dx = target.left + target.width / 2 - (source.left + source.width / 2)
+    const dy = target.top + target.height / 2 - (source.top + source.height / 2)
+    requestAnimationFrame(() => {
+      dot.style.transform = `translate(${dx}px, ${dy}px) scale(0.22)`
+      dot.style.opacity = '0.25'
+      targetEl.classList.add('animate-bounce')
+      setTimeout(() => targetEl.classList.remove('animate-bounce'), 360)
+    })
+    setTimeout(() => dot.remove(), 620)
+  }
+
   // ---- Carrinho ----
   const addItemDireto = useCallback((produto) => {
     setProdutoDetalhe(produto)
@@ -396,7 +457,7 @@ export default function LojaPage() {
     setObsDetalhe('')
   }, [])
 
-  function addItemConfigurado() {
+  function addItemConfigurado(e) {
     const p = produtoDetalhe
     const variacao = p.variacoes?.find((v) => v.id === variacaoSel) || null
     const adds = p.adicionais?.filter((a) => adicionaisSel.includes(a.id)) || []
@@ -414,6 +475,7 @@ export default function LojaPage() {
       },
     }))
     mostrarToast(`${qtdDetalhe}x ${p.nome} adicionado`)
+    runFlyToCart(e?.currentTarget, p.imagem_url)
     setProdutoDetalhe(null)
     setQtdDetalhe(1)
     setObsDetalhe('')
@@ -465,6 +527,24 @@ export default function LojaPage() {
   const taxaEntrega = tipoEntrega === 'RETIRADA' ? 0 : (bairroSel2 ? Number(bairroSel2.taxa) : taxaPadraoLoja)
   const descontoCupom = cupomAplicado ? cupomAplicado.desconto : 0
   const totalPedido = Math.max(0, subtotal - descontoCupom + taxaEntrega)
+
+  useEffect(() => {
+    let raf = null
+    const start = performance.now()
+    const from = Number.isFinite(totalAnim) ? totalAnim : 0
+    const to = Number(totalPedido || 0)
+    const duration = 260
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setTotalAnim(from + (to - from) * eased)
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [totalPedido])
 
   async function handleAplicarCupom() {
     if (!codigoCupom.trim()) return
@@ -539,7 +619,7 @@ export default function LojaPage() {
     }))
   }
 
-  const addComboAoCarrinho = useCallback((combo) => {
+  const addComboAoCarrinho = useCallback((combo, sourceEl) => {
     const chave = `combo__${combo.id}`
     setCarrinho((prev) => ({
       ...prev,
@@ -553,6 +633,8 @@ export default function LojaPage() {
         comboItens: combo.itens,
       },
     }))
+    mostrarToast(`1x ${combo.nome} adicionado`)
+    runFlyToCart(sourceEl, combo.imagem_url)
   }, [])
 
   function qtdProduto(produtoId) {
@@ -563,6 +645,8 @@ export default function LojaPage() {
 
   async function handleCriarPedido(e) {
     e.preventDefault()
+    setShowSubmitOverlay(true)
+    setSubmitStage(0)
     setEnviando(true)
     const payloadPedido = {
       loja_id: loja.id,
@@ -603,6 +687,8 @@ export default function LojaPage() {
 
     try {
       const pedido = await api.pedidos.criar(payloadPedido)
+      setSubmitStage(2)
+      await new Promise((resolve) => setTimeout(resolve, 420))
       setPedidoCriado(pedido)
       addLocalOrderHistory(pedido).catch(() => {})
       const pagarOnline = formPedido._tipoPag === 'online' && formPedido.forma_pagamento === 'PIX' && loja.pix_chave
@@ -629,7 +715,10 @@ export default function LojaPage() {
         alert(err.message)
       }
     }
-    finally { setEnviando(false) }
+    finally {
+      setEnviando(false)
+      setTimeout(() => setShowSubmitOverlay(false), 220)
+    }
   }
 
   function handleFinalizarPix() {
@@ -713,6 +802,22 @@ export default function LojaPage() {
                 ? `Agendado para ${new Date(pedidoCriado.agendado_para).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
                 : 'Acompanhe o status em "Meus Pedidos"'}
           </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-stone-200 p-4 mb-4">
+          <p className="text-xs font-semibold text-stone-700 mb-2">Acompanhamento do pedido</p>
+          <div className="relative h-2 rounded-full bg-stone-200 overflow-hidden">
+            <div className="absolute left-0 top-0 h-full bg-linear-to-r from-amber-400 to-red-500 transition-[width] duration-150" style={{ width: `${Math.round(trackingProgress * 100)}%` }} />
+            <FiTruck
+              className="absolute -top-2 text-red-600 text-base transition-[left] duration-150"
+              style={{ left: `calc(${Math.round(trackingProgress * 100)}% - 8px)` }}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2 mt-2 text-[10px] text-stone-500">
+            <span className="text-center">Recebido</span>
+            <span className="text-center">Preparando</span>
+            <span className="text-center">A caminho</span>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm mb-4">
@@ -895,8 +1000,16 @@ export default function LojaPage() {
         : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
 
     return (
-      <div className={`max-w-lg mx-auto px-4 py-2 pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
-        <button onClick={() => setEtapa('cardapio')} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-3"><FiChevronLeft /> Voltar</button>
+      <div className="fixed inset-0 z-110">
+        <button
+          type="button"
+          onClick={() => setEtapa('cardapio')}
+          className={`absolute inset-0 bg-black/45 transition-opacity duration-300 ${checkoutSheetOpen ? 'opacity-100' : 'opacity-0'}`}
+          aria-label="Fechar carrinho"
+        />
+        <div className={`absolute inset-x-0 bottom-0 bg-stone-50 rounded-t-3xl max-h-[92vh] overflow-y-auto transition-transform duration-300 ease-out ${checkoutSheetOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className={`max-w-lg mx-auto px-4 py-2 pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+            <button onClick={() => setEtapa('cardapio')} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-3"><FiChevronLeft /> Voltar</button>
         <h2 className="text-2xl font-extrabold text-red-700 mb-1">ticket</h2>
         <p className="text-sm text-stone-500 mb-4">Confira os itens e escolha como deseja pagar.</p>
         <button
@@ -961,7 +1074,7 @@ export default function LojaPage() {
               <span className="font-medium text-green-600">- R$ {descontoCupom.toFixed(2).replace('.', ',')}</span>
             </div>
           )}
-          <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-red-700">R$ {totalPedido.toFixed(2).replace('.', ',')}</span></div>
+          <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-stone-100"><span>Total</span><span className="text-red-700 transition-all duration-200">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</span></div>
         </div>
 
         {/* Tipo de entrega */}
@@ -1264,23 +1377,25 @@ export default function LojaPage() {
             </div>
           )}
 
-          <div className="h-28" />
-          <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-2">
+          <div className="h-24" />
+          <div className="sticky bottom-0 left-0 right-0 z-40 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
             <div className="w-full max-w-lg mx-auto bg-white/95 backdrop-blur rounded-2xl border border-stone-200 shadow-lg p-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] text-stone-500">total</p>
-                <p className="text-2xl leading-none font-extrabold text-red-700">R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
+                <p className="text-2xl leading-none font-extrabold text-red-700 transition-all duration-200">R$ {Number(totalAnim || totalPedido).toFixed(2).replace('.', ',')}</p>
               </div>
               <button
                 type="submit"
                 disabled={!checkoutPodeEnviar}
-                className="px-5 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 disabled:opacity-50 text-sm"
+                className="px-5 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all text-sm"
               >
                 {labelBotaoCheckout}
               </button>
             </div>
           </div>
         </form>
+          </div>
+        </div>
       </div>
     )
   }
@@ -1398,7 +1513,7 @@ export default function LojaPage() {
           <button
             onClick={addItemConfigurado}
             disabled={temVariacoes && !variacaoSel}
-            className="w-full max-w-lg mx-auto block bg-red-600 text-white py-3.5 rounded-xl shadow-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-semibold text-sm"
+            className="w-full max-w-lg mx-auto block bg-red-600 text-white py-3.5 rounded-xl shadow-lg hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all font-semibold text-sm"
           >
             põe no ticket - R$ {precoTotal.toFixed(2).replace('.', ',')}
           </button>
@@ -1694,8 +1809,8 @@ export default function LojaPage() {
                           )}
                         </div>
                         <button
-                          onClick={() => addComboAoCarrinho(c)}
-                          className="w-9 h-9 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-colors shadow-md"
+                          onClick={(e) => addComboAoCarrinho(c, e.currentTarget)}
+                          className="w-9 h-9 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 active:scale-95 transition-all shadow-md"
                         >
                           <FiPlus size={18} />
                         </button>
@@ -1773,11 +1888,30 @@ export default function LojaPage() {
 
       {totalItens > 0 && aberta && (
         <div className="fixed bottom-16 left-0 right-0 z-60 px-4 pb-2">
-          <button onClick={irParaCheckout} className="w-full max-w-lg mx-auto flex items-center justify-between bg-red-600 text-white px-5 py-3.5 rounded-xl shadow-lg hover:bg-red-700 transition-colors">
+          <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full max-w-lg mx-auto flex items-center justify-between bg-red-600 text-white px-5 py-3.5 rounded-xl shadow-lg hover:bg-red-700 transition-all">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
-            <span className="font-bold">R$ {subtotal.toFixed(2).replace('.', ',')}</span>
+            <span className="font-bold">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>
           </button>
+        </div>
+      )}
+
+      {showSubmitOverlay && (
+        <div className="fixed inset-0 z-120 bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-stone-200 p-4">
+            <p className="text-sm font-bold text-stone-900 mb-3">Finalizando pedido</p>
+            <div className="relative h-2 rounded-full bg-stone-200 overflow-hidden mb-4">
+              <div
+                className="absolute left-0 top-0 h-full bg-linear-to-r from-amber-400 to-red-500 transition-[width] duration-500"
+                style={{ width: submitStage === 0 ? '30%' : submitStage === 1 ? '68%' : '100%' }}
+              />
+            </div>
+            <div className="space-y-2 text-sm">
+              <p className={`transition-colors ${submitStage >= 0 ? 'text-stone-800 font-semibold' : 'text-stone-400'}`}>🔄 Enviando pedido...</p>
+              <p className={`transition-colors ${submitStage >= 1 ? 'text-amber-700 font-semibold' : 'text-stone-400'}`}>🟡 Restaurante recebendo...</p>
+              <p className={`transition-colors ${submitStage >= 2 ? 'text-green-700 font-semibold' : 'text-stone-400'}`}>🟢 Confirmado!</p>
+            </div>
+          </div>
         </div>
       )}
 

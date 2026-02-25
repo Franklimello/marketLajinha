@@ -9,8 +9,9 @@ export function setTokenGetter(fn) {
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
   const token = await getToken()
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   }
@@ -97,6 +98,15 @@ export const api = {
     criar: (data) => request('/promocoes', { method: 'POST', body: JSON.stringify(data) }),
     atualizar: (id, data) => request(`/promocoes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     excluir: (id) => request(`/promocoes/${id}`, { method: 'DELETE' }),
+  },
+  stories: {
+    listarAtivas: () => request('/stories/active'),
+    listarMinhas: () => request('/stories/mine'),
+    criar: (restaurantId, formData) => request(`/restaurants/${restaurantId}/stories`, {
+      method: 'POST',
+      body: formData,
+    }),
+    excluir: (id) => request(`/stories/${id}`, { method: 'DELETE' }),
   },
   motoboys: {
     listar: () => request('/motoboys'),

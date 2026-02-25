@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram, FiTrendingUp, FiBell } from 'react-icons/fi'
+import { FiGrid, FiShoppingBag, FiPackage, FiClipboard, FiSettings, FiLogOut, FiMenu, FiX, FiMapPin, FiShield, FiPrinter, FiTag, FiTruck, FiGift, FiDownload, FiShare, FiInstagram, FiTrendingUp, FiBell, FiCamera } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { io } from 'socket.io-client'
 import { api } from '../api/client'
@@ -19,6 +19,7 @@ const NAV = [
   { to: '/bairros', icon: FiMapPin, label: 'Bairros e Taxas' },
   { to: '/cupons', icon: FiTag, label: 'Cupons' },
   { to: '/promocoes', icon: FiTrendingUp, label: 'Promoções' },
+  { to: '/stories', icon: FiCamera, label: 'Stories' },
   { to: '/impressoras', icon: FiPrinter, label: 'Impressoras' },
   { to: '/combos', icon: FiGift, label: 'Combos' },
   { to: '/motoboys', icon: FiTruck, label: 'Motoboys' },

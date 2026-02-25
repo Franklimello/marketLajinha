@@ -16,6 +16,8 @@ if (missing.length > 0) {
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -24,6 +26,7 @@ const { errorHandler } = require('./middleware');
 const { initSocket } = require('./config/socket');
 const { getRedis } = require('./config/redis');
 const { startWeeklyReportJob } = require('./jobs/weeklyReportJob');
+const { startStoriesExpirationJob } = require('./jobs/storiesExpirationJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -97,6 +100,20 @@ app.use('/auth/forgot-password', forgotLimiter);
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
+// ── Uploads públicos (somente arquivos estáticos) ──
+const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsStoriesDir = path.join(uploadsDir, 'stories');
+fs.mkdirSync(uploadsStoriesDir, { recursive: true });
+app.use('/uploads', express.static(uploadsDir, {
+  dotfiles: 'deny',
+  index: false,
+  maxAge: IS_PROD ? '7d' : 0,
+  fallthrough: false,
+  setHeaders: (res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  },
+}));
+
 // ── Health check ──
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -119,6 +136,7 @@ initSocket(server, allowedOrigins);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}] (WebSocket ativo)`);
   startWeeklyReportJob();
+  startStoriesExpirationJob();
 });
 
 function gracefulShutdown(signal) {

@@ -111,6 +111,9 @@ export const api = {
   promocoes: {
     listarPorLoja: (lojaId) => cachedRequest(`/promocoes/loja/${lojaId}`),
   },
+  stories: {
+    listarAtivas: () => request('/stories/active'),
+  },
   pedidos: {
     criar: (data) => request('/pedidos', { method: 'POST', body: JSON.stringify(data) }),
     meus: () => request('/pedidos/meus'),

@@ -34,6 +34,8 @@ const HOME_CACHE_KEY = 'homeLojasCache'
 const HOME_CACHE_TTL = 1000 * 60 * 5
 const GEO_CITY_CACHE_KEY = 'geoCityCache'
 const GEO_CITY_CACHE_TTL = 1000 * 60 * 60 * 6
+const STORIES_SEEN_KEY = 'storiesSeenById'
+const STORY_DURATION_MS = 6000
 
 const HOME_BANNERS = [
   {
@@ -116,6 +118,17 @@ function normalizeText(value) {
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
+}
+
+function getStoriesSeenMap() {
+  const data = getLocalItem(STORIES_SEEN_KEY, {})
+  return data && typeof data === 'object' ? data : {}
+}
+
+function markStoryAsSeen(storyId) {
+  if (!storyId) return
+  const next = { ...getStoriesSeenMap(), [storyId]: Date.now() }
+  setLocalItem(STORIES_SEEN_KEY, next)
 }
 
 function iconCategoria(nome) {
@@ -201,6 +214,107 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
         </div>
       </motion.div>
     </motion.button>
+  )
+})
+
+const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
+  if (!Array.isArray(grupos) || grupos.length === 0) return null
+
+  return (
+    <section className="mb-5" aria-label="Stories das lojas">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-extrabold text-stone-900">UaiFood Stories</h3>
+        <span className="text-[11px] text-stone-500">{grupos.length} loja(s)</span>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+        {grupos.map((g, idx) => {
+          const hasUnseen = (g.stories || []).some((s) => !seenMap[s.id])
+          return (
+            <button
+              key={g.restaurant_id}
+              type="button"
+              onClick={() => onOpen(idx)}
+              className="shrink-0 w-[84px] text-center"
+            >
+              <div className={`mx-auto rounded-full p-[2px] ${hasUnseen ? 'bg-linear-to-r from-red-500 to-amber-400' : 'bg-stone-300'}`}>
+                <div className="w-[72px] h-[72px] rounded-full bg-white p-0.5">
+                  <img
+                    src={g.restaurant_logo || '/icons/icon-192.png'}
+                    alt={g.restaurant_name}
+                    className="w-full h-full rounded-full object-cover"
+                    loading={idx < 6 ? 'eager' : 'lazy'}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-stone-700 mt-1.5 line-clamp-1">{g.restaurant_name}</p>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+})
+
+const StoryViewerModal = memo(function StoryViewerModal({
+  grupos,
+  groupIndex,
+  storyIndex,
+  progress,
+  onPrev,
+  onNext,
+  onClose,
+}) {
+  if (groupIndex < 0 || !grupos[groupIndex]) return null
+  const grupo = grupos[groupIndex]
+  const story = grupo?.stories?.[storyIndex]
+  if (!story) return null
+
+  return (
+    <div className="fixed inset-0 z-130 bg-black/92 backdrop-blur-xs animate-scale-in">
+      <div className="w-full max-w-lg mx-auto h-full relative text-white select-none">
+        <div className="absolute top-2 left-3 right-3 z-20 flex gap-1">
+          {(grupo.stories || []).map((s, i) => (
+            <div key={s.id} className="h-1 flex-1 bg-white/25 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white transition-[width] duration-75"
+                style={{
+                  width: i < storyIndex ? '100%' : i === storyIndex ? `${Math.min(100, Math.max(0, progress * 100))}%` : '0%',
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <img src={grupo.restaurant_logo || '/icons/icon-192.png'} alt="" className="w-8 h-8 rounded-full object-cover" />
+            <p className="text-sm font-semibold truncate">{grupo.restaurant_name}</p>
+          </div>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-black/45 inline-flex items-center justify-center">
+            <FiX size={18} />
+          </button>
+        </div>
+
+        <div className="absolute inset-0 z-10" onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect()
+          const leftHalf = e.clientX < rect.left + rect.width / 2
+          if (leftHalf) onPrev()
+          else onNext()
+        }}>
+          <img src={story.image_url} alt="" className="w-full h-full object-contain" />
+        </div>
+
+        <div className="absolute bottom-6 left-4 right-4 z-20">
+          <Link
+            to={`/loja/${grupo.restaurant_slug}`}
+            onClick={onClose}
+            className="w-full inline-flex items-center justify-center py-3 rounded-xl bg-red-600 text-white font-semibold text-sm"
+          >
+            Pedir agora
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 })
 
@@ -410,12 +524,19 @@ export default function HomePage() {
   const [cidadePadrao, setCidadePadrao] = useState('')
   const [bairroPadrao, setBairroPadrao] = useState('')
   const [cidadeGeo, setCidadeGeo] = useState('')
+  const [storiesGroups, setStoriesGroups] = useState([])
+  const [storiesSeenMap, setStoriesSeenMap] = useState(() => getStoriesSeenMap())
+  const [storyModalOpen, setStoryModalOpen] = useState(false)
+  const [storyGroupIndex, setStoryGroupIndex] = useState(-1)
+  const [storyIndex, setStoryIndex] = useState(0)
+  const [storyProgress, setStoryProgress] = useState(0)
   const [taxaBairroPorLoja, setTaxaBairroPorLoja] = useState({})
   const [visibleCount, setVisibleCount] = useState(12)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const catRef = useRef(null)
   const lojasComTaxaCarregadaRef = useRef(new Set())
+  const storyTouchStartYRef = useRef(null)
 
   useEffect(() => {
     const cached = getLocalItem(HOME_CACHE_KEY, null)
@@ -434,6 +555,13 @@ export default function HomePage() {
         if (!cached?.data?.length) setErro(e.message)
       })
       .finally(() => setCarregando(false))
+  }, [])
+
+  useEffect(() => {
+    api.stories
+      .listarAtivas()
+      .then((data) => setStoriesGroups(Array.isArray(data) ? data : []))
+      .catch(() => setStoriesGroups([]))
   }, [])
 
   useEffect(() => {
@@ -579,6 +707,84 @@ export default function HomePage() {
     })
   }, [bairroPadrao, lojasVisiveis])
 
+  function openStories(groupIdx) {
+    if (!storiesGroups[groupIdx]) return
+    setStoryGroupIndex(groupIdx)
+    setStoryIndex(0)
+    setStoryProgress(0)
+    setStoryModalOpen(true)
+  }
+
+  function closeStories() {
+    setStoryModalOpen(false)
+    setStoryGroupIndex(-1)
+    setStoryIndex(0)
+    setStoryProgress(0)
+  }
+
+  function nextStory() {
+    const grupo = storiesGroups[storyGroupIndex]
+    if (!grupo) return closeStories()
+    const max = (grupo.stories || []).length
+    if (storyIndex < max - 1) {
+      setStoryIndex((prev) => prev + 1)
+      setStoryProgress(0)
+      return
+    }
+    closeStories()
+  }
+
+  function prevStory() {
+    if (storyIndex > 0) {
+      setStoryIndex((prev) => prev - 1)
+      setStoryProgress(0)
+      return
+    }
+    closeStories()
+  }
+
+  useEffect(() => {
+    if (!storyModalOpen) return undefined
+    const currentStory = storiesGroups?.[storyGroupIndex]?.stories?.[storyIndex]
+    if (!currentStory?.id) return undefined
+
+    markStoryAsSeen(currentStory.id)
+    setStoriesSeenMap(getStoriesSeenMap())
+    return undefined
+  }, [storyModalOpen, storyGroupIndex, storyIndex, storiesGroups])
+
+  useEffect(() => {
+    if (!storyModalOpen) return undefined
+    setStoryProgress(0)
+    const startedAt = Date.now()
+    const timer = setInterval(() => {
+      const p = (Date.now() - startedAt) / STORY_DURATION_MS
+      if (p >= 1) {
+        clearInterval(timer)
+        setStoryProgress(1)
+        nextStory()
+        return
+      }
+      setStoryProgress(p)
+    }, 80)
+
+    return () => {
+      clearInterval(timer)
+    }
+  }, [storyModalOpen, storyGroupIndex, storyIndex])
+
+  function onStoryPointerDown(e) {
+    storyTouchStartYRef.current = e.clientY
+  }
+
+  function onStoryPointerUp(e) {
+    const startY = storyTouchStartYRef.current
+    if (typeof startY !== 'number') return
+    const deltaY = e.clientY - startY
+    storyTouchStartYRef.current = null
+    if (Math.abs(deltaY) > 70) closeStories()
+  }
+
   if (carregando) {
     return (
       <div className="max-w-lg mx-auto px-4">
@@ -676,6 +882,8 @@ export default function HomePage() {
           </button>
         )}
       </div>
+
+      <StoriesRail grupos={storiesGroups} seenMap={storiesSeenMap} onOpen={openStories} />
 
       <HomeCarousel />
 
@@ -824,6 +1032,30 @@ export default function HomePage() {
           </a>
         </div>
       </div>
+
+      <AnimatePresence>
+        {storyModalOpen && (
+          <motion.div
+            key="story-modal"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            onPointerDown={onStoryPointerDown}
+            onPointerUp={onStoryPointerUp}
+          >
+            <StoryViewerModal
+              grupos={storiesGroups}
+              groupIndex={storyGroupIndex}
+              storyIndex={storyIndex}
+              progress={storyProgress}
+              onPrev={prevStory}
+              onNext={nextStory}
+              onClose={closeStories}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

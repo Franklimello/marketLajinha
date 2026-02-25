@@ -51,10 +51,29 @@ model Lojas {
   mensagens       Mensagem[]
   cobrancas       CobrancaLojista[]
   promocoes       Promocao[]
+  stories         LojaStory[]
   token_impressao String    @default("")
 
   @@index([ativa, cidade])
   @@index([categoria_negocio])
+}
+
+model LojaStory {
+  id           String   @id @default(cuid())
+  restaurant_id String
+  image_url    String
+  media_type   String   @default("image")
+  link_url     String?
+  coupon_code  String?
+  is_sponsored Boolean  @default(false)
+  created_at   DateTime @default(now())
+  expires_at   DateTime
+  is_active    Boolean  @default(true)
+
+  restaurant Lojas @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@index([restaurant_id, is_active, expires_at], map: "idx_restaurant_stories_active")
+  @@map("restaurant_stories")
 }
 
 model Usuarios {
