@@ -54,6 +54,7 @@ export default function MinhaLoja() {
         taxa_entrega: parseFloat(loja.taxa_entrega) || 0,
         pedido_minimo: parseFloat(loja.pedido_minimo) || 0,
         tempo_entrega: loja.tempo_entrega || '',
+        modo_atendimento: loja.modo_atendimento || 'AMBOS',
         pix_tipo: loja.pix_tipo || '',
         pix_chave: loja.pix_chave || '',
         pix_nome_titular: loja.pix_nome_titular || '',
@@ -352,6 +353,35 @@ export default function MinhaLoja() {
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Tempo de entrega</label>
             <input name="tempo_entrega" value={form.tempo_entrega} onChange={handleChange} placeholder="ex: 40 - 60 min" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-2">Modo de atendimento *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                { value: 'BALCAO', label: 'Somente balcão' },
+                { value: 'ENTREGA', label: 'Somente entrega' },
+                { value: 'AMBOS', label: 'Balcão e entrega' },
+              ].map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${
+                    form.modo_atendimento === opt.value
+                      ? 'border-amber-500 bg-amber-50'
+                      : 'border-stone-200 hover:border-stone-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="modo_atendimento"
+                    value={opt.value}
+                    checked={form.modo_atendimento === opt.value}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Pedido mínimo (R$)</label>

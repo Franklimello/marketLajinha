@@ -29,6 +29,7 @@ model Lojas {
   forcar_status         Boolean   @default(false)
   taxa_entrega          Float     @default(0)
   tempo_entrega         String    @default("")
+  modo_atendimento      String    @default("AMBOS")
   pix_tipo              String    @default("")
   pix_chave             String    @default("")
   pix_nome_titular      String    @default("")

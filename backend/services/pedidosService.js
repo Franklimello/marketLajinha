@@ -133,6 +133,17 @@ async function criar(data) {
   }
 
   const isRetirada = pedidoData.tipo_entrega === 'RETIRADA';
+  const modoAtendimento = String(lojaCompleta.modo_atendimento || 'AMBOS');
+  if (modoAtendimento === 'ENTREGA' && isRetirada) {
+    const err = new Error('Esta loja atende apenas por entrega.');
+    err.status = 400;
+    throw err;
+  }
+  if (modoAtendimento === 'BALCAO' && !isRetirada) {
+    const err = new Error('Esta loja atende apenas retirada no balcão.');
+    err.status = 400;
+    throw err;
+  }
   const taxaEntrega = isRetirada ? 0 : (Number(pedidoData.taxa_entrega) || 0);
   if (isRetirada) {
     pedidoData.taxa_entrega = 0;

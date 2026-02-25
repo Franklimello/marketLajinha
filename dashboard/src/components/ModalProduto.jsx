@@ -4,6 +4,16 @@ import { uploadImagem } from '../config/firebase'
 import { FiUpload, FiCamera, FiImage, FiPlus, FiTrash2 } from 'react-icons/fi'
 
 const TAMANHOS_PADRAO = ['P', 'M', 'G', 'GG']
+const TAMANHOS_ML_PADRAO = ['100ML', '200ML', '300ML', '400ML', '500ML', '600ML', '700ML', '800ML', '900ML', '1L']
+const TAMANHOS_RAPIDOS = [...TAMANHOS_PADRAO, ...TAMANHOS_ML_PADRAO]
+
+function parseIngredientes(texto) {
+  return String(texto || '')
+    .split(/[,;\n]/)
+    .map((i) => i.trim())
+    .filter(Boolean)
+    .filter((item, idx, arr) => arr.findIndex((x) => x.toLowerCase() === item.toLowerCase()) === idx)
+}
 
 export default function ModalProduto({ lojaId, produto, categoriaInicial, categoriasExistentes = [], onFechar, onSalvo }) {
   const [form, setForm] = useState({
@@ -18,8 +28,11 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   const [carregando, setCarregando] = useState(false)
   const [novaCategoria, setNovaCategoria] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState('info')
+  const [ingredientes, setIngredientes] = useState([])
+  const [novoIngrediente, setNovoIngrediente] = useState('')
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
+  const autoAdicionaisRef = useRef(false)
 
   useEffect(() => {
     if (produto) {
@@ -34,8 +47,11 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       })
       setVariacoes((produto.variacoes || []).map((v) => ({ nome: v.nome, preco: Number(v.preco) })))
       setAdicionais((produto.adicionais || []).map((a) => ({ nome: a.nome, preco: Number(a.preco) })))
+      setIngredientes(parseIngredientes(produto.descricao || ''))
       setImagemFile(null)
       setImagemPreview(null)
+      setNovoIngrediente('')
+      autoAdicionaisRef.current = false
     } else {
       setForm({
         nome: '', descricao: '', preco: 0, estoque: 0,
@@ -43,6 +59,9 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       })
       setVariacoes([])
       setAdicionais([])
+      setIngredientes([])
+      setNovoIngrediente('')
+      autoAdicionaisRef.current = false
     }
   }, [produto, categoriaInicial])
 
@@ -52,6 +71,9 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       ...prev,
       [name]: type === 'checkbox' ? checked : ['preco', 'estoque'].includes(name) ? (parseFloat(value) || 0) : value,
     }))
+    if (name === 'descricao') {
+      setIngredientes(parseIngredientes(value))
+    }
   }
 
   function handleFileChange(e) {
@@ -79,7 +101,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   }
 
   function isTamanhoPadrao(nome) {
-    return TAMANHOS_PADRAO.includes(String(nome || '').trim().toUpperCase())
+    return TAMANHOS_RAPIDOS.includes(String(nome || '').trim().toUpperCase())
   }
 
   function indiceVariacaoPorNome(nome) {
@@ -115,6 +137,45 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   function handleAdicionalChange(i, field, value) {
     setAdicionais((prev) => prev.map((a, idx) => idx === i ? { ...a, [field]: field === 'preco' ? (parseFloat(value) || 0) : value } : a))
   }
+
+  function setIngredientesNoFormulario(lista) {
+    const limpa = lista
+      .map((i) => String(i || '').trim())
+      .filter(Boolean)
+      .filter((item, idx, arr) => arr.findIndex((x) => x.toLowerCase() === item.toLowerCase()) === idx)
+    setIngredientes(limpa)
+    setForm((prev) => ({ ...prev, descricao: limpa.join(', ') }))
+  }
+
+  function addIngrediente() {
+    const valor = String(novoIngrediente || '').trim()
+    if (!valor) return
+    setIngredientesNoFormulario([...ingredientes, valor])
+    setNovoIngrediente('')
+  }
+
+  function removeIngrediente(nome) {
+    setIngredientesNoFormulario(ingredientes.filter((i) => i.toLowerCase() !== String(nome).toLowerCase()))
+  }
+
+  function sincronizarIngredientesComoAdicionais() {
+    if (ingredientes.length === 0) return
+    setAdicionais((prev) => {
+      const existentes = new Set(prev.map((a) => String(a.nome || '').trim().toLowerCase()))
+      const novos = ingredientes
+        .filter((ing) => !existentes.has(String(ing || '').trim().toLowerCase()))
+        .map((ing) => ({ nome: ing, preco: 0 }))
+      return [...prev, ...novos]
+    })
+  }
+
+  useEffect(() => {
+    if (produto) return
+    if (autoAdicionaisRef.current) return
+    if (ingredientes.length === 0) return
+    setAdicionais((prev) => (prev.length > 0 ? prev : ingredientes.map((ing) => ({ nome: ing, preco: 0 }))))
+    autoAdicionaisRef.current = true
+  }, [produto, ingredientes])
 
   const imagemExibida = imagemPreview || form.imagem_url
 
@@ -222,6 +283,35 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-1">Descrição / Ingredientes</label>
                 <textarea name="descricao" value={form.descricao} onChange={handleChange} rows={3} placeholder="ex: pão, bife, maionese, milho, alface..." className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+                <div className="mt-2 rounded-xl border border-stone-200 p-3 bg-stone-50">
+                  <p className="text-xs font-medium text-stone-700 mb-2">Ingredientes (entrada rápida)</p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {ingredientes.length === 0 && (
+                      <span className="text-xs text-stone-400">Nenhum ingrediente adicionado ainda.</span>
+                    )}
+                    {ingredientes.map((ing) => (
+                      <span key={ing} className="inline-flex items-center gap-1.5 text-xs bg-white border border-stone-200 text-stone-700 px-2 py-1 rounded-full">
+                        {ing}
+                        <button type="button" onClick={() => removeIngrediente(ing)} className="text-red-500 hover:text-red-700 leading-none">&times;</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={novoIngrediente}
+                      onChange={(e) => setNovoIngrediente(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addIngrediente())}
+                      placeholder="Adicionar ingrediente (ex: queijo prato)"
+                      className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white"
+                    />
+                    <button type="button" onClick={addIngrediente} className="px-3 py-2 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700">
+                      Adicionar
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-stone-400 mt-2">
+                    Os ingredientes são usados como adicionais padrão (preço R$ 0,00) e você ainda pode criar adicionais personalizados.
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -299,7 +389,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                 Defina tamanhos/variações para este produto. Ex: P, M, G ou 300ml, 500ml. Cada tamanho tem seu preço próprio.
               </p>
               <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
-                <p className="text-xs font-medium text-stone-600">Tamanhos rápidos</p>
+                <p className="text-xs font-medium text-stone-600">Tamanhos rápidos (tradicionais)</p>
                 {TAMANHOS_PADRAO.map((tam) => {
                   const idx = indiceVariacaoPorNome(tam)
                   const ativo = idx >= 0
@@ -336,6 +426,50 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                     </div>
                   )
                 })}
+                <div className="pt-1">
+                  <p className="text-xs font-medium text-stone-600 mb-2">Tamanhos rápidos em ml</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {TAMANHOS_ML_PADRAO.map((tam) => {
+                      const idx = indiceVariacaoPorNome(tam)
+                      const ativo = idx >= 0
+                      const precoAtual = ativo ? variacoes[idx].preco : 0
+                      const label = tam === '1L' ? '1 litro' : tam.toLowerCase()
+
+                      return (
+                        <div key={tam} className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleTamanhoPadrao(tam)}
+                            className={`w-16 h-9 rounded-lg text-[11px] font-bold border transition-colors ${
+                              ativo
+                                ? 'bg-amber-600 border-amber-600 text-white'
+                                : 'bg-white border-stone-300 text-stone-600 hover:border-amber-400'
+                            }`}
+                            title={label}
+                          >
+                            {label}
+                          </button>
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={precoAtual}
+                              disabled={!ativo}
+                              onFocus={() => { if (!ativo) toggleTamanhoPadrao(tam) }}
+                              onChange={(e) => setPrecoTamanhoPadrao(tam, e.target.value)}
+                              placeholder={`Preço ${label}`}
+                              className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 ${
+                                ativo ? 'border-stone-300 bg-white' : 'border-stone-200 bg-stone-100 text-stone-400'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
                 <p className="text-[11px] text-stone-400">
                   Toque no tamanho para ativar/desativar. Com os tamanhos ativos, cada um usa seu próprio preço.
                 </p>
@@ -391,6 +525,18 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <p className="text-xs text-stone-400">
                 Defina adicionais opcionais. O cliente pode escolher vários. Ex: Cheddar, Bacon, Bife extra.
               </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={sincronizarIngredientesComoAdicionais}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-amber-300 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 transition-colors"
+                >
+                  <FiPlus /> Usar ingredientes como adicionais
+                </button>
+                <span className="text-[11px] text-stone-400">
+                  Adiciona os ingredientes que ainda não existem na lista de adicionais.
+                </span>
+              </div>
               <div className="space-y-2">
                 {adicionais.map((a, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -418,7 +564,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                 ))}
               </div>
               <button type="button" onClick={addAdicional} className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium">
-                <FiPlus /> Adicionar item
+                <FiPlus /> Adicionar adicional personalizado
               </button>
             </>
           )}

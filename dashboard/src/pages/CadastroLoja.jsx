@@ -18,6 +18,7 @@ export default function CadastroLoja() {
     cidade: '',
     logo_url: '',
     taxa_entrega: 0,
+    modo_atendimento: 'AMBOS',
   })
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
@@ -134,6 +135,7 @@ export default function CadastroLoja() {
         cidade: form.cidade,
         logo_url,
         taxa_entrega: form.taxa_entrega,
+        modo_atendimento: form.modo_atendimento,
       }
 
       const lojaCriada = await api.lojas.criar(dadosLoja)
@@ -323,6 +325,35 @@ export default function CadastroLoja() {
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-2">Modo de atendimento *</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      { value: 'BALCAO', label: 'Somente balcão' },
+                      { value: 'ENTREGA', label: 'Somente entrega' },
+                      { value: 'AMBOS', label: 'Balcão e entrega' },
+                    ].map((opt) => (
+                      <label
+                        key={opt.value}
+                        className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${
+                          form.modo_atendimento === opt.value
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-stone-200 hover:border-stone-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="modo_atendimento"
+                          value={opt.value}
+                          checked={form.modo_atendimento === opt.value}
+                          onChange={handleChange}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">Taxa de entrega (R$)</label>
                   <input

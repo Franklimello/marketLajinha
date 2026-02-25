@@ -1,0 +1,2 @@
+ALTER TABLE "Lojas"
+ADD COLUMN "modo_atendimento" TEXT NOT NULL DEFAULT 'AMBOS';

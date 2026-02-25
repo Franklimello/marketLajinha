@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const modoAtendimentoEnum = z.enum(['ENTREGA', 'BALCAO', 'AMBOS']);
 
 const schemaLojas = z.object({
   nome: z.string().min(1, 'Nome é obrigatório'),
@@ -14,6 +15,7 @@ const schemaLojas = z.object({
   banner_url: z.string().url().optional().or(z.literal('')).default(''),
   taxa_entrega: z.coerce.number().min(0).optional().default(0),
   tempo_entrega: z.string().optional().default(''),
+  modo_atendimento: modoAtendimentoEnum.optional().default('AMBOS'),
   pix_tipo: z.string().optional().default(''),
   pix_chave: z.string().optional().default(''),
   pix_nome_titular: z.string().optional().default(''),
@@ -44,6 +46,7 @@ const schemaLojasPut = z.object({
   banner_url: z.string().url().optional().or(z.literal('')).optional(),
   taxa_entrega: z.coerce.number().min(0).optional(),
   tempo_entrega: z.string().optional(),
+  modo_atendimento: modoAtendimentoEnum.optional(),
   pix_tipo: z.string().optional(),
   pix_chave: z.string().optional(),
   pix_nome_titular: z.string().optional(),

@@ -339,6 +339,20 @@ export default function LojaPage() {
   }, [slug])
 
   useEffect(() => {
+    const modo = String(loja?.modo_atendimento || 'AMBOS')
+    const entregaDisponivel = modo === 'ENTREGA' || modo === 'AMBOS'
+    const retiradaDisponivel = modo === 'BALCAO' || modo === 'AMBOS'
+
+    if (tipoEntrega === 'ENTREGA' && !entregaDisponivel && retiradaDisponivel) {
+      setTipoEntrega('RETIRADA')
+      return
+    }
+    if (tipoEntrega === 'RETIRADA' && !retiradaDisponivel && entregaDisponivel) {
+      setTipoEntrega('ENTREGA')
+    }
+  }, [loja?.modo_atendimento, tipoEntrega])
+
+  useEffect(() => {
     if (restoredCartRef.current) return
     if (produtosCarregando) return
     const snapshot = getLocalItem(cartStorageKey, [])
@@ -576,6 +590,8 @@ export default function LojaPage() {
 
   function irParaCheckout() {
     if (!logado) { navigate(`/login?voltar=${encodeURIComponent(`/loja/${slug}`)}`); return }
+    if (!aceitaEntrega && aceitaRetirada) setTipoEntrega('RETIRADA')
+    if (!aceitaRetirada && aceitaEntrega) setTipoEntrega('ENTREGA')
     const enderecos = cliente?.enderecos || []
 
     if (tipoEntrega === 'ENTREGA') {
@@ -773,6 +789,9 @@ export default function LojaPage() {
   if (erro || !loja) return <div className={`flex flex-col items-center justify-center py-20 gap-4 transition-all duration-300 ease-out ${pageTransitionClass}`}><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
 
   const aberta = loja.aberta_agora ?? loja.aberta
+  const modoAtendimento = String(loja.modo_atendimento || 'AMBOS')
+  const aceitaEntrega = modoAtendimento === 'ENTREGA' || modoAtendimento === 'AMBOS'
+  const aceitaRetirada = modoAtendimento === 'BALCAO' || modoAtendimento === 'AMBOS'
   const taxa = bairroPadraoLojaMatch ? Number(bairroPadraoLojaMatch.taxa || 0) : Number(loja.taxa_entrega || 0)
   const numeroPedidoCurto = pedidoCriado?.id?.slice(-6).toUpperCase() || ''
   const telefoneLojaWhatsapp = normalizarTelefoneWhatsapp(loja?.telefone)
@@ -1084,17 +1103,27 @@ export default function LojaPage() {
         {/* Tipo de entrega */}
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 mb-4">
           <h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-1"><FiTruck className="text-red-600" /> Entrega</h3>
-          <div className="bg-stone-100 rounded-full p-1 grid grid-cols-2 gap-1">
-            <button type="button" onClick={() => { setTipoEntrega('ENTREGA'); if (!enderecoSel) { const ends = cliente?.enderecos || []; if (ends.length) { const ep = ends.find(e => e.padrao) || ends[0]; selecionarEndereco(ep) } } }} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'ENTREGA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
-              <FiTruck className="text-base" />
-              <span>entrega</span>
-            </button>
-            <button type="button" onClick={() => setTipoEntrega('RETIRADA')} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'RETIRADA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
-              <FiShoppingBag className="text-base" />
-              <span>retirada</span>
-            </button>
-          </div>
-          {tipoEntrega !== 'RETIRADA' && (
+          {aceitaEntrega && aceitaRetirada ? (
+            <div className="bg-stone-100 rounded-full p-1 grid grid-cols-2 gap-1">
+              <button type="button" onClick={() => { setTipoEntrega('ENTREGA'); if (!enderecoSel) { const ends = cliente?.enderecos || []; if (ends.length) { const ep = ends.find(e => e.padrao) || ends[0]; selecionarEndereco(ep) } } }} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'ENTREGA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
+                <FiTruck className="text-base" />
+                <span>entrega</span>
+              </button>
+              <button type="button" onClick={() => setTipoEntrega('RETIRADA')} className={`flex items-center justify-center gap-1.5 py-2 rounded-full text-sm font-semibold transition-colors ${tipoEntrega === 'RETIRADA' ? 'bg-red-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-800'}`}>
+                <FiShoppingBag className="text-base" />
+                <span>retirada</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-sm font-semibold text-amber-800">
+                {aceitaEntrega
+                  ? 'Esta loja atende somente por entrega.'
+                  : 'Esta loja atende somente retirada no balcão.'}
+              </p>
+            </div>
+          )}
+          {aceitaEntrega && tipoEntrega !== 'RETIRADA' && (
             <p className="text-xs text-stone-500 mt-3">
               entrega: {loja.tempo_entrega || '40-60 min'} {taxaEntrega > 0 ? ` • R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : ' • grátis'}
             </p>
@@ -1652,7 +1681,15 @@ export default function LojaPage() {
           </button>
           <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
           <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
-          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><FiTruck className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(0)}`}</span></div><span className="text-[10px] text-stone-400">entrega</span></div>
+          <div className="flex-1 flex flex-col items-center py-3 gap-0.5">
+            <div className="flex items-center gap-1 text-xs">
+              {aceitaEntrega ? <FiTruck className="text-red-500 text-[11px]" /> : <FiShoppingBag className="text-red-500 text-[11px]" />}
+              <span className="font-semibold text-stone-800">
+                {aceitaEntrega ? (taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(0)}`) : 'Balcão'}
+              </span>
+            </div>
+            <span className="text-[10px] text-stone-400">{aceitaEntrega ? 'entrega' : 'retirada'}</span>
+          </div>
         </div>
       </div>
 
