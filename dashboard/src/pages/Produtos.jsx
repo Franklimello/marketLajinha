@@ -36,9 +36,9 @@ export default function Produtos() {
       setTodosProdutos(dados)
       const abertos = {}
       dados.forEach((p) => {
-        if (p.categoria) abertos[p.categoria] = true
+        if (p.categoria && abertos[p.categoria] === undefined) abertos[p.categoria] = false
       })
-      abertos[''] = true
+      abertos[''] = false
       setCategoriasAbertas((prev) => ({ ...abertos, ...prev }))
     } catch {
       setTodosProdutos([])
@@ -291,7 +291,7 @@ export default function Produtos() {
         <div className="space-y-4">
           {categoriasOrdenadas.map((cat) => {
             const produtos = porCategoria[cat] || []
-            const aberta = categoriasAbertas[cat] !== false
+            const aberta = categoriasAbertas[cat] === true
             const nomeCategoria = cat || 'Sem categoria'
 
             return (
