@@ -12,7 +12,7 @@ const PRECACHE_URLS = [
   ...INJECTED_MANIFEST.map((entry) => entry.url),
   '/',
   '/manifest.json',
-  '/offline.html',
+  
   '/icons/icon-192.png',
   '/icons/icon-maskable-192.png',
   '/icons/icon-maskable-512.png',
