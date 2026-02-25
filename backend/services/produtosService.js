@@ -76,6 +76,7 @@ async function criar(data) {
       categoria: rest.categoria || '',
       setor_impressao: rest.setor_impressao || '',
       ativo: rest.ativo !== undefined ? rest.ativo : true,
+      destaque: rest.destaque !== undefined ? rest.destaque : false,
     },
     include: INCLUDE_COMPLETO,
   });

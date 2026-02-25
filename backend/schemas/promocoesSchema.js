@@ -1,6 +1,7 @@
 const { z } = require('zod');
 
 const schemaPromocao = z.object({
+  produto_id: z.string().min(1, 'Produto é obrigatório'),
   titulo: z.string().min(1, 'Título é obrigatório'),
   descricao: z.string().optional().default(''),
   imagem_url: z.string().url().optional().or(z.literal('')).default(''),

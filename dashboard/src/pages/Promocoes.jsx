@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import { uploadImagem } from '../config/firebase'
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiTag, FiImage, FiCamera } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiTag, FiImage, FiCamera, FiPackage } from 'react-icons/fi'
 
 const EMPTY = {
+  produto_id: '',
   titulo: '',
   descricao: '',
   preco_promocional: '',
@@ -21,7 +23,10 @@ function toLocalInput(iso) {
 }
 
 export default function Promocoes() {
+  const { loja } = useAuth()
   const [promocoes, setPromocoes] = useState([])
+  const [produtos, setProdutos] = useState([])
+  const [produtosCarregando, setProdutosCarregando] = useState(false)
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
   const [editando, setEditando] = useState(null)
@@ -38,12 +43,36 @@ export default function Promocoes() {
     finally { setLoading(false) }
   }
 
+  async function carregarProdutos() {
+    if (!loja?.id) return
+    setProdutosCarregando(true)
+    try {
+      let pagina = 1
+      let total = 0
+      let acc = []
+      do {
+        const res = await api.produtos.listar(loja.id, pagina)
+        const dados = Array.isArray(res?.dados) ? res.dados : []
+        total = Number(res?.total || dados.length || 0)
+        acc = [...acc, ...dados]
+        pagina += 1
+      } while (acc.length < total)
+      setProdutos(acc)
+    } catch {
+      setProdutos([])
+    } finally {
+      setProdutosCarregando(false)
+    }
+  }
+
   useEffect(() => { carregar() }, [])
+  useEffect(() => { carregarProdutos() }, [loja?.id])
 
   function abrirModal(promocao = null) {
     if (promocao) {
       setEditando(promocao.id)
       setForm({
+        produto_id: promocao.produto_id || '',
         titulo: promocao.titulo || '',
         descricao: promocao.descricao || '',
         preco_promocional: Number(promocao.preco_promocional || 0),
@@ -83,7 +112,9 @@ export default function Promocoes() {
   async function handleSalvar(e) {
     e.preventDefault()
     setErro('')
+    if (!form.produto_id) return setErro('Selecione um produto da loja.')
     if (!form.titulo.trim()) return setErro('Título é obrigatório.')
+    if (Number(form.preco_promocional) <= 0) return setErro('Preço promocional deve ser maior que zero.')
     setSalvando(true)
     try {
       let imagem_url = form.imagem_url || ''
@@ -92,6 +123,7 @@ export default function Promocoes() {
         imagem_url = await uploadImagem(imagemFile, path)
       }
       const payload = {
+        produto_id: form.produto_id,
         titulo: form.titulo.trim(),
         descricao: form.descricao.trim(),
         preco_promocional: Number(form.preco_promocional || 0),
@@ -137,8 +169,8 @@ export default function Promocoes() {
           {promocoes.map((p) => (
             <div key={p.id} className={`bg-white rounded-xl border border-stone-200 p-4 ${!p.ativo ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
-                {p.imagem_url ? (
-                  <img src={p.imagem_url} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                {(p.imagem_url || p.produto?.imagem_url) ? (
+                  <img src={p.imagem_url || p.produto?.imagem_url} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
                 ) : (
                   <div className="w-14 h-14 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0"><FiTag /></div>
                 )}
@@ -150,6 +182,12 @@ export default function Promocoes() {
                     </span>
                   </div>
                   {p.descricao && <p className="text-xs text-stone-500 mt-0.5 line-clamp-2">{p.descricao}</p>}
+                  {p.produto?.nome && (
+                    <p className="text-xs text-stone-500 mt-1 inline-flex items-center gap-1">
+                      <FiPackage className="text-stone-400" />
+                      Produto: {p.produto.nome}
+                    </p>
+                  )}
                   {Number(p.preco_promocional) > 0 && (
                     <p className="text-sm font-bold text-amber-600 mt-1">R$ {Number(p.preco_promocional).toFixed(2).replace('.', ',')}</p>
                   )}
@@ -174,6 +212,31 @@ export default function Promocoes() {
             </div>
             <form onSubmit={handleSalvar} className="p-5 space-y-4">
               {erro && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{erro}</p>}
+              <div>
+                <label className="block text-xs font-medium text-stone-600 mb-1">Produto da promoção</label>
+                <select
+                  value={form.produto_id}
+                  onChange={(e) => {
+                    const produtoId = e.target.value
+                    const produtoSel = produtos.find((p) => p.id === produtoId)
+                    setForm((p) => ({
+                      ...p,
+                      produto_id: produtoId,
+                      titulo: p.titulo || produtoSel?.nome || '',
+                      imagem_url: p.imagem_url || produtoSel?.imagem_url || '',
+                    }))
+                  }}
+                  required
+                  className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm bg-white"
+                >
+                  <option value="">{produtosCarregando ? 'Carregando produtos...' : 'Selecione um produto'}</option>
+                  {produtos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome} — R$ {Number(p.preco || 0).toFixed(2).replace('.', ',')} {!p.ativo ? '(inativo)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-xs font-medium text-stone-600 mb-1">Título</label>
                 <input value={form.titulo} onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))} required className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm" />

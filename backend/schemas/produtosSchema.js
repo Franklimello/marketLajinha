@@ -20,6 +20,7 @@ const schemaProdutos = z.object({
   categoria: z.string().optional().default(''),
   setor_impressao: z.string().optional().default(''),
   ativo: z.boolean().optional().default(true),
+  destaque: z.boolean().optional().default(false),
   variacoes: z.array(schemaVariacao).optional().default([]),
   adicionais: z.array(schemaAdicional).optional().default([]),
 });
@@ -33,6 +34,7 @@ const schemaProdutosPut = z.object({
   categoria: z.string().optional(),
   setor_impressao: z.string().optional(),
   ativo: z.boolean().optional(),
+  destaque: z.boolean().optional(),
   variacoes: z.array(schemaVariacao).optional(),
   adicionais: z.array(schemaAdicional).optional(),
 });

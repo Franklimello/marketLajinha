@@ -27,7 +27,10 @@ async function criar(req, res, next) {
   try {
     const promocao = await promocoesService.criar(req.user.loja_id, req.validated);
     res.status(201).json(promocao);
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
 }
 
 async function atualizar(req, res, next) {
@@ -37,7 +40,10 @@ async function atualizar(req, res, next) {
     if (existente.loja_id !== req.user.loja_id) return res.status(403).json({ erro: 'Promoção de outra loja.' });
     const promocao = await promocoesService.atualizar(req.params.id, req.validated);
     res.json(promocao);
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
 }
 
 async function excluir(req, res, next) {

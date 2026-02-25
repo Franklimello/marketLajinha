@@ -98,14 +98,17 @@ model Produtos {
   categoria        String   @default("")
   setor_impressao  String   @default("")
   ativo            Boolean
+  destaque         Boolean  @default(false)
 
   loja       Lojas              @relation(fields: [loja_id], references: [id], onDelete: Cascade)
   itens      ItensPedido[]
   variacoes  VariacaoProduto[]
   adicionais AdicionalProduto[]
   comboItens ComboItem[]
+  promocoes  Promocao[]
 
   @@index([loja_id, ativo])
+  @@index([loja_id, destaque, ativo])
   @@index([loja_id, categoria])
 }
 
@@ -448,6 +451,7 @@ model CobrancaPedido {
 model Promocao {
   id               String   @id @default(cuid())
   loja_id          String
+  produto_id       String?
   titulo           String
   descricao        String   @default("")
   imagem_url       String   @default("")
@@ -458,9 +462,11 @@ model Promocao {
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
-  loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  loja    Lojas    @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  produto Produtos? @relation(fields: [produto_id], references: [id], onDelete: SetNull)
 
   @@index([loja_id, ativo])
+  @@index([produto_id])
 }
 
 enum RemetenteMensagem {

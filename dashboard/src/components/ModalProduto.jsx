@@ -8,7 +8,7 @@ const TAMANHOS_PADRAO = ['P', 'M', 'G', 'GG']
 export default function ModalProduto({ lojaId, produto, categoriaInicial, categoriasExistentes = [], onFechar, onSalvo }) {
   const [form, setForm] = useState({
     nome: '', descricao: '', preco: 0, estoque: 0,
-    imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true,
+    imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
   })
   const [variacoes, setVariacoes] = useState([])
   const [adicionais, setAdicionais] = useState([])
@@ -30,6 +30,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         categoria: produto.categoria || categoriaInicial || '',
         setor_impressao: produto.setor_impressao || '',
         ativo: produto.ativo ?? true,
+        destaque: produto.destaque ?? false,
       })
       setVariacoes((produto.variacoes || []).map((v) => ({ nome: v.nome, preco: Number(v.preco) })))
       setAdicionais((produto.adicionais || []).map((a) => ({ nome: a.nome, preco: Number(a.preco) })))
@@ -38,7 +39,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     } else {
       setForm({
         nome: '', descricao: '', preco: 0, estoque: 0,
-        imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true,
+        imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
       })
       setVariacoes([])
       setAdicionais([])
@@ -154,7 +155,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b border-stone-200 flex items-center justify-between flex-shrink-0">
+        <div className="p-5 border-b border-stone-200 flex items-center justify-between shrink-0">
           <h2 className="text-lg font-bold text-stone-900">
             {produto ? 'Editar produto' : 'Novo produto'}
           </h2>
@@ -162,7 +163,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         </div>
 
         {/* Abas */}
-        <div className="flex border-b border-stone-200 px-5 flex-shrink-0">
+        <div className="flex border-b border-stone-200 px-5 shrink-0">
           {abas.map((aba) => (
             <button
               key={aba.id}
@@ -283,6 +284,10 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="ativo" checked={form.ativo} onChange={handleChange} className="rounded text-amber-600 focus:ring-amber-500" />
                 <span className="text-sm font-medium text-stone-700">Produto ativo</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="destaque" checked={!!form.destaque} onChange={handleChange} className="rounded text-amber-600 focus:ring-amber-500" />
+                <span className="text-sm font-medium text-stone-700">Marcar como destaque</span>
               </label>
             </>
           )}
