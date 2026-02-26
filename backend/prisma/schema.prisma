@@ -115,6 +115,7 @@ model Produtos {
   descricao        String
   preco            Decimal
   estoque          Int
+  controla_estoque Boolean  @default(false)
   imagem_url       String
   categoria        String   @default("")
   setor_impressao  String   @default("")

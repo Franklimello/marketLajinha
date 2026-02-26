@@ -46,6 +46,7 @@ function agruparAdicionais(adicionais = []) {
 export default function ModalProduto({ lojaId, produto, categoriaInicial, categoriasExistentes = [], onFechar, onSalvo }) {
   const [form, setForm] = useState({
     nome: '', descricao: '', preco: 0, estoque: 0,
+    controla_estoque: false,
     imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
   })
   const [variacoes, setVariacoes] = useState([])
@@ -67,6 +68,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       setForm({
         nome: produto.nome || '', descricao: produto.descricao || '',
         preco: Number(produto.preco) || 0, estoque: produto.estoque ?? 0,
+        controla_estoque: !!produto.controla_estoque,
         imagem_url: produto.imagem_url || '',
         categoria: produto.categoria || categoriaInicial || '',
         setor_impressao: produto.setor_impressao || '',
@@ -83,6 +85,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     } else {
       setForm({
         nome: '', descricao: '', preco: 0, estoque: 0,
+        controla_estoque: false,
         imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
       })
       setVariacoes([])
@@ -308,7 +311,13 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
             ordem_item: Number.isFinite(item.ordem_item) ? Number(item.ordem_item) : idxItem,
           }))
       })
-      const dados = { ...form, imagem_url, variacoes: variacoesLimpas, adicionais: adicionaisLimpos }
+      const dados = {
+        ...form,
+        estoque: form.controla_estoque ? Number(form.estoque || 0) : 0,
+        imagem_url,
+        variacoes: variacoesLimpas,
+        adicionais: adicionaisLimpos,
+      }
 
       let produtoSalvo
       if (produto) {
@@ -478,13 +487,23 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                   </label>
                   <input name="preco" type="number" step="0.01" min="0" value={form.preco} onChange={handleChange} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">Estoque</label>
-                  <input name="estoque" type="number" min="0" value={form.estoque} onChange={handleChange} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
-                </div>
+                {form.controla_estoque && (
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">Estoque</label>
+                    <input name="estoque" type="number" min="0" value={form.estoque} onChange={handleChange} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+                  </div>
+                )}
               </div>
               {variacoes.length > 0 && (
                 <p className="text-xs text-stone-400">Quando há tamanhos, o preço base é ignorado — cada tamanho tem seu preço.</p>
+              )}
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="controla_estoque" checked={!!form.controla_estoque} onChange={handleChange} className="rounded text-amber-600 focus:ring-amber-500" />
+                <span className="text-sm font-medium text-stone-700">Controlar estoque deste produto</span>
+              </label>
+              {!form.controla_estoque && (
+                <p className="text-xs text-stone-400 -mt-1">Quando desativado, o sistema não limita vendas por quantidade disponível.</p>
               )}
 
               <label className="flex items-center gap-2 cursor-pointer">

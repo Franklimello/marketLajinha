@@ -102,6 +102,7 @@ async function criar(data) {
       descricao: rest.descricao || '',
       preco: rest.preco,
       estoque: rest.estoque || 0,
+      controla_estoque: rest.controla_estoque !== undefined ? rest.controla_estoque : false,
       imagem_url: rest.imagem_url || '',
       categoria: rest.categoria || '',
       setor_impressao: rest.setor_impressao || '',

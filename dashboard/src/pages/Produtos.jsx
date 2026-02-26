@@ -490,8 +490,12 @@ export default function Produtos() {
                         </div>
                         <div className="text-right shrink-0 hidden sm:block">
                           <p className="font-bold text-stone-900">{formatCurrency(p.preco)}</p>
-                          {p.estoque > 0 && (
-                            <p className="text-xs text-stone-400">Est: {p.estoque}</p>
+                          {p.controla_estoque ? (
+                            <p className={`text-xs ${p.estoque > 0 ? 'text-stone-400' : 'text-red-500 font-semibold'}`}>
+                              Est: {p.estoque}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-stone-300">Sem controle</p>
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">

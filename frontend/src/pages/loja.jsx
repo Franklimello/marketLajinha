@@ -591,6 +591,10 @@ export default function LojaPage() {
 
   // ---- Carrinho ----
   const addItemDireto = useCallback((produto) => {
+    if (produto?.controla_estoque && Number(produto?.estoque || 0) <= 0) {
+      alert('Produto indisponível no momento.')
+      return
+    }
     setProdutoDetalhe(produto)
     setVariacaoSel(produto.variacoes?.[0]?.id || null)
     setAdicionaisSel([])
@@ -600,6 +604,14 @@ export default function LojaPage() {
 
   function addItemConfigurado(e) {
     const p = produtoDetalhe
+    const jaNoCarrinho = Object.values(carrinho).reduce((sum, item) => {
+      if (item?.produto?.id !== p.id || item?.isCombo) return sum
+      return sum + Number(item?.qtd || 0)
+    }, 0)
+    if (p.controla_estoque && (jaNoCarrinho + qtdDetalhe) > Number(p.estoque || 0)) {
+      alert(`Estoque insuficiente. Disponível: ${p.estoque}.`)
+      return
+    }
     const grupos = agruparAdicionaisProduto(p.adicionais || [])
     for (const grupo of grupos) {
       if (!grupo.min) continue
@@ -644,6 +656,9 @@ export default function LojaPage() {
     setCarrinho((prev) => {
       const cur = prev[chave]
       if (!cur) return prev
+      if (cur?.produto?.controla_estoque && Number(cur?.produto?.estoque || 0) <= Number(cur.qtd || 0)) {
+        return prev
+      }
       return { ...prev, [chave]: { ...cur, qtd: cur.qtd + 1 } }
     })
   }
@@ -1631,6 +1646,9 @@ export default function LojaPage() {
   // ====== DETALHE DO PRODUTO ======
   if (produtoDetalhe) {
     const p = produtoDetalhe
+    const controlaEstoque = !!p.controla_estoque
+    const estoqueDisponivel = Number(p.estoque || 0)
+    const semEstoque = controlaEstoque && estoqueDisponivel <= 0
     const temVariacoes = p.variacoes?.length > 0
     const temAdicionais = p.adicionais?.length > 0
     const gruposAdicionais = agruparAdicionaisProduto(p.adicionais || [])
@@ -1677,6 +1695,11 @@ export default function LojaPage() {
 
         <div className="px-4 pt-3">
           <h1 className="text-2xl font-extrabold text-stone-900 leading-tight">{p.nome}</h1>
+          {controlaEstoque && (
+            <p className={`text-xs mt-1 ${semEstoque ? 'text-red-600 font-semibold' : 'text-stone-500'}`}>
+              {semEstoque ? 'Indisponível no momento' : `${estoqueDisponivel} disponível(is)`}
+            </p>
+          )}
         </div>
 
         {/* Descrição */}
@@ -1766,7 +1789,14 @@ export default function LojaPage() {
                 <FiMinus />
               </button>
               <span className="text-2xl font-bold text-stone-900 w-8 text-center">{qtdDetalhe}</span>
-              <button onClick={() => setQtdDetalhe((q) => q + 1)} className="w-10 h-10 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors">
+              <button
+                onClick={() => setQtdDetalhe((q) => {
+                  if (!controlaEstoque) return q + 1
+                  return Math.min(q + 1, estoqueDisponivel || 1)
+                })}
+                disabled={controlaEstoque && qtdDetalhe >= estoqueDisponivel}
+                className="w-10 h-10 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors disabled:opacity-40"
+              >
                 <FiPlus />
               </button>
             </div>
@@ -1788,10 +1818,10 @@ export default function LojaPage() {
         <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-3">
           <button
             onClick={addItemConfigurado}
-            disabled={temVariacoes && !variacaoSel}
+            disabled={(temVariacoes && !variacaoSel) || semEstoque}
             className="w-full max-w-lg mx-auto block bg-red-600 text-white py-3.5 rounded-xl shadow-lg hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all font-semibold text-sm"
           >
-            põe no ticket - R$ {precoTotal.toFixed(2).replace('.', ',')}
+            {semEstoque ? 'Produto indisponível' : `põe no ticket - R$ ${precoTotal.toFixed(2).replace('.', ',')}`}
           </button>
         </div>
       </div>
@@ -2153,8 +2183,9 @@ export default function LojaPage() {
                 const qtd = qtdMap[p.id] || 0
                 const temConfig = (p.variacoes?.length > 0) || (p.adicionais?.length > 0)
                 const precoMin = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map((v) => Number(v.preco))) : Number(p.preco)
+                const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 return (
-                  <button key={p.id} onClick={() => addItemDireto(p)} className="w-full flex items-center gap-3 bg-white rounded-xl border border-stone-100 p-3 text-left hover:bg-stone-50 active:bg-stone-100 transition-colors">
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 bg-white rounded-xl border p-3 text-left transition-colors ${semEstoque ? 'border-stone-200 opacity-60' : 'border-stone-100 hover:bg-stone-50 active:bg-stone-100'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
@@ -2163,6 +2194,11 @@ export default function LojaPage() {
                           {p.variacoes?.length > 0 ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}` : `R$ ${Number(p.preco).toFixed(2).replace('.', ',')}`}
                         </p>
                         {temConfig && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">personalizar</span>}
+                        {p.controla_estoque && (
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${semEstoque ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-600'}`}>
+                            {semEstoque ? 'sem estoque' : `${p.estoque} disponível`}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {p.imagem_url && (

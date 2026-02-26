@@ -172,6 +172,49 @@ async function criar(data) {
   const total = Math.max(0, Math.round((subtotal - desconto + taxaEntrega) * 100) / 100);
 
   return prisma.$transaction(async (tx) => {
+    // Controle de estoque opcional por produto:
+    // se controla_estoque=true, valida saldo e decrementa no momento da venda.
+    const quantidadesPorProduto = new Map();
+    for (const item of itensComPreco) {
+      const atual = quantidadesPorProduto.get(item.produto_id) || 0;
+      quantidadesPorProduto.set(item.produto_id, atual + Number(item.quantidade || 0));
+    }
+
+    if (quantidadesPorProduto.size > 0) {
+      const produtosEstoque = await tx.produtos.findMany({
+        where: { id: { in: [...quantidadesPorProduto.keys()] }, loja_id: data.loja_id },
+        select: { id: true, nome: true, estoque: true, controla_estoque: true },
+      });
+      const byId = new Map(produtosEstoque.map((p) => [p.id, p]));
+
+      for (const [produtoId, qtd] of quantidadesPorProduto.entries()) {
+        const produto = byId.get(produtoId);
+        if (!produto || !produto.controla_estoque) continue;
+
+        if (Number(produto.estoque) < qtd) {
+          const err = new Error(`Estoque insuficiente para "${produto.nome}". Disponível: ${produto.estoque}, solicitado: ${qtd}.`);
+          err.status = 400;
+          throw err;
+        }
+
+        const updated = await tx.produtos.updateMany({
+          where: {
+            id: produtoId,
+            loja_id: data.loja_id,
+            controla_estoque: true,
+            estoque: { gte: qtd },
+          },
+          data: { estoque: { decrement: qtd } },
+        });
+
+        if (updated.count === 0) {
+          const err = new Error(`Estoque insuficiente para "${produto.nome}".`);
+          err.status = 400;
+          throw err;
+        }
+      }
+    }
+
     const pedido = await tx.pedidos.create({
       data: {
         ...pedidoData,
