@@ -39,6 +39,7 @@ if (IS_PROD) app.set('trust proxy', 1);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     contentSecurityPolicy: false,
   })
 );
@@ -63,7 +64,7 @@ app.use(cors({
 // ── Rate Limiting ──
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: IS_PROD ? 300 : 1000,
+  max: IS_PROD ? 1500 : 5000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { erro: 'Muitas requisições. Tente novamente em alguns minutos.' },
@@ -72,7 +73,7 @@ app.use(limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: IS_PROD ? 50 : 200,
+  max: IS_PROD ? 150 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { erro: 'Muitas tentativas de autenticação. Tente novamente em 15 minutos.' },
@@ -147,7 +148,7 @@ server.listen(PORT, '0.0.0.0', () => {
 function gracefulShutdown(signal) {
   console.log(`${signal} recebido. Encerrando...`);
   const r = getRedis();
-  if (r) r.quit().catch(() => {});
+  if (r) r.quit().catch(() => { });
   server.close(() => process.exit(0));
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
