@@ -3,6 +3,8 @@ import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/loc
 import { isIOSSafari, isStandaloneMode } from '../utils/pwaEnvironment'
 
 const IOS_GUIDE_DISMISSED_KEY = 'pwa:ios-install-guide:dismissed:v1'
+const SW_RELOAD_GUARD_KEY = 'pwa:sw-reload-guard'
+const SW_RELOAD_GUARD_TTL_MS = 30_000
 
 // ── Captura global do prompt (resolve a race condition) ──────────────────────
 //
@@ -134,14 +136,27 @@ export function usePWA() {
       })
     })
 
-    // Quando o SW em waiting assume o controle, recarrega a página suavemente
+    // Quando o SW em waiting assume o controle, recarrega a página uma vez.
+    // O guard em sessionStorage evita loops de reload em cenários anômalos.
     let refreshing = false
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true
-        window.location.reload()
-      }
-    })
+    const onControllerChange = () => {
+      if (refreshing) return
+      refreshing = true
+
+      const now = Date.now()
+      const lastReloadAt = Number(sessionStorage.getItem(SW_RELOAD_GUARD_KEY) || 0)
+      const recentlyReloaded = Number.isFinite(lastReloadAt) && now - lastReloadAt < SW_RELOAD_GUARD_TTL_MS
+      if (recentlyReloaded) return
+
+      sessionStorage.setItem(SW_RELOAD_GUARD_KEY, String(now))
+      window.location.reload()
+    }
+
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+    }
   }, [])
 
   // ── Aciona o prompt nativo de instalação ──────────────────────────────────

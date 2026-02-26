@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, getCachedData } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
@@ -7,6 +8,11 @@ import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck
 import { getItem as getLocalItem, setItem as setLocalItem, removeItem as removeLocalItem } from '../storage/localStorageService'
 import { getItem as getSessionItem, setItem as setSessionItem, removeItem as removeSessionItem } from '../storage/sessionStorageService'
 import { addLocalOrderHistory, enqueuePendingOrder, setupAutoSync } from '../storage/offlineDatabase'
+import {
+  clearCartSnapshot,
+  getCartSnapshot,
+  setCartSnapshot,
+} from '../storage/cartStorage'
 
 const AVISO_PIX_ONLINE = '[PIX ONLINE] Conferir comprovante antes de aprovar.'
 
@@ -226,6 +232,7 @@ const HorizontalCards = memo(function HorizontalCards({ items, renderItem, cardS
 export default function LojaPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { logado, cliente, carregando: authCarregando } = useAuth()
   const [loja, setLoja] = useState(() => getCachedData(`/lojas/slug/${slug}`) || null)
   const [produtos, setProdutos] = useState(() => {
@@ -285,8 +292,17 @@ export default function LojaPage() {
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
   const restoredCartRef = useRef(false)
+  const secundariosIniciadosRef = useRef(new Set())
   const [pageVisible, setPageVisible] = useState(false)
   const cartButtonRef = useRef(null)
+
+  const lojaQuery = useQuery({
+    queryKey: ['loja', slug],
+    enabled: Boolean(slug),
+    staleTime: 60_000,
+    queryFn: () => api.lojas.buscarPorSlug(slug),
+    initialData: () => getCachedData(`/lojas/slug/${slug}`) || undefined,
+  })
 
   function mostrarToast(msg) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -307,14 +323,22 @@ export default function LojaPage() {
     function dispararSecundarios(lojaId) {
       const produtosPromise = (async () => {
         try {
-          const primeira = await api.lojas.produtos(slug, 1)
+          const primeira = await queryClient.fetchQuery({
+            queryKey: ['loja-produtos', slug, 1],
+            queryFn: () => api.lojas.produtos(slug, 1),
+            staleTime: 60_000,
+          })
           const base = Array.isArray(primeira?.dados) ? primeira.dados : []
           const total = Number(primeira?.total || base.length || 0)
           let acumulado = [...base]
           let pagina = 2
 
           while (acumulado.length < total) {
-            const prox = await api.lojas.produtos(slug, pagina)
+            const prox = await queryClient.fetchQuery({
+              queryKey: ['loja-produtos', slug, pagina],
+              queryFn: () => api.lojas.produtos(slug, pagina),
+              staleTime: 60_000,
+            })
             const dadosProx = Array.isArray(prox?.dados) ? prox.dados : []
             if (!dadosProx.length) break
             acumulado = [...acumulado, ...dadosProx]
@@ -354,23 +378,28 @@ export default function LojaPage() {
 
     // Se a loja já está em cache (prefetch rodou), dispara secundários imediatamente
     const lojaCache = getCachedData(`/lojas/slug/${slug}`)
-    if (lojaCache?.id) {
-      dispararSecundarios(lojaCache.id)
+    const lojaAtual = lojaQuery.data || lojaCache || null
+
+    if (lojaAtual) {
+      setLoja(lojaAtual)
+      setCarregando(false)
     }
 
-    // Sempre atualiza em background (pode ter mudado desde o prefetch)
-    api.lojas.buscarPorSlug(slug)
-      .then((lojaData) => {
-        setLoja(lojaData)
-        setCarregando(false)
-        if (lojaData?.id && !lojaCache?.id) {
-          dispararSecundarios(lojaData.id)
-        } else if (!lojaData?.id) {
-          setProdutosCarregando(false)
-        }
-      })
-      .catch((e) => { setErro(e.message); setCarregando(false); setProdutosCarregando(false) })
-  }, [slug])
+    if (lojaQuery.error) {
+      setErro(lojaQuery.error.message)
+      setCarregando(false)
+      setProdutosCarregando(false)
+      return
+    }
+
+    const lojaId = lojaAtual?.id
+    if (!lojaId) return
+
+    const key = `${slug}:${lojaId}`
+    if (secundariosIniciadosRef.current.has(key)) return
+    secundariosIniciadosRef.current.add(key)
+    dispararSecundarios(lojaId)
+  }, [slug, lojaQuery.data, lojaQuery.error, queryClient])
 
   useEffect(() => {
     const modo = String(loja?.modo_atendimento || 'AMBOS')
@@ -389,26 +418,36 @@ export default function LojaPage() {
   useEffect(() => {
     if (restoredCartRef.current) return
     if (produtosCarregando) return
-    const snapshot = getLocalItem(cartStorageKey, [])
-    const restored = restaurarCarrinho(snapshot, produtos.dados, combos)
-    if (Object.keys(restored).length > 0) setCarrinho(restored)
+    let cancelled = false
 
-    const checkout = getLocalItem(
-      checkoutPersistentKey,
-      getSessionItem(checkoutStorageKey, null)
-    )
-    if (checkout && typeof checkout === 'object') {
-      if (checkout.etapa) setEtapa(checkout.etapa)
-      if (checkout.tipoEntrega) setTipoEntrega(checkout.tipoEntrega)
-      if (checkout.formPedido) setFormPedido((prev) => ({ ...prev, ...checkout.formPedido }))
-      if (checkout.enderecoSel) setEnderecoSel(checkout.enderecoSel)
+    ;(async () => {
+      const snapshot = await getCartSnapshot(slug)
+      if (cancelled) return
+
+      const restored = restaurarCarrinho(snapshot, produtos.dados, combos)
+      if (Object.keys(restored).length > 0) setCarrinho(restored)
+
+      const checkout = getLocalItem(
+        checkoutPersistentKey,
+        getSessionItem(checkoutStorageKey, null)
+      )
+      if (checkout && typeof checkout === 'object') {
+        if (checkout.etapa) setEtapa(checkout.etapa)
+        if (checkout.tipoEntrega) setTipoEntrega(checkout.tipoEntrega)
+        if (checkout.formPedido) setFormPedido((prev) => ({ ...prev, ...checkout.formPedido }))
+        if (checkout.enderecoSel) setEnderecoSel(checkout.enderecoSel)
+      }
+      restoredCartRef.current = true
+    })()
+
+    return () => {
+      cancelled = true
     }
-    restoredCartRef.current = true
   }, [produtosCarregando, produtos.dados, combos, cartStorageKey, checkoutStorageKey, checkoutPersistentKey])
 
   useEffect(() => {
     if (!slug) return
-    setLocalItem(cartStorageKey, serializarCarrinho(carrinho))
+    setCartSnapshot(slug, serializarCarrinho(carrinho)).catch(() => { })
   }, [carrinho, cartStorageKey, slug])
 
   useEffect(() => {
@@ -774,7 +813,7 @@ export default function LojaPage() {
         setCarrinho({})
         setCupomAplicado(null)
         setCodigoCupom('')
-        removeLocalItem(cartStorageKey)
+        clearCartSnapshot(slug).catch(() => { })
         removeSessionItem(checkoutStorageKey)
         removeLocalItem(checkoutPersistentKey)
       }
@@ -798,7 +837,7 @@ export default function LojaPage() {
     setPixData(null)
     setCupomAplicado(null)
     setCodigoCupom('')
-    removeLocalItem(cartStorageKey)
+    clearCartSnapshot(slug).catch(() => { })
     removeSessionItem(checkoutStorageKey)
     removeLocalItem(checkoutPersistentKey)
   }

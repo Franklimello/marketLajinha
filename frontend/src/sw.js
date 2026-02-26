@@ -3,8 +3,23 @@ const CACHE_PREFIX = 'uaifood';
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
 const IMAGES_CACHE = `${CACHE_PREFIX}-images-${CACHE_VERSION}`;
+const API_LISTINGS_CACHE = `${CACHE_PREFIX}-api-listings-${CACHE_VERSION}`;
+const API_MENU_CACHE = `${CACHE_PREFIX}-api-menu-${CACHE_VERSION}`;
 
 const INJECTED_MANIFEST = self.__WB_MANIFEST || [];
+const API_BASE_URL =
+  typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
+    ? import.meta.env.VITE_API_URL
+    : '';
+const API_ORIGINS = new Set([self.location.origin]);
+
+try {
+  if (API_BASE_URL) {
+    API_ORIGINS.add(new URL(API_BASE_URL, self.location.origin).origin);
+  }
+} catch {
+  // noop
+}
 
 function normalizePrecacheUrl(input) {
   const url = new URL(input, self.location.origin);
@@ -65,6 +80,63 @@ function notificationUrlFromData(data) {
   }
 }
 
+function isApiRequest(url) {
+  if (!API_ORIGINS.has(url.origin)) return false;
+  return (
+    url.pathname.startsWith('/lojas') ||
+    url.pathname.startsWith('/combos') ||
+    url.pathname.startsWith('/promocoes') ||
+    url.pathname.startsWith('/categorias') ||
+    url.pathname.startsWith('/pedidos')
+  );
+}
+
+function isStoreListingRequest(url) {
+  return url.pathname === '/lojas/home' || url.pathname === '/lojas/ativos';
+}
+
+function isMenuCategoryRequest(url) {
+  return (
+    (url.pathname.startsWith('/lojas/') && url.pathname.includes('/produtos')) ||
+    url.pathname.startsWith('/categorias') ||
+    url.pathname.startsWith('/combos/loja/') ||
+    url.pathname.startsWith('/promocoes/loja/')
+  );
+}
+
+function isOrdersRequest(url) {
+  return url.pathname.startsWith('/pedidos');
+}
+
+async function networkFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const response = await fetch(request);
+    if (isCacheableResponse(response)) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    return cached || Response.error();
+  }
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (isCacheableResponse(response)) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => cached || Response.error());
+
+  return cached || fetchPromise;
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -91,6 +163,30 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = new URL(request.url);
+
+  // ── Runtime caching de APIs (somente GET) ──────────────────────────────────
+  if (isApiRequest(url)) {
+    // Pedidos são críticos/voláteis: sempre rede, sem cache.
+    if (isOrdersRequest(url)) {
+      event.respondWith(fetch(request));
+      return;
+    }
+
+    // Listagem de lojas: network-first com fallback de cache.
+    if (isStoreListingRequest(url)) {
+      event.respondWith(networkFirst(request, API_LISTINGS_CACHE));
+      return;
+    }
+
+    // Cardápio/categorias: stale-while-revalidate para UX responsiva.
+    if (isMenuCategoryRequest(url)) {
+      event.respondWith(staleWhileRevalidate(request, API_MENU_CACHE));
+      return;
+    }
+
+    // Demais endpoints de API seguem rede por padrão.
+    return;
+  }
 
   // Recursos cross-origin que não são imagens (APIs, fontes CDN, etc.): sem cache
   if (url.origin !== self.location.origin) return;

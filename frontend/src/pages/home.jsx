@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
 import {
   Pizza,
   Hamburger,
@@ -581,24 +582,49 @@ export default function HomePage() {
   const lojasComTaxaCarregadaRef = useRef(new Set())
   const storyTouchStartYRef = useRef(null)
 
+  const cachedHome = getLocalItem(HOME_CACHE_KEY, null)
+  const cachedHomeData =
+    cachedHome?.ts &&
+      Array.isArray(cachedHome?.data) &&
+      Date.now() - cachedHome.ts < HOME_CACHE_TTL
+      ? cachedHome.data
+      : null
+
+  const homeQuery = useQuery({
+    queryKey: ['home-lojas'],
+    queryFn: async () => {
+      const data = await api.lojas.home()
+      setLocalItem(HOME_CACHE_KEY, { ts: Date.now(), data })
+      return data
+    },
+    staleTime: HOME_CACHE_TTL,
+    initialData: () => cachedHomeData ?? undefined,
+  })
+
   useEffect(() => {
-    const cached = getLocalItem(HOME_CACHE_KEY, null)
-    if (cached?.ts && Array.isArray(cached?.data) && Date.now() - cached.ts < HOME_CACHE_TTL) {
-      setLojas(cached.data)
+    if (Array.isArray(homeQuery.data)) {
+      setLojas(homeQuery.data)
       setCarregando(false)
     }
+  }, [homeQuery.data])
 
-    api.lojas
-      .home()
-      .then((data) => {
-        setLojas(data)
-        setLocalItem(HOME_CACHE_KEY, { ts: Date.now(), data })
-      })
-      .catch((e) => {
-        if (!cached?.data?.length) setErro(e.message)
-      })
-      .finally(() => setCarregando(false))
-  }, [])
+  useEffect(() => {
+    if (homeQuery.isLoading && !Array.isArray(homeQuery.data)) {
+      setCarregando(true)
+      return
+    }
+    setCarregando(false)
+  }, [homeQuery.isLoading, homeQuery.data])
+
+  useEffect(() => {
+    if (!homeQuery.error) {
+      setErro(null)
+      return
+    }
+    if (!Array.isArray(homeQuery.data) || homeQuery.data.length === 0) {
+      setErro(homeQuery.error.message)
+    }
+  }, [homeQuery.error, homeQuery.data])
 
   useEffect(() => {
     api.stories
