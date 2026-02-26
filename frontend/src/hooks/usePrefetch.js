@@ -7,9 +7,12 @@ function prefetchLoja(slug) {
   if (prefetched.has(slug)) return
   prefetched.add(slug)
 
-  import('../pages/loja.jsx').catch(() => {})
+  // Pré-carrega o chunk JS da página
+  import('../pages/loja.jsx').catch(() => { })
 
-  api.lojas.buscarPorSlug(slug).catch(() => {})
+  // Pré-carrega loja + primeira página de produtos em paralelo
+  api.lojas.buscarPorSlug(slug).catch(() => { })
+  api.lojas.produtos(slug, 1).catch(() => { })
 }
 
 export function usePrefetchLoja(slug) {

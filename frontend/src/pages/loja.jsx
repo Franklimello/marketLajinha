@@ -228,7 +228,12 @@ export default function LojaPage() {
   const navigate = useNavigate()
   const { logado, cliente, carregando: authCarregando } = useAuth()
   const [loja, setLoja] = useState(() => getCachedData(`/lojas/slug/${slug}`) || null)
-  const [produtos, setProdutos] = useState({ dados: [], total: 0 })
+  const [produtos, setProdutos] = useState(() => {
+    const cached = getCachedData(`/lojas/${slug}/produtos?pagina=1`)
+    if (!cached) return { dados: [], total: 0 }
+    const base = Array.isArray(cached?.dados) ? cached.dados : []
+    return { dados: base, total: Number(cached?.total || base.length || 0) }
+  })
   const [carregando, setCarregando] = useState(() => !getCachedData(`/lojas/slug/${slug}`))
   const [erro, setErro] = useState(null)
   const [categoriaSel, setCategoriaSel] = useState(null)
@@ -289,73 +294,78 @@ export default function LojaPage() {
     toastTimer.current = setTimeout(() => setToast(null), 2000)
   }
 
-  const [produtosCarregando, setProdutosCarregando] = useState(true)
+  const [produtosCarregando, setProdutosCarregando] = useState(
+    () => !getCachedData(`/lojas/${slug}/produtos?pagina=1`)
+  )
   const cartStorageKey = `cart:${slug}`
   const checkoutStorageKey = `checkout:${slug}`
   const checkoutPersistentKey = `checkout:persist:${slug}`
 
   useEffect(() => {
     if (!slug) return
+
+    function dispararSecundarios(lojaId) {
+      const produtosPromise = (async () => {
+        try {
+          const primeira = await api.lojas.produtos(slug, 1)
+          const base = Array.isArray(primeira?.dados) ? primeira.dados : []
+          const total = Number(primeira?.total || base.length || 0)
+          let acumulado = [...base]
+          let pagina = 2
+
+          while (acumulado.length < total) {
+            const prox = await api.lojas.produtos(slug, pagina)
+            const dadosProx = Array.isArray(prox?.dados) ? prox.dados : []
+            if (!dadosProx.length) break
+            acumulado = [...acumulado, ...dadosProx]
+            pagina += 1
+          }
+
+          setProdutos({ dados: acumulado, total: acumulado.length || total })
+        } catch {
+          setProdutos({ dados: [], total: 0 })
+        } finally {
+          setProdutosCarregando(false)
+        }
+      })()
+
+      const secundariosPromise = Promise.allSettled([
+        api.lojas.bairros(lojaId),
+        api.combos.listarPorLoja(lojaId),
+        api.promocoes.listarPorLoja(lojaId),
+        api.avaliacoes.mediaPorLoja(lojaId),
+        api.avaliacoes.listarPorLoja(lojaId),
+      ]).then(([bairrosRes, combosRes, promocoesRes, notaRes, avaliacoesRes]) => {
+        if (bairrosRes.status === 'fulfilled') setBairros(bairrosRes.value)
+        if (combosRes.status === 'fulfilled') setCombos(combosRes.value)
+        if (promocoesRes.status === 'fulfilled') setPromocoes(Array.isArray(promocoesRes.value) ? promocoesRes.value : [])
+        if (notaRes.status === 'fulfilled') setNotaMedia(notaRes.value)
+        if (avaliacoesRes.status === 'fulfilled') setAvaliacoes(avaliacoesRes.value?.dados || [])
+      })
+
+      setCuponsDisponiveisCarregando(true)
+      api.cupons.listarDisponiveis(lojaId)
+        .then((r) => setCuponsDisponiveis(Array.isArray(r) ? r : []))
+        .catch(() => setCuponsDisponiveis([]))
+        .finally(() => setCuponsDisponiveisCarregando(false))
+
+      Promise.all([produtosPromise, secundariosPromise]).catch(() => { })
+    }
+
+    // Se a loja já está em cache (prefetch rodou), dispara secundários imediatamente
+    const lojaCache = getCachedData(`/lojas/slug/${slug}`)
+    if (lojaCache?.id) {
+      dispararSecundarios(lojaCache.id)
+    }
+
+    // Sempre atualiza em background (pode ter mudado desde o prefetch)
     api.lojas.buscarPorSlug(slug)
       .then((lojaData) => {
         setLoja(lojaData)
         setCarregando(false)
-
-        if (lojaData?.id) {
-          const lojaId = lojaData.id
-
-          // Dispara TODOS os requests em paralelo ao mesmo tempo
-          // Produtos: primeira página + dados secundários simultâneos
-          const produtosPromise = (async () => {
-            try {
-              const primeira = await api.lojas.produtos(slug, 1)
-              const base = Array.isArray(primeira?.dados) ? primeira.dados : []
-              const total = Number(primeira?.total || base.length || 0)
-              let acumulado = [...base]
-              let pagina = 2
-
-              // Paginação adicional só se necessário (sequencial por dependência)
-              while (acumulado.length < total) {
-                const prox = await api.lojas.produtos(slug, pagina)
-                const dadosProx = Array.isArray(prox?.dados) ? prox.dados : []
-                if (!dadosProx.length) break
-                acumulado = [...acumulado, ...dadosProx]
-                pagina += 1
-              }
-
-              setProdutos({ dados: acumulado, total: acumulado.length || total })
-            } catch {
-              setProdutos({ dados: [], total: 0 })
-            } finally {
-              setProdutosCarregando(false)
-            }
-          })()
-
-          // Requests secundários todos em paralelo, independentes entre si
-          const secundariosPromise = Promise.allSettled([
-            api.lojas.bairros(lojaId),
-            api.combos.listarPorLoja(lojaId),
-            api.promocoes.listarPorLoja(lojaId),
-            api.avaliacoes.mediaPorLoja(lojaId),
-            api.avaliacoes.listarPorLoja(lojaId),
-          ]).then(([bairrosRes, combosRes, promocoesRes, notaRes, avaliacoesRes]) => {
-            if (bairrosRes.status === 'fulfilled') setBairros(bairrosRes.value)
-            if (combosRes.status === 'fulfilled') setCombos(combosRes.value)
-            if (promocoesRes.status === 'fulfilled') setPromocoes(Array.isArray(promocoesRes.value) ? promocoesRes.value : [])
-            if (notaRes.status === 'fulfilled') setNotaMedia(notaRes.value)
-            if (avaliacoesRes.status === 'fulfilled') setAvaliacoes(avaliacoesRes.value?.dados || [])
-          })
-
-          // Cupons em paralelo com os demais
-          setCuponsDisponiveisCarregando(true)
-          api.cupons.listarDisponiveis(lojaId)
-            .then((r) => setCuponsDisponiveis(Array.isArray(r) ? r : []))
-            .catch(() => setCuponsDisponiveis([]))
-            .finally(() => setCuponsDisponiveisCarregando(false))
-
-          // Aguarda ambos em background sem bloquear a UI
-          Promise.all([produtosPromise, secundariosPromise]).catch(() => { })
-        } else {
+        if (lojaData?.id && !lojaCache?.id) {
+          dispararSecundarios(lojaData.id)
+        } else if (!lojaData?.id) {
           setProdutosCarregando(false)
         }
       })
