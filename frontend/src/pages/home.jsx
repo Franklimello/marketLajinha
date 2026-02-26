@@ -90,15 +90,38 @@ const CATEGORIA_ICONES = [
   { k: 'churr', Icon: BowlFood },
 ]
 
-const CATEGORIA_CORES = [
-  '#ef4444', // red-500
-  '#f59e0b', // amber-500
-  '#10b981', // emerald-500
-  '#3b82f6', // blue-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#f97316', // orange-500
-  '#06b6d4', // cyan-500
+const CATEGORIA_CORES_POR_TIPO = [
+  { k: 'adega', cor: '#7c3aed' },
+  { k: 'bebid', cor: '#2563eb' },
+  { k: 'caf', cor: '#92400e' },
+  { k: 'churr', cor: '#ea580c' },
+  { k: 'pizza', cor: '#ef4444' },
+  { k: 'hamb', cor: '#f59e0b' },
+  { k: 'burg', cor: '#f59e0b' },
+  { k: 'lanche', cor: '#f59e0b' },
+  { k: 'sushi', cor: '#0ea5e9' },
+  { k: 'jap', cor: '#0ea5e9' },
+  { k: 'doce', cor: '#ec4899' },
+  { k: 'confeit', cor: '#ec4899' },
+  { k: 'sorvet', cor: '#06b6d4' },
+  { k: 'aça', cor: '#8b5cf6' },
+  { k: 'acai', cor: '#8b5cf6' },
+  { k: 'mercad', cor: '#16a34a' },
+  { k: 'farm', cor: '#14b8a6' },
+  { k: 'pet', cor: '#f97316' },
+  { k: 'padar', cor: '#b45309' },
+  { k: 'salgad', cor: '#b45309' },
+]
+
+const CATEGORIA_CORES_FALLBACK = [
+  '#ef4444',
+  '#f59e0b',
+  '#10b981',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#f97316',
+  '#06b6d4',
 ]
 
 function saudacao() {
@@ -134,12 +157,16 @@ function normalizeText(value) {
 
 function corDaCategoria(nome) {
   const key = normalizeText(nome)
-  if (!key) return CATEGORIA_CORES[0]
+  if (!key) return CATEGORIA_CORES_FALLBACK[0]
+
+  const match = CATEGORIA_CORES_POR_TIPO.find((item) => key.includes(item.k))
+  if (match?.cor) return match.cor
+
   let hash = 0
   for (let i = 0; i < key.length; i += 1) {
     hash = (hash * 31 + key.charCodeAt(i)) >>> 0
   }
-  return CATEGORIA_CORES[hash % CATEGORIA_CORES.length]
+  return CATEGORIA_CORES_FALLBACK[hash % CATEGORIA_CORES_FALLBACK.length]
 }
 
 function getStoriesSeenMap() {
@@ -247,7 +274,7 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
           >
             <Icon size={22} weight={isActive ? 'fill' : 'duotone'} />
           </motion.div>
-          <span className={`text-[11px] font-semibold whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-600'}`}>
+          <span className={`font-heading text-[11px] font-bold tracking-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-700'}`}>
             {categoria.nome}
           </span>
         </div>
