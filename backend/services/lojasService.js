@@ -8,10 +8,30 @@ function parseHorariosSemana(loja) {
   } catch { return null; }
 }
 
+// Retorna a data/hora atual no fuso de Brasília (America/Sao_Paulo),
+// independente do fuso do servidor (Railway roda em UTC).
+function agoraBrasilia() {
+  const agora = new Date();
+  // Cria uma data "fictícia" no fuso de Brasília para extrair hora/minuto/dia corretamente
+  const opts = {
+    timeZone: 'America/Sao_Paulo', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', weekday: 'long'
+  };
+  const partes = new Intl.DateTimeFormat('en-US', opts).formatToParts(agora);
+  const get = (tipo) => partes.find((p) => p.type === tipo)?.value || '0';
+  const hora = parseInt(get('hour'), 10);
+  const minuto = parseInt(get('minute'), 10);
+  // Dia da semana em inglês → índice 0-6 (Sun=0 ... Sat=6)
+  const diasEn = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const diaSemana = diasEn.indexOf(get('weekday').toLowerCase());
+  return { hora: hora === 24 ? 0 : hora, minuto, diaSemana: diaSemana === -1 ? agora.getDay() : diaSemana };
+}
+
 function checarHorario(abertura, fechamento) {
   if (!abertura || !fechamento) return true;
-  const agora = new Date();
-  const horaAtual = agora.getHours() * 60 + agora.getMinutes();
+  const { hora, minuto } = agoraBrasilia();
+  const horaAtual = hora * 60 + minuto;
   const [hAb, mAb] = abertura.split(':').map(Number);
   const [hFe, mFe] = fechamento.split(':').map(Number);
   const minAb = hAb * 60 + (mAb || 0);
@@ -22,18 +42,23 @@ function checarHorario(abertura, fechamento) {
 
 /**
  * Verifica se a loja está aberta agora.
- * Prioridade: forcar_status > horarios_semana > horario_abertura/fechamento > campo aberta.
+ * Prioridade: horarios_semana > forcar_status > horario_abertura/fechamento > campo aberta.
+ * Quando horários da semana estão configurados, eles sempre prevalecem (abertura automática).
+ * O forcar_status (modo manual) só tem efeito quando não há horários automáticos definidos.
  */
 function calcularAbertaAgora(loja) {
-  if (loja.forcar_status) return loja.aberta;
-
   const semana = parseHorariosSemana(loja);
   if (semana) {
-    const diaAtual = new Date().getDay();
-    const hoje = semana[diaAtual];
+    // Horários configurados: sempre seguem o calendário, ignorando modo manual.
+    // Usa o dia da semana no fuso de Brasília.
+    const { diaSemana } = agoraBrasilia();
+    const hoje = semana[diaSemana];
     if (!hoje || !hoje.aberto) return false;
     return checarHorario(hoje.abertura, hoje.fechamento);
   }
+
+  // Sem horários da semana: o modo manual (forcar_status) tem efeito.
+  if (loja.forcar_status) return loja.aberta;
 
   const ab = loja.horario_abertura;
   const fe = loja.horario_fechamento;
@@ -49,7 +74,8 @@ function horarioHoje(loja) {
     }
     return null;
   }
-  return semana[new Date().getDay()] || null;
+  const { diaSemana } = agoraBrasilia();
+  return semana[diaSemana] || null;
 }
 
 function adicionarAbertaAgora(loja) {
