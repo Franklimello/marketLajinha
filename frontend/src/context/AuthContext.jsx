@@ -86,19 +86,11 @@ export function AuthProvider({ children }) {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
 
-      // Registra explicitamente o firebase-messaging-sw.js (não o sw.js principal,
-      // que o Vite transforma e remove o importScripts necessário para o FCM)
-      let fcmSwReg
-      try {
-        fcmSwReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
-      } catch {
-        // fallback: usa o SW já registrado
-        fcmSwReg = await navigator.serviceWorker.ready
-      }
-
+      // O FCM SDK encontra e registra /firebase-messaging-sw.js automaticamente.
+      // NÃO registramos manualmente pois isso criaria um segundo SW competindo
+      // com o sw.js principal no mesmo scope '/', causando reload infinito.
       const fcmToken = await messagingEnv.getToken(messagingEnv.messaging, {
         vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: fcmSwReg,
       })
       if (fcmToken) {
         await apiFetch('/clientes/me/fcm-token', authToken, {
