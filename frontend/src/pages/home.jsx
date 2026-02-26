@@ -199,8 +199,8 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
         layout
         transition={{ duration: 0.25, ease: 'easeOut' }}
         className={`relative px-2.5 py-2 rounded-2xl border ${isActive
-            ? 'border-red-600 shadow-sm'
-            : 'border-stone-200 bg-white hover:bg-stone-50'
+          ? 'border-red-600 shadow-sm'
+          : 'border-stone-200 bg-white hover:bg-stone-50'
           }`}
       >
         {isActive && (
@@ -567,6 +567,7 @@ export default function HomePage() {
   const [bairroPadrao, setBairroPadrao] = useState('')
   const [cidadeGeo, setCidadeGeo] = useState('')
   const [storiesGroups, setStoriesGroups] = useState([])
+  const [storiesCarregando, setStoriesCarregando] = useState(true)
   const [storiesSeenMap, setStoriesSeenMap] = useState(() => getStoriesSeenMap())
   const [storyModalOpen, setStoryModalOpen] = useState(false)
   const [storyGroupIndex, setStoryGroupIndex] = useState(-1)
@@ -604,6 +605,7 @@ export default function HomePage() {
       .listarAtivas()
       .then((data) => setStoriesGroups(orderStoriesGroups(data)))
       .catch(() => setStoriesGroups([]))
+      .finally(() => setStoriesCarregando(false))
   }, [])
 
   useEffect(() => {
@@ -977,7 +979,23 @@ export default function HomePage() {
         )}
       </div>
 
-      <StoriesRail grupos={storiesGroups} seenMap={storiesSeenMap} onOpen={openStories} />
+      {storiesCarregando ? (
+        <section className="mb-5" aria-hidden="true">
+          <div className="flex items-center justify-between mb-2">
+            <div className="skeleton h-4 rounded w-28" />
+          </div>
+          <div className="flex gap-3 overflow-hidden pb-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="shrink-0 w-[84px] text-center">
+                <div className="skeleton w-[76px] h-[76px] rounded-full mx-auto" />
+                <div className="skeleton h-2.5 rounded w-12 mx-auto mt-2" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <StoriesRail grupos={storiesGroups} seenMap={storiesSeenMap} onOpen={openStories} />
+      )}
 
       <HomeCarousel />
 
