@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { auth, onAuthStateChanged, getMessagingCompat } from '../config/firebase'
 import { signOut } from 'firebase/auth'
 import { createSessionCookie, clearSessionCookie, refreshSessionCookie } from '../storage/authStorage'
@@ -31,6 +31,9 @@ export function AuthProvider({ children }) {
   const [pedidosAtivos, setPedidosAtivos] = useState(0)
   const [messagingEnv, setMessagingEnv] = useState(null)
 
+  // Ref para evitar registrar push múltiplas vezes na mesma sessão
+  const pushRegistered = useRef(false)
+
   async function contarPedidosAtivos(t) {
     try {
       const pedidos = await apiFetch('/pedidos/meus', t)
@@ -40,33 +43,6 @@ export function AuthProvider({ children }) {
       setPedidosAtivos(ativos.length)
     } catch { setPedidosAtivos(0) }
   }
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user || null)
-      if (user) {
-        const t = await user.getIdToken()
-        setToken(t)
-        createSessionCookie(t).catch(() => {})
-        try {
-          const c = await apiFetch('/clientes/me', t)
-          setCliente(c)
-          if (c) {
-            registrarPush(t)
-            contarPedidosAtivos(t)
-          }
-        } catch {
-          setCliente(null)
-        }
-      } else {
-        setToken(null)
-        setCliente(null)
-        setPedidosAtivos(0)
-      }
-      setCarregando(false)
-    })
-    return unsub
-  }, [])
 
   async function getToken() {
     if (firebaseUser) return firebaseUser.getIdToken()
@@ -102,12 +78,10 @@ export function AuthProvider({ children }) {
     } catch { setCliente(null) }
   }
 
-  useEffect(() => {
-    getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
-  }, [])
-
+  // ── registrarPush declarado antes dos useEffects que o chamam ──────────────
   const registrarPush = useCallback(async (authToken) => {
     if (!messagingEnv || !authToken || !('serviceWorker' in navigator) || !('Notification' in window)) return
+    if (pushRegistered.current) return
     try {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
@@ -123,12 +97,56 @@ export function AuthProvider({ children }) {
           method: 'POST',
           body: JSON.stringify({ token: fcmToken }),
         })
+        pushRegistered.current = true
       }
     } catch (e) {
       console.warn('Push registration failed:', e.message)
     }
   }, [messagingEnv])
 
+  // ── Carrega o Firebase Messaging de forma assíncrona ──────────────────────
+  useEffect(() => {
+    getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
+  }, [])
+
+  // ── Se messagingEnv carregou DEPOIS do onAuthStateChanged (race condition),
+  //    re-tenta o registro de push com o token e cliente já disponíveis ──────
+  useEffect(() => {
+    if (!messagingEnv || !token || !cliente) return
+    registrarPush(token)
+  }, [messagingEnv, token, cliente, registrarPush])
+
+  // ── Auth state ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      setFirebaseUser(user || null)
+      if (user) {
+        const t = await user.getIdToken()
+        setToken(t)
+        createSessionCookie(t).catch(() => { })
+        try {
+          const c = await apiFetch('/clientes/me', t)
+          setCliente(c)
+          if (c) {
+            // messagingEnv pode ainda ser null aqui; o useEffect acima cobre esse caso
+            registrarPush(t)
+            contarPedidosAtivos(t)
+          }
+        } catch {
+          setCliente(null)
+        }
+      } else {
+        setToken(null)
+        setCliente(null)
+        setPedidosAtivos(0)
+        pushRegistered.current = false
+      }
+      setCarregando(false)
+    })
+    return unsub
+  }, [registrarPush])
+
+  // ── Foreground messages ───────────────────────────────────────────────────
   useEffect(() => {
     if (!messagingEnv) return undefined
     const unsub = messagingEnv.onMessage(messagingEnv.messaging, (payload) => {
@@ -145,10 +163,11 @@ export function AuthProvider({ children }) {
   }, [messagingEnv])
 
   async function logout() {
-    await clearSessionCookie().catch(() => {})
+    await clearSessionCookie().catch(() => { })
     await signOut(auth)
     setCliente(null)
     setToken(null)
+    pushRegistered.current = false
   }
 
   useEffect(() => {
@@ -170,7 +189,8 @@ export function AuthProvider({ children }) {
     logado: !!firebaseUser,
     perfilCompleto: !!cliente,
     pedidosAtivos, setPedidosAtivos,
-  }), [firebaseUser, cliente, carregando, token, pedidosAtivos])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [firebaseUser, cliente, carregando, token, pedidosAtivos, registrarPush])
 
   return (
     <AuthContext.Provider value={value}>
