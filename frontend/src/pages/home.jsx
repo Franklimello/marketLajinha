@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram, FiChevronLeft, FiChevronRight, FiGrid, FiList } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
@@ -20,6 +20,7 @@ import {
   Leaf,
   Storefront,
   Tag,
+  Motorcycle,
 } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -612,6 +613,79 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
   )
 })
 
+const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
+  const aberta = loja.aberta_agora ?? loja.aberta
+  const taxa = typeof taxaBairro === 'number' ? taxaBairro : (loja.taxa_entrega ?? 0)
+  const prefetch = usePrefetchLoja(loja.slug)
+  const [imgError, setImgError] = useState(false)
+  const isAboveFold = idx < 6
+
+  return (
+    <Link
+      ref={prefetch.ref}
+      to={`/loja/${loja.slug}`}
+      onMouseEnter={prefetch.onMouseEnter}
+      onTouchStart={prefetch.onTouchStart}
+      className={`group block ${!aberta ? 'opacity-60' : ''}`}
+      style={{ WebkitTapHighlightColor: 'rgba(239, 68, 68, 0.12)' }}
+    >
+      <div className="relative rounded-2xl overflow-hidden bg-stone-100">
+        {!imgError && loja.logo_url ? (
+          <img
+            src={loja.logo_url}
+            alt={loja.nome}
+            width="220"
+            height="220"
+            loading={isAboveFold ? 'eager' : 'lazy'}
+            fetchPriority={isAboveFold ? 'high' : 'auto'}
+            decoding={isAboveFold ? 'sync' : 'async'}
+            onError={() => setImgError(true)}
+            className={`w-full aspect-square object-cover transition-transform duration-200 group-active:scale-[0.98] ${!aberta ? 'grayscale' : ''}`}
+          />
+        ) : (
+          <div
+            className="w-full aspect-square flex items-center justify-center text-4xl font-bold text-white"
+            style={{ backgroundColor: loja.cor_primaria || '#78716c' }}
+          >
+            {loja.nome?.charAt(0)}
+          </div>
+        )}
+
+        <div className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md bg-amber-400/95 px-1.5 py-0.5">
+          <FiStar className="text-[9px] text-white fill-white" />
+          <span className="text-[10px] font-bold text-white font-numeric">
+            {Number(loja.nota_media || 0).toFixed(1)}
+          </span>
+        </div>
+
+        {loja.cupom_ativo?.codigo && (
+          <div className="absolute top-1.5 right-1.5 rounded-md bg-red-500/95 px-1.5 py-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-white">novo!</span>
+          </div>
+        )}
+
+        {!aberta && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white">Fechada</span>
+          </div>
+        )}
+      </div>
+
+      <div className="pt-1.5 px-0.5">
+        <h3 className="font-heading text-[14px] font-bold tracking-tight text-stone-700 line-clamp-1 leading-tight">
+          {loja.nome}
+        </h3>
+        <div className="mt-0.5 flex items-center gap-1 text-[13px] text-stone-500">
+          <Motorcycle size={12} weight="duotone" className="text-violet-500" />
+          <span className={`font-numeric ${taxa === 0 ? 'text-green-600 font-semibold' : ''}`}>
+            {taxa === 0 ? 'grátis' : `R$ ${Number(taxa).toFixed(2).replace('.', ',')}`}
+          </span>
+        </div>
+      </div>
+    </Link>
+  )
+})
+
 export default function HomePage() {
   const { cliente } = useAuth()
   const [lojas, setLojas] = useState([])
@@ -629,6 +703,7 @@ export default function HomePage() {
   const [storyIndex, setStoryIndex] = useState(0)
   const [storyProgress, setStoryProgress] = useState(0)
   const [taxaBairroPorLoja, setTaxaBairroPorLoja] = useState({})
+  const [modoVisualizacao, setModoVisualizacao] = useState('lista')
   const [visibleCount, setVisibleCount] = useState(12)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
@@ -1136,39 +1211,73 @@ export default function HomePage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-1">
-          {filtradasAbertas.length > 0 && (
-            <>
-              {!busca && !categoriaSel && filtradasFechadas.length > 0 && (
-                <div className="flex items-center gap-2 pt-1 pb-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-semibold text-stone-700">Abertas agora</span>
-                </div>
-              )}
-              {filtradasAbertasVisiveis.map((loja, idx) => (
-                <LojaCard key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
-              ))}
-            </>
-          )}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-stone-500">
+              {lojasFiltradas.length} loja{lojasFiltradas.length !== 1 ? 's' : ''} encontrada{lojasFiltradas.length !== 1 ? 's' : ''}
+            </p>
+            <div className="inline-flex items-center rounded-xl border border-stone-200 bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setModoVisualizacao('lista')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'lista' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
+                aria-label="Visualização em lista"
+              >
+                <FiList size={14} /> Lista
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoVisualizacao('grade')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'grade' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
+                aria-label="Visualização em grade"
+              >
+                <FiGrid size={14} /> Grade
+              </button>
+            </div>
+          </div>
 
-          {filtradasFechadasVisiveis.length > 0 && (
-            <>
-              {!busca && !categoriaSel && filtradasAbertasVisiveis.length > 0 && (
-                <div className="flex items-center gap-2 pt-4 pb-2">
-                  <span className="w-2 h-2 bg-stone-300 rounded-full" />
-                  <span className="text-xs font-semibold text-stone-400">Fechadas</span>
-                  <div className="flex-1 h-px bg-stone-100" />
-                </div>
-              )}
-              {filtradasFechadasVisiveis.map((loja, idx) => (
-                <LojaCard
-                  key={loja.id}
-                  loja={loja}
-                  idx={filtradasAbertasVisiveis.length + idx}
-                  taxaBairro={taxaBairroPorLoja[loja.id]}
-                />
+          {modoVisualizacao === 'grade' ? (
+            <div className="grid grid-cols-3 gap-x-3 gap-y-5">
+              {lojasVisiveis.map((loja, idx) => (
+                <LojaCardGrid key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
               ))}
-            </>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filtradasAbertas.length > 0 && (
+                <>
+                  {!busca && !categoriaSel && filtradasFechadas.length > 0 && (
+                    <div className="flex items-center gap-2 pt-1 pb-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-xs font-semibold text-stone-700">Abertas agora</span>
+                    </div>
+                  )}
+                  {filtradasAbertasVisiveis.map((loja, idx) => (
+                    <LojaCard key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
+                  ))}
+                </>
+              )}
+
+              {filtradasFechadasVisiveis.length > 0 && (
+                <>
+                  {!busca && !categoriaSel && filtradasAbertasVisiveis.length > 0 && (
+                    <div className="flex items-center gap-2 pt-4 pb-2">
+                      <span className="w-2 h-2 bg-stone-300 rounded-full" />
+                      <span className="text-xs font-semibold text-stone-400">Fechadas</span>
+                      <div className="flex-1 h-px bg-stone-100" />
+                    </div>
+                  )}
+                  {filtradasFechadasVisiveis.map((loja, idx) => (
+                    <LojaCard
+                      key={loja.id}
+                      loja={loja}
+                      idx={filtradasAbertasVisiveis.length + idx}
+                      taxaBairro={taxaBairroPorLoja[loja.id]}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
           )}
         </div>
       )}
