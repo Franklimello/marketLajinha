@@ -560,6 +560,27 @@ export default function LojaPage() {
   const itensCarrinho = Object.entries(carrinho)
   const totalItens = itensCarrinho.reduce((s, [, i]) => s + i.qtd, 0)
   const subtotal = itensCarrinho.reduce((s, [, i]) => s + i.precoUnit * i.qtd, 0)
+
+  // Mapa id→qtd memoizado — evita O(n²) na lista de produtos
+  const qtdMap = useMemo(() => {
+    const m = {}
+    for (const [, i] of Object.entries(carrinho)) {
+      m[i.produto.id] = (m[i.produto.id] || 0) + i.qtd
+    }
+    return m
+  }, [carrinho])
+
+  // Categorias e produtos agrupados — memoizados para evitar recálculo a cada render
+  const { produtosPorCategoria, categorias } = useMemo(() => {
+    const map = {}
+    for (const p of produtos.dados) {
+      const cat = p.categoria || 'Outros'
+      if (!map[cat]) map[cat] = []
+      map[cat].push(p)
+    }
+    return { produtosPorCategoria: map, categorias: Object.keys(map) }
+  }, [produtos.dados])
+
   const enderecoPadraoCliente = useMemo(() => {
     const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
     if (!enderecos.length) return null
@@ -688,10 +709,6 @@ export default function LojaPage() {
     mostrarToast(`1x ${combo.nome} adicionado`)
     runFlyToCart(sourceEl, combo.imagem_url)
   }, [])
-
-  function qtdProduto(produtoId) {
-    return itensCarrinho.filter(([, i]) => i.produto.id === produtoId).reduce((s, [, i]) => s + i.qtd, 0)
-  }
 
   function handleFormChange(e) { setFormPedido((prev) => ({ ...prev, [e.target.name]: e.target.value })) }
 
@@ -1596,13 +1613,6 @@ export default function LojaPage() {
   }
 
   // ====== CARDÁPIO ======
-  const produtosPorCategoria = {}
-  produtos.dados.forEach((p) => {
-    const cat = p.categoria || 'Outros'
-    if (!produtosPorCategoria[cat]) produtosPorCategoria[cat] = []
-    produtosPorCategoria[cat].push(p)
-  })
-  const categorias = Object.keys(produtosPorCategoria)
   const DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
   const DIAS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   let horariosSemana = []
@@ -1925,7 +1935,7 @@ export default function LojaPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoriaSel(cat)}
-                    className="group w-full flex items-center gap-3 bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 transition-all duration-200 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                    className="group w-full flex items-center gap-3 bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
                   >
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base leading-tight font-serif font-bold text-stone-900 flex items-center gap-1.5">
@@ -1951,9 +1961,9 @@ export default function LojaPage() {
               <span aria-hidden="true">🔹</span>
               <span>{categoriaSel}</span>
             </h2>
-            <div className="space-y-2">
-              {(produtosPorCategoria[categoriaSel] || []).map((p) => {
-                const qtd = qtdProduto(p.id)
+            <div key={categoriaSel} className="space-y-2 animate-fade-in-up">
+              {(produtosPorCategoria[categoriaSel] || []).map((p, idx) => {
+                const qtd = qtdMap[p.id] || 0
                 const temConfig = (p.variacoes?.length > 0) || (p.adicionais?.length > 0)
                 const precoMin = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map((v) => Number(v.preco))) : Number(p.preco)
                 return (
@@ -1968,7 +1978,16 @@ export default function LojaPage() {
                         {temConfig && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">personalizar</span>}
                       </div>
                     </div>
-                    {p.imagem_url && <img src={p.imagem_url} alt="" loading="lazy" className="w-16 h-16 rounded-lg object-cover shrink-0" />}
+                    {p.imagem_url && (
+                      <img
+                        src={p.imagem_url}
+                        alt=""
+                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        fetchPriority={idx < 4 ? 'high' : 'auto'}
+                        decoding={idx < 4 ? 'sync' : 'async'}
+                        className="w-16 h-16 rounded-lg object-cover shrink-0"
+                      />
+                    )}
                     {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">{qtd}</span>}
                   </button>
                 )
