@@ -703,7 +703,7 @@ export default function HomePage() {
   const [storyIndex, setStoryIndex] = useState(0)
   const [storyProgress, setStoryProgress] = useState(0)
   const [taxaBairroPorLoja, setTaxaBairroPorLoja] = useState({})
-  const [modoVisualizacao, setModoVisualizacao] = useState('lista')
+  const [modoVisualizacao, setModoVisualizacao] = useState('grade')
   const [visibleCount, setVisibleCount] = useState(12)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
