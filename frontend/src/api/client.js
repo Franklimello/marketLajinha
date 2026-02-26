@@ -30,6 +30,11 @@ export function invalidateCache(prefix) {
   }
 }
 
+/** Leitura síncrona do cache em memória — não faz request, retorna null se ausente/expirado */
+export function getCachedData(path) {
+  return getCached(path)
+}
+
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
   const token = await getTokenFn()

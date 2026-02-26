@@ -198,11 +198,10 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
       <motion.div
         layout
         transition={{ duration: 0.25, ease: 'easeOut' }}
-        className={`relative px-2.5 py-2 rounded-2xl border ${
-          isActive
+        className={`relative px-2.5 py-2 rounded-2xl border ${isActive
             ? 'border-red-600 shadow-sm'
             : 'border-stone-200 bg-white hover:bg-stone-50'
-        }`}
+          }`}
       >
         {isActive && (
           <motion.span
@@ -215,9 +214,8 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
           <motion.div
             layout
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className={`w-11 h-11 rounded-full flex items-center justify-center ${
-              isActive ? 'bg-white/20 text-white' : 'bg-stone-100'
-            }`}
+            className={`w-11 h-11 rounded-full flex items-center justify-center ${isActive ? 'bg-white/20 text-white' : 'bg-stone-100'
+              }`}
           >
             <Icon size={22} weight={isActive ? 'fill' : 'duotone'} />
           </motion.div>
@@ -256,6 +254,10 @@ const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
                     alt={g.restaurant_name}
                     className="w-full h-full rounded-full object-cover"
                     loading={idx < 6 ? 'eager' : 'lazy'}
+                    fetchPriority={idx < 4 ? 'high' : 'auto'}
+                    decoding={idx < 4 ? 'sync' : 'async'}
+                    width="72"
+                    height="72"
                   />
                 </div>
               </div>
@@ -302,7 +304,7 @@ const StoryViewerModal = memo(function StoryViewerModal({
 
         <div className="absolute top-5 left-4 right-4 z-20 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <img src={grupo.restaurant_logo || '/icons/icon-192.png'} alt="" className="w-8 h-8 rounded-full object-cover" />
+            <img src={grupo.restaurant_logo || '/icons/icon-192.png'} alt="" className="w-8 h-8 rounded-full object-cover" fetchPriority="high" decoding="async" width="32" height="32" />
             <p className="text-sm font-semibold truncate">{grupo.restaurant_name}</p>
           </div>
           <button type="button" onClick={onClose} className="w-8 h-8 rounded-full bg-black/45 inline-flex items-center justify-center">
@@ -316,7 +318,7 @@ const StoryViewerModal = memo(function StoryViewerModal({
           if (leftHalf) onPrev()
           else onNext()
         }}>
-          <img src={story.image_url} alt="" className="w-full h-full object-contain" />
+          <img src={story.image_url} alt="" className="w-full h-full object-contain" fetchPriority="high" decoding="sync" />
         </div>
 
         <button
@@ -397,9 +399,8 @@ const HomeCarousel = memo(function HomeCarousel() {
               type="button"
               onClick={() => setSlideAtivo(idx)}
               aria-label={`Ir para banner ${idx + 1}`}
-              className={`h-2 rounded-full transition-all ${
-                slideAtivo === idx ? 'w-6 bg-white' : 'w-2 bg-white/60 hover:bg-white/80'
-              }`}
+              className={`h-2 rounded-full transition-all ${slideAtivo === idx ? 'w-6 bg-white' : 'w-2 bg-white/60 hover:bg-white/80'
+                }`}
             />
           ))}
         </div>
@@ -469,9 +470,8 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
       to={`/loja/${loja.slug}`}
       onMouseEnter={prefetch.onMouseEnter}
       onPointerDown={handlePointerDown}
-      className={`group relative overflow-hidden flex items-center gap-4 px-2 py-3.5 rounded-xl transform-gpu will-change-transform transition-all duration-200 ease-out hover:bg-white hover:shadow-sm hover:scale-[1.01] active:scale-[0.985] active:bg-stone-50 active:shadow-none ${shouldAnimate ? 'animate-fade-in-up' : ''} ${
-        !aberta ? 'opacity-50' : ''
-      }`}
+      className={`group relative overflow-hidden flex items-center gap-4 px-2 py-3.5 rounded-xl transform-gpu will-change-transform transition-all duration-200 ease-out hover:bg-white hover:shadow-sm hover:scale-[1.01] active:scale-[0.985] active:bg-stone-50 active:shadow-none ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-50' : ''
+        }`}
       style={{
         animationDelay: shouldAnimate ? `${Math.min(idx, 10) * 50}ms` : '0ms',
         contentVisibility: idx >= 8 ? 'auto' : 'visible',
@@ -637,7 +637,7 @@ export default function HomePage() {
         setCidadeGeo(cidade)
         setLocalItem(GEO_CITY_CACHE_KEY, { cidade, ts: Date.now() })
       },
-      () => {},
+      () => { },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 1000 * 60 * 30 }
     )
   }, [])

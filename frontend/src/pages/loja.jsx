@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { api } from '../api/client'
+import { api, getCachedData } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
 import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift, FiStar, FiCalendar } from 'react-icons/fi'
@@ -227,9 +227,9 @@ export default function LojaPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { logado, cliente, carregando: authCarregando } = useAuth()
-  const [loja, setLoja] = useState(null)
+  const [loja, setLoja] = useState(() => getCachedData(`/lojas/slug/${slug}`) || null)
   const [produtos, setProdutos] = useState({ dados: [], total: 0 })
-  const [carregando, setCarregando] = useState(true)
+  const [carregando, setCarregando] = useState(() => !getCachedData(`/lojas/slug/${slug}`))
   const [erro, setErro] = useState(null)
   const [categoriaSel, setCategoriaSel] = useState(null)
   const [showInfo, setShowInfo] = useState(false)
