@@ -214,11 +214,19 @@ export default function Produtos() {
     setModalAberto(true)
   }
 
-  function handleSalvo() {
+  function handleSalvo(produtoSalvo, isNovo) {
     setModalAberto(false)
     setProdutoEditando(null)
     setCategoriaModal('')
-    carregarProdutos()
+    if (isNovo) {
+      // Produto novo: busca a lista completa para incluí-lo na posição certa
+      carregarProdutos()
+    } else if (produtoSalvo) {
+      // Edição: atualiza apenas o produto alterado no estado local — sem refetch
+      setTodosProdutos((prev) =>
+        prev.map((p) => (p.id === produtoSalvo.id ? { ...p, ...produtoSalvo } : p))
+      )
+    }
   }
 
   function criarCategoria() {

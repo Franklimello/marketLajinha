@@ -194,12 +194,13 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       const adicionaisLimpos = adicionais.filter((a) => a.nome.trim())
       const dados = { ...form, imagem_url, variacoes: variacoesLimpas, adicionais: adicionaisLimpos }
 
+      let produtoSalvo
       if (produto) {
-        await api.produtos.atualizar(produto.id, dados)
+        produtoSalvo = await api.produtos.atualizar(produto.id, dados)
       } else {
-        await api.produtos.criar({ ...dados, loja_id: lojaId })
+        produtoSalvo = await api.produtos.criar({ ...dados, loja_id: lojaId })
       }
-      onSalvo()
+      onSalvo(produtoSalvo, !produto)
     } catch (err) {
       setErro(err.message)
     } finally {
@@ -230,9 +231,8 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               key={aba.id}
               type="button"
               onClick={() => setAbaAtiva(aba.id)}
-              className={`px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-                abaAtiva === aba.id ? 'border-amber-500 text-amber-700' : 'border-transparent text-stone-400 hover:text-stone-600'
-              }`}
+              className={`px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${abaAtiva === aba.id ? 'border-amber-500 text-amber-700' : 'border-transparent text-stone-400 hover:text-stone-600'
+                }`}
             >
               {aba.label}
             </button>
@@ -399,11 +399,10 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                       <button
                         type="button"
                         onClick={() => toggleTamanhoPadrao(tam)}
-                        className={`w-9 h-9 rounded-lg text-xs font-bold border transition-colors ${
-                          ativo
+                        className={`w-9 h-9 rounded-lg text-xs font-bold border transition-colors ${ativo
                             ? 'bg-amber-600 border-amber-600 text-white'
                             : 'bg-white border-stone-300 text-stone-600 hover:border-amber-400'
-                        }`}
+                          }`}
                       >
                         {tam}
                       </button>
@@ -418,9 +417,8 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                           onFocus={() => { if (!ativo) toggleTamanhoPadrao(tam) }}
                           onChange={(e) => setPrecoTamanhoPadrao(tam, e.target.value)}
                           placeholder={`Preço ${tam}`}
-                          className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 ${
-                            ativo ? 'border-stone-300 bg-white' : 'border-stone-200 bg-stone-100 text-stone-400'
-                          }`}
+                          className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 ${ativo ? 'border-stone-300 bg-white' : 'border-stone-200 bg-stone-100 text-stone-400'
+                            }`}
                         />
                       </div>
                     </div>
@@ -440,11 +438,10 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                           <button
                             type="button"
                             onClick={() => toggleTamanhoPadrao(tam)}
-                            className={`w-16 h-9 rounded-lg text-[11px] font-bold border transition-colors ${
-                              ativo
+                            className={`w-16 h-9 rounded-lg text-[11px] font-bold border transition-colors ${ativo
                                 ? 'bg-amber-600 border-amber-600 text-white'
                                 : 'bg-white border-stone-300 text-stone-600 hover:border-amber-400'
-                            }`}
+                              }`}
                             title={label}
                           >
                             {label}
@@ -460,9 +457,8 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                               onFocus={() => { if (!ativo) toggleTamanhoPadrao(tam) }}
                               onChange={(e) => setPrecoTamanhoPadrao(tam, e.target.value)}
                               placeholder={`Preço ${label}`}
-                              className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 ${
-                                ativo ? 'border-stone-300 bg-white' : 'border-stone-200 bg-stone-100 text-stone-400'
-                              }`}
+                              className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 ${ativo ? 'border-stone-300 bg-white' : 'border-stone-200 bg-stone-100 text-stone-400'
+                                }`}
                             />
                           </div>
                         </div>
