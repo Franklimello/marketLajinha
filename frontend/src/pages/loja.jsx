@@ -268,6 +268,8 @@ export default function LojaPage() {
   const [submitStage, setSubmitStage] = useState(0)
   const [pixData, setPixData] = useState(null)
   const [pixCarregando, setPixCarregando] = useState(false)
+  const [confirmandoPix, setConfirmandoPix] = useState(false)
+  const [pedidoPendentePix, setPedidoPendentePix] = useState(null)
   const [copiado, setCopiado] = useState(false)
 
   const [combos, setCombos] = useState([])
@@ -278,6 +280,7 @@ export default function LojaPage() {
   const [agendado, setAgendado] = useState(false)
   const [agendadoPara, setAgendadoPara] = useState('')
   const [pedidoCriado, setPedidoCriado] = useState(null)
+  const [confirmacaoViaPix, setConfirmacaoViaPix] = useState(false)
   const [trackingProgress, setTrackingProgress] = useState(0.15)
   const [checkoutSheetOpen, setCheckoutSheetOpen] = useState(false)
   const [totalAnim, setTotalAnim] = useState(0)
@@ -796,19 +799,23 @@ export default function LojaPage() {
     }
 
     try {
-      const pedido = await api.pedidos.criar(payloadPedido)
-      setSubmitStage(2)
-      await new Promise((resolve) => setTimeout(resolve, 420))
-      setPedidoCriado(pedido)
-      addLocalOrderHistory(pedido).catch(() => { })
       const pagarOnline = pagamentoPixOnline && loja.pix_chave
       if (pagarOnline) {
+        setConfirmacaoViaPix(false)
+        setPedidoCriado(null)
+        setPedidoPendentePix(payloadPedido)
         setEtapa('pix')
         setPixCarregando(true)
-        try { setPixData(await api.lojas.gerarPix(loja.id, totalPedido, pedido.id)) }
+        try { setPixData(await api.lojas.gerarPix(loja.id, totalPedido, null)) }
         catch { setPixData(null) }
         finally { setPixCarregando(false) }
       } else {
+        setConfirmacaoViaPix(false)
+        const pedido = await api.pedidos.criar(payloadPedido)
+        setSubmitStage(2)
+        await new Promise((resolve) => setTimeout(resolve, 420))
+        setPedidoCriado(pedido)
+        addLocalOrderHistory(pedido).catch(() => { })
         setEtapa('confirmado')
         setCarrinho({})
         setCupomAplicado(null)
@@ -831,15 +838,41 @@ export default function LojaPage() {
     }
   }
 
-  function handleFinalizarPix() {
-    setEtapa('confirmado')
-    setCarrinho({})
+  function handleVoltarCheckoutPix() {
+    if (confirmandoPix) return
+    setEtapa('checkout')
     setPixData(null)
-    setCupomAplicado(null)
-    setCodigoCupom('')
-    clearCartSnapshot(slug).catch(() => { })
-    removeSessionItem(checkoutStorageKey)
-    removeLocalItem(checkoutPersistentKey)
+    setPixCarregando(false)
+    setPedidoPendentePix(null)
+  }
+
+  async function handleFinalizarPix() {
+    if (confirmandoPix || !pedidoPendentePix) return
+    setConfirmandoPix(true)
+    try {
+      const pedido = await api.pedidos.criar(pedidoPendentePix)
+      setPedidoCriado(pedido)
+      setConfirmacaoViaPix(true)
+      addLocalOrderHistory(pedido).catch(() => { })
+      setEtapa('confirmado')
+      setCarrinho({})
+      setPixData(null)
+      setPedidoPendentePix(null)
+      setCupomAplicado(null)
+      setCodigoCupom('')
+      clearCartSnapshot(slug).catch(() => { })
+      removeSessionItem(checkoutStorageKey)
+      removeLocalItem(checkoutPersistentKey)
+    } catch (err) {
+      if (!navigator.onLine) {
+        await enqueuePendingOrder(pedidoPendentePix)
+        alert('Sem internet no momento. Seu pedido foi salvo e será reenviado automaticamente quando a conexão voltar.')
+      } else {
+        alert(err.message)
+      }
+    } finally {
+      setConfirmandoPix(false)
+    }
   }
 
   async function copiarPayload() {
@@ -886,7 +919,9 @@ export default function LojaPage() {
   const numeroPedidoCurto = pedidoCriado?.id?.slice(-6).toUpperCase() || ''
   const telefoneLojaWhatsapp = normalizarTelefoneWhatsapp(loja?.telefone)
   const textoComprovante = encodeURIComponent(
-    `Olá, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do pedido #${numeroPedidoCurto}.`
+    numeroPedidoCurto
+      ? `Olá, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do pedido #${numeroPedidoCurto}.`
+      : `Olá, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do meu pedido.`
   )
   const linkComprovanteWhatsapp = telefoneLojaWhatsapp
     ? `https://wa.me/${telefoneLojaWhatsapp}?text=${textoComprovante}`
@@ -907,7 +942,7 @@ export default function LojaPage() {
               <span className="text-white text-xs">🎉</span>
             </div>
           </div>
-          <h2 className="text-2xl font-extrabold text-stone-900">Pedido confirmado!</h2>
+          <h2 className="text-2xl font-extrabold text-stone-900">{confirmacaoViaPix ? 'Pedido enviado!' : 'Pedido confirmado!'}</h2>
           <p className="text-stone-500 text-sm mt-1">
             {tipoEntrega === 'RETIRADA'
               ? 'Retire seu pedido no balcão da loja.'
@@ -1034,7 +1069,7 @@ export default function LojaPage() {
   if (etapa === 'pix') {
     return (
       <div className={`max-w-lg mx-auto px-4 py-6 transition-all duration-300 ease-out ${pageTransitionClass}`}>
-        <button onClick={handleFinalizarPix} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-6"><FiChevronLeft /> Pular pagamento online</button>
+        <button onClick={handleVoltarCheckoutPix} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-6"><FiChevronLeft /> Voltar ao checkout</button>
         <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Pagar com PIX</h2>
           <p className="text-stone-500 text-sm mb-4">Escaneie o QR Code ou copie o código</p>
@@ -1061,22 +1096,33 @@ export default function LojaPage() {
                       Enviar no WhatsApp da loja
                     </a>
                   )}
-                  <Link
-                    to="/pedidos"
-                    className="inline-flex items-center justify-center w-full py-2.5 bg-white border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors"
-                  >
-                    Enviar dentro do sistema (chat)
-                  </Link>
+                  {pedidoCriado?.id && (
+                    <Link
+                      to="/pedidos"
+                      className="inline-flex items-center justify-center w-full py-2.5 bg-white border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors"
+                    >
+                      Enviar dentro do sistema (chat)
+                    </Link>
+                  )}
                 </div>
                 <p className="text-[11px] text-amber-700 mt-1.5">
                   Você pode escolher qualquer uma das opções acima.
                 </p>
               </div>
               <button onClick={copiarPayload} className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 text-sm">{copiado ? <><FiCheck /> Copiado!</> : <><FiCopy /> Copiar código PIX</>}</button>
-              <button onClick={handleFinalizarPix} className="w-full mt-3 py-2.5 text-green-700 bg-green-50 font-medium rounded-xl hover:bg-green-100 text-sm">Já paguei</button>
+              <p className="mt-3 text-sm text-stone-700 font-medium">
+                Para enviar o pedido confirme o pagamento clicando em já paguei
+              </p>
+              <button
+                onClick={handleFinalizarPix}
+                disabled={confirmandoPix}
+                className="w-full mt-2 py-2.5 text-green-700 bg-green-50 font-medium rounded-xl hover:bg-green-100 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {confirmandoPix ? 'Enviando pedido...' : 'Já paguei'}
+              </button>
             </>
           ) : (
-            <div className="py-8"><p className="text-stone-400 text-sm">Não foi possível gerar o QR Code.</p><button onClick={handleFinalizarPix} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg text-sm font-medium">Continuar</button></div>
+            <div className="py-8"><p className="text-stone-400 text-sm">Não foi possível gerar o QR Code.</p><button onClick={handleVoltarCheckoutPix} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg text-sm font-medium">Voltar ao checkout</button></div>
           )}
         </div>
       </div>

@@ -10,7 +10,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const STATUS_MAP = {
   PENDING: { label: 'Pendente', cor: 'bg-yellow-100 text-yellow-700' },
-  APPROVED: { label: 'Confirmado', cor: 'bg-blue-100 text-blue-700' },
+  APPROVED: { label: 'Pedido recebido', cor: 'bg-blue-100 text-blue-700' },
   IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-purple-100 text-purple-700' },
   DELIVERED: { label: 'Entregue', cor: 'bg-green-100 text-green-700' },
   CANCELLED: { label: 'Cancelado', cor: 'bg-red-100 text-red-700' },
@@ -468,6 +468,15 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const pixOnline = isPixOnline(pedido)
   const [imprimindo, setImprimindo] = useState(false)
+  const [statusModalAberto, setStatusModalAberto] = useState(false)
+  const [alterandoStatus, setAlterandoStatus] = useState(false)
+  const [statusAviso, setStatusAviso] = useState('')
+
+  useEffect(() => {
+    if (!statusAviso) return undefined
+    const t = setTimeout(() => setStatusAviso(''), 2200)
+    return () => clearTimeout(t)
+  }, [statusAviso])
 
   async function handleImprimir() {
     setImprimindo(true)
@@ -484,6 +493,19 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
     } catch (err) {
       alert(`Erro: ${err.message}`)
     } finally { setImprimindo(false) }
+  }
+
+  async function handleMudarStatusConfirmado(novoStatus) {
+    if (pedido.status === novoStatus || alterandoStatus) return
+    setAlterandoStatus(true)
+    try {
+      await onMudarStatus(pedido.id, novoStatus)
+      setStatusModalAberto(false)
+      const label = STATUS_MAP[novoStatus]?.label || novoStatus
+      setStatusAviso(`Status alterado para ${label}.`)
+    } finally {
+      setAlterandoStatus(false)
+    }
   }
 
   return (
@@ -644,25 +666,63 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
           {/* Alterar status */}
           <div>
             <p className="text-xs text-stone-400 uppercase tracking-wide mb-2">Alterar status</p>
-            <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setStatusModalAberto(true)}
+              className="w-full px-3 py-2.5 rounded-lg text-sm font-medium bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200 transition-colors"
+            >
+              Mudar status do pedido do cliente
+            </button>
+            {statusAviso && (
+              <p className="mt-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                {statusAviso}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {statusModalAberto && (
+        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-stone-200">
+            <div className="px-4 py-3 border-b border-stone-200 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-stone-900">Mudar status do pedido</h3>
+              <button
+                type="button"
+                onClick={() => !alterandoStatus && setStatusModalAberto(false)}
+                className="text-stone-400 hover:text-stone-600 text-xl leading-none"
+                disabled={alterandoStatus}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-4 space-y-2">
               {Object.entries(STATUS_MAP).map(([key, val]) => (
                 <button
                   key={key}
-                  onClick={() => onMudarStatus(pedido.id, key)}
-                  disabled={pedido.status === key}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  type="button"
+                  onClick={() => handleMudarStatusConfirmado(key)}
+                  disabled={pedido.status === key || alterandoStatus}
+                  className={`w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     pedido.status === key
                       ? `${val.cor} ring-2 ring-offset-1 ring-amber-400`
-                      : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
-                  }`}
+                      : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
+                  } disabled:opacity-65 disabled:cursor-not-allowed`}
                 >
-                  {val.label}
+                  {alterandoStatus && pedido.status !== key ? (
+                    <span className="inline-flex items-center gap-2">
+                      <FiRefreshCw className="animate-spin" size={14} />
+                      Alterando...
+                    </span>
+                  ) : (
+                    val.label
+                  )}
                 </button>
               ))}
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
