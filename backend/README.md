@@ -68,6 +68,69 @@ node index.js
 
 Servidor em: **http://localhost:3000** (ou na porta definida em `PORT`).
 
+## Backup e restore do banco
+
+O projeto inclui scripts para backup completo do PostgreSQL em arquivo compactado `.sql.gz`.
+
+### Backup manual
+
+```bash
+npm run backup:db
+```
+
+### Backup + upload para S3
+
+```bash
+npm run backup:db:s3
+```
+
+Saída padrão: `backend/backups/db-backup-YYYYMMDD-HHMMSSZ.sql.gz`
+
+Variáveis opcionais:
+
+- `BACKUP_DIR`: diretório onde salvar os arquivos (default: `backend/backups`)
+- `BACKUP_RETENTION_DAYS`: dias de retenção para apagar backups antigos (default: `30`)
+- `BACKUP_FILENAME_PREFIX`: prefixo do nome do arquivo (default: `db-backup`)
+- `S3_BACKUP_BUCKET`: bucket de destino (obrigatória para `backup:db:s3`)
+- `S3_BACKUP_REGION`: região do bucket (obrigatória para `backup:db:s3`)
+- `S3_BACKUP_PREFIX`: pasta/base no bucket (default: `database`)
+- `S3_BACKUP_STORAGE_CLASS`: classe de armazenamento (default: `STANDARD_IA`)
+- `S3_BACKUP_SSE`: criptografia server-side (`AES256` ou `aws:kms`)
+- `S3_BACKUP_SSE_KMS_KEY_ID`: chave KMS (quando `S3_BACKUP_SSE=aws:kms`)
+
+### Restore manual
+
+```bash
+npm run restore:db -- ./backups/db-backup-YYYYMMDD-HHMMSSZ.sql.gz
+```
+
+O restore usa `psql` com `ON_ERROR_STOP=1` e transação única.
+
+### Proteção contra restore acidental em produção
+
+Por padrão, o script bloqueia restore quando `NODE_ENV=production`.
+Para liberar intencionalmente, defina explicitamente:
+
+```bash
+ALLOW_PROD_RESTORE=true npm run restore:db -- ./backups/arquivo.sql.gz
+```
+
+### Agendamento (recomendado)
+
+No servidor/VM, agende um cron diário (exemplo 03:00):
+
+```bash
+0 3 * * * cd /caminho/do/projeto/backend && npm run backup:db >> backup.log 2>&1
+```
+
+Com envio direto para S3:
+
+```bash
+0 3 * * * cd /caminho/do/projeto/backend && npm run backup:db:s3 >> backup.log 2>&1
+```
+
+> Observação: os scripts dependem de `pg_dump` e `psql` instalados no ambiente.
+
 ## Endpoints (resumo)
 
 | Método | Rota | Descrição | Auth |

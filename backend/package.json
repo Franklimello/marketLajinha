@@ -5,9 +5,12 @@
   "main": "index.js",
   "scripts": {
     "build": "npx prisma generate",
-    "start": "npx prisma migrate deploy && npx prisma generate && node index.js",
+    "start": "npm run backup:db:s3 && npx prisma migrate deploy && npx prisma generate && node index.js",
     "dev": "node index.js",
     "cidades:sync": "node scripts/sync-cidades-ibge.js",
+    "backup:db": "node scripts/backup-db.js",
+    "backup:db:s3": "node scripts/backup-db-s3.js",
+    "restore:db": "node scripts/restore-db.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
@@ -17,6 +20,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.999.0",
     "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.0",
     "bcryptjs": "^3.0.3",

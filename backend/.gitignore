@@ -7,3 +7,4 @@ serviceAccountKey.json
 firebase_env_value.txt
 
 /generated/prisma
+backups/
