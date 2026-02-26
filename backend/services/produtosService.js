@@ -5,7 +5,14 @@ const ITENS_POR_PAGINA = 12;
 
 const INCLUDE_COMPLETO = {
   variacoes: { orderBy: { preco: 'asc' } },
-  adicionais: { orderBy: { nome: 'asc' } },
+  adicionais: {
+    orderBy: [
+      { ordem_grupo: 'asc' },
+      { grupo_nome: 'asc' },
+      { ordem_item: 'asc' },
+      { nome: 'asc' },
+    ],
+  },
 };
 
 async function listar(filtros = {}, pagina = 1, limite) {
@@ -112,9 +119,18 @@ async function criar(data) {
     }
   }
   if (adicionais?.length) {
-    for (const a of adicionais) {
+    for (const [idx, a] of adicionais.entries()) {
       await prisma.adicionalProduto.create({
-        data: { nome: a.nome, preco: a.preco, produto_id: produto.id },
+        data: {
+          nome: a.nome,
+          preco: a.preco,
+          produto_id: produto.id,
+          grupo_nome: a.grupo_nome || 'Complementos',
+          grupo_min: Number.isFinite(a.grupo_min) ? a.grupo_min : 0,
+          grupo_max: Number.isFinite(a.grupo_max) ? a.grupo_max : 99,
+          ordem_grupo: Number.isFinite(a.ordem_grupo) ? a.ordem_grupo : 0,
+          ordem_item: Number.isFinite(a.ordem_item) ? a.ordem_item : idx,
+        },
       });
     }
   }
@@ -139,9 +155,18 @@ async function atualizar(id, data) {
 
     if (adicionais !== undefined) {
       await tx.adicionalProduto.deleteMany({ where: { produto_id: id } });
-      for (const a of adicionais) {
+      for (const [idx, a] of adicionais.entries()) {
         await tx.adicionalProduto.create({
-          data: { nome: a.nome, preco: a.preco, produto_id: id },
+          data: {
+            nome: a.nome,
+            preco: a.preco,
+            produto_id: id,
+            grupo_nome: a.grupo_nome || 'Complementos',
+            grupo_min: Number.isFinite(a.grupo_min) ? a.grupo_min : 0,
+            grupo_max: Number.isFinite(a.grupo_max) ? a.grupo_max : 99,
+            ordem_grupo: Number.isFinite(a.ordem_grupo) ? a.ordem_grupo : 0,
+            ordem_item: Number.isFinite(a.ordem_item) ? a.ordem_item : idx,
+          },
         });
       }
     }

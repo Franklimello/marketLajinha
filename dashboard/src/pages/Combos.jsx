@@ -1,10 +1,48 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { Fragment, useEffect, useState, useCallback, useRef } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { uploadImagem } from '../config/firebase'
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiPackage, FiSearch, FiMinus, FiUpload, FiCamera, FiImage } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiPackage, FiSearch, FiMinus, FiUpload, FiCamera, FiImage, FiCheck } from 'react-icons/fi'
 
-const EMPTY_FORM = { nome: '', descricao: '', preco: '', imagem_url: '', itens: [] }
+const EMPTY_FORM = { nome: '', descricao: '', preco: '', itens: [] }
+const MAX_COMBO_IMAGES = 4
+
+function sanitizeUrls(urls) {
+  return [...new Set((urls || []).map((u) => String(u || '').trim()).filter(Boolean))].slice(0, MAX_COMBO_IMAGES)
+}
+
+function comboImages(combo) {
+  return sanitizeUrls([
+    ...(Array.isArray(combo?.imagens_urls) ? combo.imagens_urls : []),
+    combo?.imagem_url || '',
+    ...(combo?.itens || []).map((i) => i?.produto?.imagem_url || ''),
+  ])
+}
+
+function ComboImageRow({ images, small = false }) {
+  if (!images?.length) {
+    return (
+      <div className={`${small ? 'w-16 h-16' : 'w-24 h-24'} rounded-xl bg-linear-to-br from-amber-100 to-orange-100 flex items-center justify-center shrink-0`}>
+        <FiPackage className="text-amber-600" size={small ? 20 : 24} />
+      </div>
+    )
+  }
+
+  return (
+    <div className={`flex items-center ${small ? 'gap-1' : 'gap-1.5'} min-h-[64px]`}>
+      {images.slice(0, MAX_COMBO_IMAGES).map((url, idx, arr) => (
+        <Fragment key={`${url}-${idx}`}>
+          <img
+            src={url}
+            alt=""
+            className={`${small ? 'w-12 h-12 rounded-lg' : 'w-16 h-16 rounded-xl'} object-cover border border-stone-200 shrink-0`}
+          />
+          {idx < arr.length - 1 && <span className={`font-bold ${small ? 'text-stone-300 text-sm' : 'text-stone-300'}`}>+</span>}
+        </Fragment>
+      ))}
+    </div>
+  )
+}
 
 export default function Combos() {
   const { loja } = useAuth()
@@ -15,13 +53,26 @@ export default function Combos() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
-  const [imagemFile, setImagemFile] = useState(null)
-  const [imagemPreview, setImagemPreview] = useState(null)
+  const [imagensSlots, setImagensSlots] = useState([])
 
   const [produtos, setProdutos] = useState([])
   const [busca, setBusca] = useState('')
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
+
+  function limparImagensSlots() {
+    setImagensSlots((prev) => {
+      prev.forEach((img) => {
+        if (img.tipo === 'file' && img.preview) URL.revokeObjectURL(img.preview)
+      })
+      return []
+    })
+  }
+
+  function fecharModal() {
+    limparImagensSlots()
+    setModal(false)
+  }
 
   const carregar = useCallback(async () => {
     try {
@@ -47,46 +98,68 @@ export default function Combos() {
   }
 
   function abrirModal(combo = null) {
+    limparImagensSlots()
     if (combo) {
       setEditId(combo.id)
       setForm({
         nome: combo.nome,
         descricao: combo.descricao || '',
         preco: Number(combo.preco),
-        imagem_url: combo.imagem_url || '',
         itens: combo.itens.map(i => ({ produto_id: i.produto_id, quantidade: i.quantidade, produto: i.produto })),
       })
+      const urls = comboImages(combo)
+      setImagensSlots(urls.map((url) => ({ tipo: 'url', url })))
     } else {
       setEditId(null)
       setForm(EMPTY_FORM)
     }
-    setImagemFile(null)
-    setImagemPreview(null)
     setErro('')
     setBusca('')
     setModal(true)
   }
 
-  function handleFileChange(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setErro('Selecione uma imagem válida (JPG, PNG, WebP).')
+  function adicionarArquivos(filesList) {
+    const files = Array.from(filesList || [])
+    if (!files.length) return
+    const slotsLivres = MAX_COMBO_IMAGES - imagensSlots.length
+    if (slotsLivres <= 0) {
+      setErro('Você pode enviar no máximo 4 fotos por combo.')
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setErro('A imagem deve ter no máximo 5 MB.')
-      return
+
+    const paraAdicionar = []
+    let mensagemErro = ''
+    for (const file of files.slice(0, slotsLivres)) {
+      if (!file.type.startsWith('image/')) {
+        mensagemErro = 'Use apenas imagens JPG, PNG ou WebP.'
+        continue
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        mensagemErro = 'Cada imagem deve ter no máximo 5 MB.'
+        continue
+      }
+      paraAdicionar.push({ tipo: 'file', file, preview: URL.createObjectURL(file) })
     }
-    setImagemFile(file)
-    setImagemPreview(URL.createObjectURL(file))
-    setErro('')
+
+    if (paraAdicionar.length) {
+      setImagensSlots((prev) => [...prev, ...paraAdicionar].slice(0, MAX_COMBO_IMAGES))
+      setErro('')
+    } else if (mensagemErro) {
+      setErro(mensagemErro)
+    }
   }
 
-  function removerImagem() {
-    setImagemFile(null)
-    setImagemPreview(null)
-    setForm((f) => ({ ...f, imagem_url: '' }))
+  function handleFileChange(e) {
+    adicionarArquivos(e.target.files)
+    e.target.value = ''
+  }
+
+  function removerImagem(index) {
+    setImagensSlots((prev) => {
+      const alvo = prev[index]
+      if (alvo?.tipo === 'file' && alvo.preview) URL.revokeObjectURL(alvo.preview)
+      return prev.filter((_, i) => i !== index)
+    })
     if (fileInputRef.current) fileInputRef.current.value = ''
     if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
@@ -124,16 +197,30 @@ export default function Combos() {
 
     setSalvando(true)
     try {
-      let imagem_url = form.imagem_url
-      if (imagemFile) {
-        const path = `combos/${loja.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
-        imagem_url = await uploadImagem(imagemFile, path)
+      const imagens_urls = []
+      for (const img of imagensSlots) {
+        if (img.tipo === 'url') {
+          imagens_urls.push(img.url)
+          continue
+        }
+        if (img.tipo === 'file' && img.file) {
+          const path = `combos/${loja.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
+          const uploaded = await uploadImagem(img.file, path)
+          imagens_urls.push(uploaded)
+        }
       }
+
+      const imagensDosProdutos = sanitizeUrls(
+        form.itens
+          .map((i) => (i.produto || produtos.find((p) => p.id === i.produto_id))?.imagem_url)
+      )
+      const imagensFinal = sanitizeUrls(imagens_urls.length ? imagens_urls : imagensDosProdutos)
       const data = {
         nome: form.nome.trim(),
         descricao: form.descricao.trim(),
         preco: Number(form.preco),
-        imagem_url,
+        imagem_url: imagensFinal[0] || '',
+        imagens_urls: imagensFinal,
         itens: form.itens.map(i => ({ produto_id: i.produto_id, quantidade: i.quantidade })),
       }
       if (editId) {
@@ -141,7 +228,7 @@ export default function Combos() {
       } else {
         await api.combos.criar(data)
       }
-      setModal(false)
+      fecharModal()
       carregar()
     } catch (err) { setErro(err.message) }
     finally { setSalvando(false) }
@@ -160,11 +247,14 @@ export default function Combos() {
   }
 
   const produtosFiltrados = produtos.filter(p =>
-    p.ativo && p.nome.toLowerCase().includes(busca.toLowerCase()) &&
-    !form.itens.find(i => i.produto_id === p.id)
+    p.ativo && p.nome.toLowerCase().includes(busca.toLowerCase())
   )
 
   function fmt(v) { return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
+
+  useEffect(() => () => {
+    limparImagensSlots()
+  }, [])
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -193,16 +283,11 @@ export default function Combos() {
           {combos.map((c) => {
             const original = precoOriginal(c.itens)
             const economia = original - Number(c.preco)
+            const imagens = comboImages(c)
             return (
               <div key={c.id} className={`bg-white rounded-xl border border-stone-200 p-4 ${!c.ativo ? 'opacity-60' : ''}`}>
                 <div className="flex items-start gap-4">
-                  {c.imagem_url ? (
-                    <img src={c.imagem_url} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-xl bg-linear-to-br from-amber-100 to-orange-100 flex items-center justify-center shrink-0">
-                      <FiPackage className="text-amber-600" size={24} />
-                    </div>
-                  )}
+                  <ComboImageRow images={imagens} small />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-bold text-stone-900 text-sm truncate">{c.nome}</h3>
@@ -239,11 +324,11 @@ export default function Combos() {
 
       {/* Modal */}
       {modal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setModal(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={fecharModal}>
           <div className="bg-white rounded-2xl w-full max-w-lg my-8" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-stone-100">
               <h2 className="text-lg font-bold text-stone-900">{editId ? 'Editar combo' : 'Novo combo'}</h2>
-              <button onClick={() => setModal(false)} className="p-1 text-stone-400 hover:text-stone-600"><FiX size={20} /></button>
+              <button onClick={fecharModal} className="p-1 text-stone-400 hover:text-stone-600"><FiX size={20} /></button>
             </div>
 
             <form onSubmit={handleSalvar} className="p-5 space-y-4">
@@ -258,52 +343,44 @@ export default function Combos() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Imagem do combo (opcional)</label>
-                <div className="flex items-start gap-4">
-                  {(imagemPreview || form.imagem_url) ? (
-                    <div className="relative">
-                      <img
-                        src={imagemPreview || form.imagem_url}
-                        alt="Preview do combo"
-                        className="w-24 h-24 rounded-xl object-cover border-2 border-stone-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={removerImagem}
-                        className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow text-xs"
-                      >
-                        <FiX />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 border-2 border-dashed border-stone-300 rounded-xl flex items-center justify-center">
-                      <FiUpload className="text-xl text-stone-300" />
+                <label className="block text-sm font-medium text-stone-700 mb-2">Fotos do combo (até 4)</label>
+                <div className="rounded-xl border border-stone-200 p-3 bg-stone-50">
+                  <ComboImageRow images={imagensSlots.map((img) => (img.tipo === 'file' ? img.preview : img.url))} />
+                  {!!imagensSlots.length && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {imagensSlots.map((img, idx) => (
+                        <button
+                          key={`${idx}-${img.tipo}`}
+                          type="button"
+                          onClick={() => removerImagem(idx)}
+                          className="text-[11px] px-2 py-1 rounded-md bg-white border border-stone-200 text-stone-600 hover:text-red-600"
+                        >
+                          Remover foto {idx + 1}
+                        </button>
+                      ))}
                     </div>
                   )}
-                  <div className="flex-1 pt-0.5">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs font-medium text-stone-700 transition-colors"
-                      >
-                        <FiImage className="text-sm" /> Galeria
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => cameraInputRef.current?.click()}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-medium text-amber-700 transition-colors"
-                      >
-                        <FiCamera className="text-sm" /> Câmera
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-stone-400 mt-1.5">JPG, PNG ou WebP (máx. 5 MB)</p>
-                    {imagemFile && (
-                      <span className="inline-block text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full mt-1">Nova imagem selecionada</span>
-                    )}
-                  </div>
                 </div>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs font-medium text-stone-700 transition-colors"
+                  >
+                    <FiImage className="text-sm" /> Galeria
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-medium text-amber-700 transition-colors"
+                  >
+                    <FiCamera className="text-sm" /> Câmera
+                  </button>
+                </div>
+                <p className="text-[11px] text-stone-500 mt-1.5">
+                  Se você não enviar fotos, o sistema usa automaticamente as imagens dos produtos selecionados.
+                </p>
+                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
                 <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
               </div>
 
@@ -351,21 +428,39 @@ export default function Combos() {
                   />
                 </div>
 
-                {busca && produtosFiltrados.length > 0 && (
-                  <div className="max-h-40 overflow-y-auto border border-stone-200 rounded-xl">
-                    {produtosFiltrados.slice(0, 10).map((p) => (
+                <div className="max-h-52 overflow-y-auto border border-stone-200 rounded-xl p-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {produtosFiltrados.slice(0, 30).map((p) => {
+                    const selecionado = !!form.itens.find((i) => i.produto_id === p.id)
+                    return (
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => { addProduto(p); setBusca('') }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-amber-50 transition-colors border-b border-stone-100 last:border-0"
+                        onClick={() => addProduto(p)}
+                        className={`text-left rounded-lg border p-2 transition-colors ${
+                          selecionado ? 'border-amber-400 bg-amber-50' : 'border-stone-200 hover:border-amber-300 hover:bg-amber-50/40'
+                        }`}
                       >
-                        <span className="text-stone-800">{p.nome}</span>
-                        <span className="text-xs text-stone-500">{fmt(p.preco)}</span>
+                        <div className="flex items-center gap-2">
+                          {p.imagem_url ? (
+                            <img src={p.imagem_url} alt="" className="w-9 h-9 rounded-md object-cover border border-stone-200 shrink-0" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-md bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0">
+                              <FiPackage size={14} className="text-stone-400" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-stone-800 truncate">{p.nome}</p>
+                            <p className="text-[11px] text-stone-500">{fmt(p.preco)}</p>
+                          </div>
+                          {selecionado && <FiCheck className="text-amber-600 shrink-0" size={14} />}
+                        </div>
                       </button>
-                    ))}
-                  </div>
-                )}
+                    )
+                  })}
+                  {produtosFiltrados.length === 0 && (
+                    <p className="text-xs text-stone-500 px-1 py-2 col-span-full">Nenhum produto encontrado para o filtro atual.</p>
+                  )}
+                </div>
 
                 {form.itens.length < 2 && (
                   <p className="text-xs text-amber-600 mt-1">Adicione pelo menos 2 produtos</p>

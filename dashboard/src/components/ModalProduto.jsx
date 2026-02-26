@@ -15,13 +15,41 @@ function parseIngredientes(texto) {
     .filter((item, idx, arr) => arr.findIndex((x) => x.toLowerCase() === item.toLowerCase()) === idx)
 }
 
+function agruparAdicionais(adicionais = []) {
+  const map = new Map()
+  adicionais.forEach((a) => {
+    const grupoNome = String(a.grupo_nome || 'Complementos').trim() || 'Complementos'
+    if (!map.has(grupoNome)) {
+      map.set(grupoNome, {
+        nome: grupoNome,
+        min: Number.isFinite(a.grupo_min) ? Number(a.grupo_min) : 0,
+        max: Number.isFinite(a.grupo_max) ? Number(a.grupo_max) : 99,
+        ordem_grupo: Number.isFinite(a.ordem_grupo) ? Number(a.ordem_grupo) : 0,
+        itens: [],
+      })
+    }
+    const g = map.get(grupoNome)
+    g.itens.push({
+      nome: a.nome || '',
+      preco: Number(a.preco || 0),
+      ordem_item: Number.isFinite(a.ordem_item) ? Number(a.ordem_item) : g.itens.length,
+    })
+  })
+  return [...map.values()]
+    .sort((a, b) => a.ordem_grupo - b.ordem_grupo || a.nome.localeCompare(b.nome, 'pt-BR'))
+    .map((g) => ({
+      ...g,
+      itens: g.itens.sort((a, b) => a.ordem_item - b.ordem_item || a.nome.localeCompare(b.nome, 'pt-BR')),
+    }))
+}
+
 export default function ModalProduto({ lojaId, produto, categoriaInicial, categoriasExistentes = [], onFechar, onSalvo }) {
   const [form, setForm] = useState({
     nome: '', descricao: '', preco: 0, estoque: 0,
     imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
   })
   const [variacoes, setVariacoes] = useState([])
-  const [adicionais, setAdicionais] = useState([])
+  const [gruposAdicionais, setGruposAdicionais] = useState([])
   const [imagemFile, setImagemFile] = useState(null)
   const [imagemPreview, setImagemPreview] = useState(null)
   const [erro, setErro] = useState('')
@@ -46,7 +74,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         destaque: produto.destaque ?? false,
       })
       setVariacoes((produto.variacoes || []).map((v) => ({ nome: v.nome, preco: Number(v.preco) })))
-      setAdicionais((produto.adicionais || []).map((a) => ({ nome: a.nome, preco: Number(a.preco) })))
+      setGruposAdicionais(agruparAdicionais(produto.adicionais || []))
       setIngredientes(parseIngredientes(produto.descricao || ''))
       setImagemFile(null)
       setImagemPreview(null)
@@ -58,7 +86,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
       })
       setVariacoes([])
-      setAdicionais([])
+      setGruposAdicionais([])
       setIngredientes([])
       setNovoIngrediente('')
       autoAdicionaisRef.current = false
@@ -132,10 +160,68 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   const variacoesCustomizadas = variacoes.filter((v) => !isTamanhoPadrao(v.nome))
 
   // Adicionais
-  function addAdicional() { setAdicionais((prev) => [...prev, { nome: '', preco: 0 }]) }
-  function removeAdicional(i) { setAdicionais((prev) => prev.filter((_, idx) => idx !== i)) }
-  function handleAdicionalChange(i, field, value) {
-    setAdicionais((prev) => prev.map((a, idx) => idx === i ? { ...a, [field]: field === 'preco' ? (parseFloat(value) || 0) : value } : a))
+  function addGrupoAdicional() {
+    setGruposAdicionais((prev) => [
+      ...prev,
+      { nome: '', min: 0, max: 1, ordem_grupo: prev.length, itens: [] },
+    ])
+  }
+
+  function removeGrupoAdicional(idxGrupo) {
+    setGruposAdicionais((prev) => prev.filter((_, idx) => idx !== idxGrupo))
+  }
+
+  function updateGrupoAdicional(idxGrupo, field, value) {
+    setGruposAdicionais((prev) => prev.map((g, idx) => {
+      if (idx !== idxGrupo) return g
+      const next = { ...g }
+      if (field === 'nome') next.nome = value
+      if (field === 'min') next.min = Math.max(0, parseInt(value || 0, 10) || 0)
+      if (field === 'max') next.max = Math.max(0, parseInt(value || 0, 10) || 0)
+      if (field === 'ordem_grupo') next.ordem_grupo = Math.max(0, parseInt(value || 0, 10) || 0)
+      if (next.max < next.min) next.max = next.min
+      return next
+    }))
+  }
+
+  function addItemGrupo(idxGrupo) {
+    setGruposAdicionais((prev) => prev.map((g, idx) => {
+      if (idx !== idxGrupo) return g
+      return {
+        ...g,
+        itens: [...g.itens, { nome: '', preco: 0, ordem_item: g.itens.length }],
+      }
+    }))
+  }
+
+  function removeItemGrupo(idxGrupo, idxItem) {
+    setGruposAdicionais((prev) => prev.map((g, idx) => {
+      if (idx !== idxGrupo) return g
+      return {
+        ...g,
+        itens: g.itens.filter((_, i) => i !== idxItem),
+      }
+    }))
+  }
+
+  function updateItemGrupo(idxGrupo, idxItem, field, value) {
+    setGruposAdicionais((prev) => prev.map((g, idx) => {
+      if (idx !== idxGrupo) return g
+      return {
+        ...g,
+        itens: g.itens.map((it, i) => {
+          if (i !== idxItem) return it
+          return {
+            ...it,
+            [field]: field === 'preco'
+              ? (parseFloat(value) || 0)
+              : field === 'ordem_item'
+                ? (parseInt(value || 0, 10) || 0)
+                : value,
+          }
+        }),
+      }
+    }))
   }
 
   function setIngredientesNoFormulario(lista) {
@@ -160,12 +246,17 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
 
   function sincronizarIngredientesComoAdicionais() {
     if (ingredientes.length === 0) return
-    setAdicionais((prev) => {
-      const existentes = new Set(prev.map((a) => String(a.nome || '').trim().toLowerCase()))
+    setGruposAdicionais((prev) => {
+      const base = prev.length
+        ? [...prev]
+        : [{ nome: 'Complementos', min: 0, max: ingredientes.length, ordem_grupo: 0, itens: [] }]
+      const primeiro = base[0]
+      const existentes = new Set(primeiro.itens.map((a) => String(a.nome || '').trim().toLowerCase()))
       const novos = ingredientes
         .filter((ing) => !existentes.has(String(ing || '').trim().toLowerCase()))
-        .map((ing) => ({ nome: ing, preco: 0 }))
-      return [...prev, ...novos]
+        .map((ing, idx) => ({ nome: ing, preco: 0, ordem_item: primeiro.itens.length + idx }))
+      base[0] = { ...primeiro, itens: [...primeiro.itens, ...novos], max: Math.max(primeiro.max || 0, primeiro.itens.length + novos.length) }
+      return base
     })
   }
 
@@ -173,7 +264,15 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     if (produto) return
     if (autoAdicionaisRef.current) return
     if (ingredientes.length === 0) return
-    setAdicionais((prev) => (prev.length > 0 ? prev : ingredientes.map((ing) => ({ nome: ing, preco: 0 }))))
+    setGruposAdicionais((prev) => (prev.length > 0
+      ? prev
+      : [{
+        nome: 'Complementos',
+        min: 0,
+        max: ingredientes.length,
+        ordem_grupo: 0,
+        itens: ingredientes.map((ing, idx) => ({ nome: ing, preco: 0, ordem_item: idx })),
+      }]))
     autoAdicionaisRef.current = true
   }, [produto, ingredientes])
 
@@ -191,7 +290,24 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       }
 
       const variacoesLimpas = variacoes.filter((v) => v.nome.trim())
-      const adicionaisLimpos = adicionais.filter((a) => a.nome.trim())
+      const adicionaisLimpos = gruposAdicionais.flatMap((grupo, idxGrupo) => {
+        const nomeGrupo = String(grupo.nome || '').trim()
+        if (!nomeGrupo) return []
+        const min = Math.max(0, parseInt(grupo.min || 0, 10) || 0)
+        const max = Math.max(min, parseInt(grupo.max || 0, 10) || 0)
+        return (grupo.itens || [])
+          .map((item, idxItem) => ({ item, idxItem }))
+          .filter(({ item }) => String(item.nome || '').trim())
+          .map(({ item, idxItem }) => ({
+            nome: String(item.nome || '').trim(),
+            preco: Number(item.preco || 0),
+            grupo_nome: nomeGrupo,
+            grupo_min: min,
+            grupo_max: max,
+            ordem_grupo: Number.isFinite(grupo.ordem_grupo) ? Number(grupo.ordem_grupo) : idxGrupo,
+            ordem_item: Number.isFinite(item.ordem_item) ? Number(item.ordem_item) : idxItem,
+          }))
+      })
       const dados = { ...form, imagem_url, variacoes: variacoesLimpas, adicionais: adicionaisLimpos }
 
       let produtoSalvo
@@ -211,7 +327,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   const abas = [
     { id: 'info', label: 'Informações' },
     { id: 'tamanhos', label: `Tamanhos (${variacoes.length})` },
-    { id: 'adicionais', label: `Adicionais (${adicionais.length})` },
+    { id: 'adicionais', label: `Complementos (${gruposAdicionais.reduce((s, g) => s + (g.itens?.length || 0), 0)})` },
   ]
 
   return (
@@ -519,7 +635,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           {abaAtiva === 'adicionais' && (
             <>
               <p className="text-xs text-stone-400">
-                Defina adicionais opcionais. O cliente pode escolher vários. Ex: Cheddar, Bacon, Bife extra.
+                Separe os complementos por tipo e defina as regras de escolha (mínimo/máximo) por grupo.
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -530,37 +646,75 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                   <FiPlus /> Usar ingredientes como adicionais
                 </button>
                 <span className="text-[11px] text-stone-400">
-                  Adiciona os ingredientes que ainda não existem na lista de adicionais.
+                  Adiciona os ingredientes no primeiro grupo.
                 </span>
               </div>
-              <div className="space-y-2">
-                {adicionais.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      value={a.nome}
-                      onChange={(e) => handleAdicionalChange(i, 'nome', e.target.value)}
-                      placeholder="Nome (ex: Cheddar)"
-                      className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
-                    />
-                    <div className="relative w-28">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">R$</span>
+              <div className="space-y-3">
+                {gruposAdicionais.map((grupo, idxGrupo) => (
+                  <div key={idxGrupo} className="border border-stone-200 rounded-xl p-3 bg-stone-50">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2">
+                      <input
+                        value={grupo.nome}
+                        onChange={(e) => updateGrupoAdicional(idxGrupo, 'nome', e.target.value)}
+                        placeholder="Nome do grupo (ex: Frutas)"
+                        className="sm:col-span-2 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                      />
                       <input
                         type="number"
-                        step="0.01"
                         min="0"
-                        value={a.preco}
-                        onChange={(e) => handleAdicionalChange(i, 'preco', e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                        value={grupo.min}
+                        onChange={(e) => updateGrupoAdicional(idxGrupo, 'min', e.target.value)}
+                        placeholder="Mín"
+                        className="px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        value={grupo.max}
+                        onChange={(e) => updateGrupoAdicional(idxGrupo, 'max', e.target.value)}
+                        placeholder="Máx"
+                        className="px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
                       />
                     </div>
-                    <button type="button" onClick={() => removeAdicional(i)} className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                      <FiTrash2 className="text-sm" />
-                    </button>
+                    <div className="space-y-2">
+                      {grupo.itens.map((item, idxItem) => (
+                        <div key={idxItem} className="flex items-center gap-2">
+                          <input
+                            value={item.nome}
+                            onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'nome', e.target.value)}
+                            placeholder="Nome do item (ex: Morango)"
+                            className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                          />
+                          <div className="relative w-28">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.preco}
+                              onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'preco', e.target.value)}
+                              className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                            />
+                          </div>
+                          <button type="button" onClick={() => removeItemGrupo(idxGrupo, idxItem)} className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <FiTrash2 className="text-sm" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <button type="button" onClick={() => addItemGrupo(idxGrupo)} className="text-xs text-amber-700 font-medium hover:underline">
+                        + Adicionar item no grupo
+                      </button>
+                      <button type="button" onClick={() => removeGrupoAdicional(idxGrupo)} className="text-xs text-red-600 font-medium hover:underline">
+                        Remover grupo
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addAdicional} className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium">
-                <FiPlus /> Adicionar adicional personalizado
+              <button type="button" onClick={addGrupoAdicional} className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium">
+                <FiPlus /> Adicionar grupo de complementos
               </button>
             </>
           )}

@@ -24,11 +24,11 @@ async function buscar(req, res, next) {
 
 async function criar(req, res, next) {
   try {
-    const { nome, descricao, preco, imagem_url, itens } = req.body;
+    const { nome, descricao, preco, imagem_url, imagens_urls, itens } = req.body;
     if (!nome || preco === undefined) return res.status(400).json({ erro: 'Nome e preço são obrigatórios.' });
     if (!itens || itens.length < 2) return res.status(400).json({ erro: 'Um combo precisa ter pelo menos 2 produtos.' });
 
-    const combo = await combosService.criar(req.user.loja_id, { nome, descricao, preco, imagem_url, itens });
+    const combo = await combosService.criar(req.user.loja_id, { nome, descricao, preco, imagem_url, imagens_urls, itens });
     res.status(201).json(combo);
   } catch (e) { next(e); }
 }
@@ -38,6 +38,9 @@ async function atualizar(req, res, next) {
     const existente = await combosService.buscarPorId(req.params.id);
     if (!existente) return res.status(404).json({ erro: 'Combo não encontrado.' });
     if (existente.loja_id !== req.user.loja_id) return res.status(403).json({ erro: 'Combo de outra loja.' });
+    if (Array.isArray(req.body?.itens) && req.body.itens.length < 2) {
+      return res.status(400).json({ erro: 'Um combo precisa ter pelo menos 2 produtos.' });
+    }
 
     const combo = await combosService.atualizar(req.params.id, req.body);
     res.json(combo);

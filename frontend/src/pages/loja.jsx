@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react'
+import { Fragment, useEffect, useState, useMemo, useRef, useCallback, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, getCachedData } from '../api/client'
@@ -15,6 +15,7 @@ import {
 } from '../storage/cartStorage'
 
 const AVISO_PIX_ONLINE = '[PIX ONLINE] Conferir comprovante antes de aprovar.'
+const MAX_COMBO_IMAGES = 4
 
 function gerarChaveCarrinho(produtoId, variacaoId, adicionaisIds) {
   return `${produtoId}__${variacaoId || ''}__${(adicionaisIds || []).sort().join(',')}`
@@ -40,6 +41,53 @@ function formatDateTimeLocalValue(date) {
   return d.toISOString().slice(0, 16)
 }
 
+function agruparAdicionaisProduto(adicionais = []) {
+  const map = new Map()
+  for (const adicional of adicionais) {
+    const groupName = String(adicional?.grupo_nome || 'Complementos').trim() || 'Complementos'
+    if (!map.has(groupName)) {
+      map.set(groupName, {
+        nome: groupName,
+        min: Math.max(0, Number(adicional?.grupo_min || 0)),
+        max: Math.max(0, Number(adicional?.grupo_max ?? 99)),
+        ordem: Number(adicional?.ordem_grupo || 0),
+        itens: [],
+      })
+    }
+    map.get(groupName).itens.push(adicional)
+  }
+  return [...map.values()]
+    .map((g) => ({ ...g, max: Math.max(g.min, g.max) }))
+    .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, 'pt-BR'))
+}
+
+function sanitizeImageUrls(urls) {
+  return [...new Set((urls || []).map((u) => String(u || '').trim()).filter(Boolean))].slice(0, MAX_COMBO_IMAGES)
+}
+
+function getComboImages(combo) {
+  return sanitizeImageUrls([
+    ...(Array.isArray(combo?.imagens_urls) ? combo.imagens_urls : []),
+    combo?.imagem_url || '',
+    ...(combo?.itens || []).map((item) => item?.produto?.imagem_url || ''),
+  ])
+}
+
+const ComboImageStrip = memo(function ComboImageStrip({ combo }) {
+  const imagens = getComboImages(combo)
+  if (!imagens.length) return null
+  return (
+    <div className="flex items-center gap-1.5 mb-2">
+      {imagens.map((url, idx) => (
+        <Fragment key={`${combo.id}-${url}-${idx}`}>
+          <img src={url} alt="" loading="lazy" className="w-10 h-10 rounded-md object-cover border border-red-200" />
+          {idx < imagens.length - 1 && <span className="text-xs font-bold text-red-300">+</span>}
+        </Fragment>
+      ))}
+    </div>
+  )
+})
+
 function serializarCarrinho(carrinho) {
   return Object.entries(carrinho).map(([key, item]) => ({
     key,
@@ -61,8 +109,9 @@ function restaurarCarrinho(snapshot, produtos, combos) {
     if (row.isCombo) {
       const combo = combosById[row.comboId]
       if (!combo) continue
+      const comboImages = getComboImages(combo)
       result[row.key] = {
-        produto: { id: combo.id, nome: combo.nome, preco: combo.preco, imagem_url: combo.imagem_url },
+        produto: { id: combo.id, nome: combo.nome, preco: combo.preco, imagem_url: comboImages[0] || combo.imagem_url || '' },
         variacao: null,
         adicionais: [],
         precoUnit: Number(combo.preco),
@@ -551,6 +600,15 @@ export default function LojaPage() {
 
   function addItemConfigurado(e) {
     const p = produtoDetalhe
+    const grupos = agruparAdicionaisProduto(p.adicionais || [])
+    for (const grupo of grupos) {
+      if (!grupo.min) continue
+      const selecionadosNoGrupo = grupo.itens.filter((a) => adicionaisSel.includes(a.id)).length
+      if (selecionadosNoGrupo < grupo.min) {
+        alert(`No grupo "${grupo.nome}" selecione no mínimo ${grupo.min} opção(ões).`)
+        return
+      }
+    }
     const variacao = p.variacoes?.find((v) => v.id === variacaoSel) || null
     const adds = p.adicionais?.filter((a) => adicionaisSel.includes(a.id)) || []
     const precoBase = variacao ? Number(variacao.preco) : Number(p.preco)
@@ -736,10 +794,11 @@ export default function LojaPage() {
 
   const addComboAoCarrinho = useCallback((combo, sourceEl) => {
     const chave = `combo__${combo.id}`
+    const comboImages = getComboImages(combo)
     setCarrinho((prev) => ({
       ...prev,
       [chave]: {
-        produto: { id: combo.id, nome: combo.nome, preco: combo.preco, imagem_url: combo.imagem_url },
+        produto: { id: combo.id, nome: combo.nome, preco: combo.preco, imagem_url: comboImages[0] || combo.imagem_url || '' },
         variacao: null, adicionais: [],
         precoUnit: Number(combo.preco),
         obs: combo.itens.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(', '),
@@ -749,7 +808,7 @@ export default function LojaPage() {
       },
     }))
     mostrarToast(`1x ${combo.nome} adicionado`)
-    runFlyToCart(sourceEl, combo.imagem_url)
+    runFlyToCart(sourceEl, comboImages[0] || combo.imagem_url)
   }, [])
 
   function handleFormChange(e) { setFormPedido((prev) => ({ ...prev, [e.target.name]: e.target.value })) }
@@ -1574,14 +1633,29 @@ export default function LojaPage() {
     const p = produtoDetalhe
     const temVariacoes = p.variacoes?.length > 0
     const temAdicionais = p.adicionais?.length > 0
+    const gruposAdicionais = agruparAdicionaisProduto(p.adicionais || [])
     const varSel = p.variacoes?.find((v) => v.id === variacaoSel)
     const precoBase = varSel ? Number(varSel.preco) : Number(p.preco)
     const precoAdds = (p.adicionais || []).filter((a) => adicionaisSel.includes(a.id)).reduce((s, a) => s + Number(a.preco), 0)
     const precoUnitario = precoBase + precoAdds
     const precoTotal = precoUnitario * qtdDetalhe
 
-    function toggleAdicional(id) {
-      setAdicionaisSel((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+    function toggleAdicionalComRegra(adicional, grupo, acao) {
+      setAdicionaisSel((prev) => {
+        const selectedSet = new Set(prev)
+        const isSelected = selectedSet.has(adicional.id)
+        const countGrupo = grupo.itens.filter((it) => selectedSet.has(it.id)).length
+
+        if (acao === 'remover') {
+          if (isSelected) selectedSet.delete(adicional.id)
+          return [...selectedSet]
+        }
+
+        if (isSelected) return [...selectedSet]
+        if (countGrupo >= grupo.max) return prev
+        selectedSet.add(adicional.id)
+        return [...selectedSet]
+      })
     }
 
     return (
@@ -1637,18 +1711,45 @@ export default function LojaPage() {
         {temAdicionais && (
           <div className="px-4 pt-4 pb-2">
             <p className="text-base font-bold text-stone-900 mb-1">complementos</p>
-            <p className="text-xs text-stone-400 mb-3">selecione os adicionais que desejar</p>
-            {p.adicionais.map((a) => {
-              const sel = adicionaisSel.includes(a.id)
+            <p className="text-xs text-stone-400 mb-3">escolha os complementos de cada grupo</p>
+            {gruposAdicionais.map((grupo) => {
+              const countGrupo = grupo.itens.filter((it) => adicionaisSel.includes(it.id)).length
               return (
-                <div key={a.id} className="flex items-center justify-between py-3.5 border-b border-stone-100">
-                  <span className="text-sm text-stone-800">{a.nome}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(a.preco).toFixed(2).replace('.', ',')}</span>
-                    <button onClick={() => toggleAdicional(a.id)} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${sel ? 'bg-emerald-500 text-white' : 'border-2 border-emerald-500 text-emerald-500 hover:bg-emerald-50'}`}>
-                      {sel ? <FiCheck /> : <FiPlus />}
-                    </button>
-                  </div>
+                <div key={grupo.nome} className="mb-4">
+                  <p className="text-sm font-bold text-stone-800 mb-2">
+                    {grupo.nome} (escolha de {grupo.min} a {grupo.max})
+                  </p>
+                  {grupo.itens.map((a) => {
+                    const sel = adicionaisSel.includes(a.id)
+                    const countItem = sel ? 1 : 0
+                    const podeAdicionar = countGrupo < grupo.max
+                    return (
+                      <div key={a.id} className="flex items-center justify-between py-3 border-b border-stone-100">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleAdicionalComRegra(a, grupo, 'remover')}
+                            disabled={!sel}
+                            className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
+                          >
+                            <FiMinus size={12} />
+                          </button>
+                          <span className="w-4 text-center text-sm text-stone-600">{countItem}</span>
+                          <button
+                            onClick={() => toggleAdicionalComRegra(a, grupo, 'adicionar')}
+                            disabled={!podeAdicionar && !sel}
+                            className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
+                          >
+                            <FiPlus size={12} />
+                          </button>
+                          <span className="text-sm text-stone-800">{a.nome}</span>
+                        </div>
+                        <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(a.preco).toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    )
+                  })}
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    Selecionados: {countGrupo}/{grupo.max}
+                  </p>
                 </div>
               )
             })}
@@ -1966,14 +2067,15 @@ export default function LojaPage() {
                 const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
                 return (
                   <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50 to-yellow-50 rounded-2xl border-2 border-red-200 overflow-hidden">
-                    {c.imagem_url && (
-                      <img src={c.imagem_url} alt={c.nome} loading="lazy" className="w-full h-28 object-cover" />
+                    {getComboImages(c)[0] && (
+                      <img src={getComboImages(c)[0]} alt={c.nome} loading="lazy" className="w-full h-28 object-cover" />
                     )}
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h3 className="text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
                         {qtdNoCarrinho > 0 && <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0">{qtdNoCarrinho}</span>}
                       </div>
+                      <ComboImageStrip combo={c} />
                       <p className="text-[11px] text-stone-500 mb-2 line-clamp-2">
                         {c.itens.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(' + ')}
                       </p>

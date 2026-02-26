@@ -149,10 +149,16 @@ model AdicionalProduto {
   produto_id String
   nome       String
   preco      Decimal
+  grupo_nome String  @default("Complementos")
+  grupo_min  Int     @default(0)
+  grupo_max  Int     @default(99)
+  ordem_grupo Int    @default(0)
+  ordem_item Int     @default(0)
 
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
 
   @@index([produto_id])
+  @@index([produto_id, grupo_nome, ordem_item])
 }
 
 model Clientes {
@@ -398,6 +404,7 @@ model Combo {
   descricao   String   @default("")
   preco       Decimal
   imagem_url  String   @default("")
+  imagens_urls_json String @default("[]")
   ativo       Boolean  @default(true)
   created_at  DateTime @default(now())
 
