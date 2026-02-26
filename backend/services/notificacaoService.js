@@ -252,6 +252,88 @@ async function notificarLojaChat(lojaId, { pedidoId, nomeCliente = '', mensagem 
   );
 }
 
+async function notificarTodosClientesNovoCupom({ lojaId, codigoCupom, valorDesconto, tipoDesconto } = {}) {
+  if (!isFirebaseInitialized()) {
+    console.warn('[Notificação Cupom] Firebase não inicializado.');
+    return;
+  }
+
+  const [loja, tokens] = await Promise.all([
+    prisma.lojas.findUnique({
+      where: { id: lojaId },
+      select: { nome: true },
+    }),
+    prisma.fcmToken.findMany({
+      select: { token: true },
+    }),
+  ]);
+
+  if (tokens.length === 0) return;
+
+  const nomeLoja = loja?.nome || 'Uma loja'
+  const codigo = String(codigoCupom || '').toUpperCase().trim()
+  const valor = Number(valorDesconto || 0)
+  const valorTexto = tipoDesconto === 'PERCENTAGE'
+    ? `${valor}% OFF`
+    : `R$ ${valor.toFixed(2).replace('.', ',')} OFF`
+
+  const titulo = 'Novo cupom disponível!'
+  const corpo = codigo
+    ? `${nomeLoja} criou o cupom ${codigo} (${valorTexto}).`
+    : `${nomeLoja} acabou de criar um novo cupom para você.`
+
+  const tokensInvalidos = [];
+  for (const { token } of tokens) {
+    try {
+      await admin.messaging().send({
+        token,
+        notification: {
+          title: titulo,
+          body: corpo,
+        },
+        data: {
+          tipo: 'cupom',
+          lojaId: String(lojaId || ''),
+          codigoCupom: codigo,
+          url: '/',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            sound: 'default',
+            channelId: 'promocoes',
+            priority: 'high',
+          },
+        },
+        webpush: {
+          headers: { Urgency: 'high' },
+          notification: {
+            icon: '/vite.svg',
+            badge: '/vite.svg',
+            vibrate: [220, 80, 220],
+            requireInteraction: true,
+            tag: `cupom-${lojaId || 'geral'}-${codigo || 'novo'}`,
+          },
+          fcmOptions: { link: '/' },
+        },
+      });
+    } catch (err) {
+      if (
+        err.code === 'messaging/registration-token-not-registered' ||
+        err.code === 'messaging/invalid-registration-token'
+      ) {
+        tokensInvalidos.push(token);
+      } else {
+        console.error(`[Notificação Cupom] Erro: ${err.message}`);
+      }
+    }
+  }
+
+  if (tokensInvalidos.length > 0) {
+    await prisma.fcmToken.deleteMany({ where: { token: { in: tokensInvalidos } } });
+  }
+}
+
 module.exports = {
   salvarToken,
   removerToken,
@@ -261,4 +343,5 @@ module.exports = {
   notificarLoja,
   notificarClienteChat,
   notificarLojaChat,
+  notificarTodosClientesNovoCupom,
 };

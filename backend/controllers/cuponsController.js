@@ -1,4 +1,5 @@
 const cuponsService = require('../services/cuponsService');
+const { notificarTodosClientesNovoCupom } = require('../services/notificacaoService');
 
 async function listar(req, res, next) {
   try {
@@ -26,6 +27,16 @@ async function buscarPorId(req, res, next) {
 async function criar(req, res, next) {
   try {
     const cupom = await cuponsService.criar(req.user.loja_id, req.validated);
+
+    notificarTodosClientesNovoCupom({
+      lojaId: req.user.loja_id,
+      codigoCupom: cupom.codigo,
+      valorDesconto: cupom.valor_desconto,
+      tipoDesconto: cupom.tipo_desconto,
+    }).catch((err) => {
+      console.error('[Notificação Cupom] Falha ao enviar push global:', err.message);
+    });
+
     res.status(201).json(cupom);
   } catch (e) {
     if (e.code === 'P2002') return res.status(409).json({ erro: 'Já existe um cupom com esse código nesta loja.' });
