@@ -2,6 +2,7 @@ const chatService = require('../services/chatService');
 const { prisma } = require('../config/database');
 const clientesService = require('../services/clientesService');
 const { getIO } = require('../config/socket');
+const { notificarClienteChat, notificarLojaChat } = require('../services/notificacaoService');
 
 async function listarMensagens(req, res, next) {
   try {
@@ -38,7 +39,15 @@ async function enviarMensagemLoja(req, res, next) {
     const arquivoMime = String(arquivo_mime || '').trim();
     if (!texto && !arquivoUrl) return res.status(400).json({ erro: 'Mensagem vazia.' });
 
-    const pedido = await prisma.pedidos.findUnique({ where: { id: pedidoId } });
+    const pedido = await prisma.pedidos.findUnique({
+      where: { id: pedidoId },
+      select: {
+        id: true,
+        loja_id: true,
+        cliente_id: true,
+        loja: { select: { nome: true } },
+      },
+    });
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
     if (req.user.loja_id !== pedido.loja_id) return res.status(403).json({ erro: 'Acesso negado.' });
 
@@ -55,6 +64,17 @@ async function enviarMensagemLoja(req, res, next) {
     const io = getIO();
     if (io && pedido.cliente_id) {
       io.to(`cliente:${pedido.cliente_id}`).emit('chat:nova_mensagem', msg);
+    }
+
+    if (pedido.cliente_id) {
+      notificarClienteChat(pedido.cliente_id, {
+        pedidoId: pedido.id,
+        nomeLoja: pedido.loja?.nome || '',
+        mensagem: texto,
+        possuiAnexo: Boolean(arquivoUrl),
+      }).catch((err) => {
+        console.error('[Notificação Chat Cliente] Falha:', err.message);
+      });
     }
 
     res.status(201).json(msg);
@@ -75,7 +95,15 @@ async function enviarMensagemCliente(req, res, next) {
     const cliente = await clientesService.buscarPorFirebaseUid(req.firebaseDecoded.uid);
     if (!cliente) return res.status(401).json({ erro: 'Cliente não encontrado.' });
 
-    const pedido = await prisma.pedidos.findUnique({ where: { id: pedidoId } });
+    const pedido = await prisma.pedidos.findUnique({
+      where: { id: pedidoId },
+      select: {
+        id: true,
+        loja_id: true,
+        cliente_id: true,
+        nome_cliente: true,
+      },
+    });
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
     if (pedido.cliente_id !== cliente.id) return res.status(403).json({ erro: 'Acesso negado.' });
 
@@ -93,6 +121,15 @@ async function enviarMensagemCliente(req, res, next) {
     if (io) {
       io.to(`loja:${pedido.loja_id}`).emit('chat:nova_mensagem', msg);
     }
+
+    notificarLojaChat(pedido.loja_id, {
+      pedidoId: pedido.id,
+      nomeCliente: pedido.nome_cliente || cliente.nome || 'Cliente',
+      mensagem: texto,
+      possuiAnexo: Boolean(arquivoUrl),
+    }).catch((err) => {
+      console.error('[Notificação Chat Loja] Falha:', err.message);
+    });
 
     res.status(201).json(msg);
   } catch (e) { next(e); }

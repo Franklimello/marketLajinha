@@ -203,12 +203,18 @@ export function AuthProvider({ children }) {
     if (!messagingEnv) return undefined
     const unsub = messagingEnv.onMessage(messagingEnv.messaging, (payload) => {
       const { title, body } = payload.notification || {}
+      const data = payload.data || {}
       if (Notification.permission === 'granted') {
-        new Notification(title || 'UaiFood', {
+        const n = new Notification(title || 'UaiFood', {
           body: body || '',
           icon: '/icons/icon-192.png',
           vibrate: [200, 100, 200],
         })
+        const targetUrl = data.url || '/pedidos'
+        n.onclick = () => {
+          window.focus()
+          if (targetUrl) window.location.href = targetUrl
+        }
       }
     })
     return () => unsub?.()

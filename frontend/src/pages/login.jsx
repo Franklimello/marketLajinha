@@ -5,6 +5,7 @@ import { auth, googleProvider } from '../config/firebase'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
 import { FiMail, FiLock, FiChevronLeft } from 'react-icons/fi'
+import { Motorcycle } from '@phosphor-icons/react'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -57,9 +58,19 @@ export default function LoginPage() {
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
       <SEO title="Entrar" description="Faça login no UaiFood para acompanhar seus pedidos." noIndex />
-      <Link to="/" className="flex items-center gap-1 text-stone-400 hover:text-stone-700 text-sm mb-6">
-        <FiChevronLeft /> Voltar
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link to="/" className="flex items-center gap-1 text-stone-400 hover:text-stone-700 text-sm">
+          <FiChevronLeft /> Voltar
+        </Link>
+        <a
+          href="https://uaifooddelivery.vercel.app/motoboy/login"
+          aria-label="Ir para login de motoboy"
+          title="Sou motoboy"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-stone-200 text-stone-500 hover:text-red-600 hover:border-red-300 transition-colors"
+        >
+          <Motorcycle size={18} weight="duotone" />
+        </a>
+      </div>
 
       <h1 className="text-2xl font-bold text-stone-900 mb-1">Entrar</h1>
       <p className="text-stone-400 text-sm mb-6">Faça login para fazer pedidos</p>

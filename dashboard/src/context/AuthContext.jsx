@@ -62,12 +62,18 @@ export function AuthProvider({ children }) {
     if (!messagingEnv) return undefined
     const unsub = messagingEnv.onMessage(messagingEnv.messaging, (payload) => {
       const { title, body } = payload.notification || {}
+      const data = payload.data || {}
       if (Notification.permission === 'granted') {
-        new Notification(title || 'MarketLajinha', {
+        const n = new Notification(title || 'MarketLajinha', {
           body: body || '',
           icon: '/vite.svg',
           vibrate: [300, 100, 300, 100, 300],
         })
+        const targetUrl = data.url || '/pedidos'
+        n.onclick = () => {
+          window.focus()
+          if (targetUrl) window.location.href = targetUrl
+        }
       }
     })
     return () => unsub?.()

@@ -163,4 +163,102 @@ async function notificarLoja(lojaId, titulo, corpo, dados = {}) {
   }
 }
 
-module.exports = { salvarToken, removerToken, notificarCliente, salvarTokenLoja, removerTokenLoja, notificarLoja };
+async function notificarClienteChat(clienteId, { pedidoId, nomeLoja = '', mensagem = '', possuiAnexo = false } = {}) {
+  if (!isFirebaseInitialized()) {
+    console.warn('[Notificação Chat Cliente] Firebase não inicializado.');
+    return;
+  }
+
+  const tokens = await prisma.fcmToken.findMany({
+    where: { cliente_id: clienteId },
+    select: { token: true },
+  });
+
+  if (tokens.length === 0) return;
+
+  const preview = mensagem
+    ? String(mensagem).trim()
+    : (possuiAnexo ? 'A loja enviou um anexo no chat.' : 'A loja enviou uma nova mensagem.');
+  const bodyBase = preview.length > 80 ? `${preview.slice(0, 77)}...` : preview;
+  const corpo = nomeLoja ? `${nomeLoja}: ${bodyBase}` : bodyBase;
+  const tokensInvalidos = [];
+
+  for (const { token } of tokens) {
+    try {
+      await admin.messaging().send({
+        token,
+        notification: {
+          title: 'Nova mensagem da loja',
+          body: corpo,
+        },
+        data: {
+          tipo: 'chat',
+          pedidoId: String(pedidoId || ''),
+          url: '/pedidos',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            sound: 'default',
+            channelId: 'chat',
+            priority: 'high',
+          },
+        },
+        webpush: {
+          headers: { Urgency: 'high' },
+          notification: {
+            icon: '/vite.svg',
+            badge: '/vite.svg',
+            vibrate: [200, 100, 200],
+            requireInteraction: true,
+            tag: pedidoId ? `chat-${pedidoId}` : 'chat-cliente',
+          },
+          fcmOptions: { link: '/pedidos' },
+        },
+      });
+    } catch (err) {
+      if (
+        err.code === 'messaging/registration-token-not-registered' ||
+        err.code === 'messaging/invalid-registration-token'
+      ) {
+        tokensInvalidos.push(token);
+      } else {
+        console.error(`[Notificação Chat Cliente] Erro: ${err.message}`);
+      }
+    }
+  }
+
+  if (tokensInvalidos.length > 0) {
+    await prisma.fcmToken.deleteMany({ where: { token: { in: tokensInvalidos } } });
+  }
+}
+
+async function notificarLojaChat(lojaId, { pedidoId, nomeCliente = '', mensagem = '', possuiAnexo = false } = {}) {
+  const preview = mensagem
+    ? String(mensagem).trim()
+    : (possuiAnexo ? 'O cliente enviou um anexo no chat.' : 'O cliente enviou uma nova mensagem.');
+  const bodyBase = preview.length > 80 ? `${preview.slice(0, 77)}...` : preview;
+  const corpo = nomeCliente ? `${nomeCliente}: ${bodyBase}` : bodyBase;
+
+  return notificarLoja(
+    lojaId,
+    'Nova mensagem no chat',
+    corpo,
+    {
+      tipo: 'chat',
+      pedidoId: String(pedidoId || ''),
+      url: pedidoId ? `/pedidos/${pedidoId}` : '/pedidos',
+    }
+  );
+}
+
+module.exports = {
+  salvarToken,
+  removerToken,
+  notificarCliente,
+  salvarTokenLoja,
+  removerTokenLoja,
+  notificarLoja,
+  notificarClienteChat,
+  notificarLojaChat,
+};
