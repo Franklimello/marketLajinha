@@ -619,6 +619,7 @@ const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
   const prefetch = usePrefetchLoja(loja.slug)
   const [imgError, setImgError] = useState(false)
   const isAboveFold = idx < 6
+  const shouldAnimate = idx < 8
 
   return (
     <Link
@@ -626,8 +627,13 @@ const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
       to={`/loja/${loja.slug}`}
       onMouseEnter={prefetch.onMouseEnter}
       onTouchStart={prefetch.onTouchStart}
-      className={`group block ${!aberta ? 'opacity-60' : ''}`}
-      style={{ WebkitTapHighlightColor: 'rgba(239, 68, 68, 0.12)' }}
+      className={`group block transform-gpu will-change-transform ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-60' : ''}`}
+      style={{
+        WebkitTapHighlightColor: 'rgba(239, 68, 68, 0.12)',
+        animationDelay: shouldAnimate ? `${Math.min(idx, 10) * 50}ms` : '0ms',
+        contentVisibility: idx >= 8 ? 'auto' : 'visible',
+        containIntrinsicSize: idx >= 8 ? '236px' : 'auto',
+      }}
     >
       <div className="relative rounded-2xl overflow-hidden bg-stone-100">
         {!imgError && loja.logo_url ? (
