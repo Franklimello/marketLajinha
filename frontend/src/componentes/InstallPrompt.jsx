@@ -63,7 +63,7 @@ function IOSGuideModal({ onClose }) {
   )
 }
 
-function UpdateBanner({ onUpdate }) {
+function UpdateBanner({ onUpdate, onDismiss }) {
   return (
     <div className="fixed bottom-20 left-4 right-4 z-[9998] sm:left-auto sm:right-4 sm:max-w-sm">
       <div className="bg-stone-900 text-white rounded-xl p-4 flex items-center gap-3 shadow-xl">
@@ -77,15 +77,22 @@ function UpdateBanner({ onUpdate }) {
         >
           Atualizar
         </button>
+        <button
+          onClick={onDismiss}
+          className="p-1 text-stone-400 hover:text-white transition-colors flex-shrink-0"
+          aria-label="Fechar"
+        >
+          <FiX size={18} />
+        </button>
       </div>
     </div>
   )
 }
 
 export default function InstallPrompt() {
-  const { showIOSGuide, updateAvailable, dismissIOSGuide, applyUpdate } = usePWA()
+  const { showIOSGuide, updateAvailable, dismissIOSGuide, applyUpdate, dismissUpdate } = usePWA()
 
   if (showIOSGuide) return <IOSGuideModal onClose={dismissIOSGuide} />
-  if (updateAvailable) return <UpdateBanner onUpdate={applyUpdate} />
+  if (updateAvailable) return <UpdateBanner onUpdate={applyUpdate} onDismiss={dismissUpdate} />
   return null
 }

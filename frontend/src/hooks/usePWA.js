@@ -171,8 +171,16 @@ export function usePWA() {
 
   /** Envia SKIP_WAITING ao SW que está aguardando ativação */
   const applyUpdate = useCallback(() => {
-    waitingWorker?.postMessage({ type: 'SKIP_WAITING' })
+    setUpdateAvailable(false)
+    if (waitingWorker) {
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' })
+    } else {
+      window.location.reload()
+    }
   }, [waitingWorker])
+
+  /** Fecha o banner de atualização sem recarregar */
+  const dismissUpdate = useCallback(() => setUpdateAvailable(false), [])
 
   return {
     canInstall: canInstall && !installed,  // mostra botão só se instalável
@@ -184,5 +192,6 @@ export function usePWA() {
     promptInstall,
     dismissIOSGuide,
     applyUpdate,
+    dismissUpdate,
   }
 }
