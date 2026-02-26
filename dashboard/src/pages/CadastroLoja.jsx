@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
@@ -24,9 +24,31 @@ export default function CadastroLoja() {
   const [logoPreview, setLogoPreview] = useState(null)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [cidadesSugestoes, setCidadesSugestoes] = useState([])
   const { user, loja, cadastrar, atualizarLoja } = useAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')])
+      .then(([mg, es]) => {
+        if (cancelled) return
+        const lista = [
+          ...(mg.status === 'fulfilled' && Array.isArray(mg.value) ? mg.value : []),
+          ...(es.status === 'fulfilled' && Array.isArray(es.value) ? es.value : []),
+        ]
+        const nomes = Array.from(new Set(lista.map((c) => String(c?.nome || '').trim()).filter(Boolean)))
+          .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        setCidadesSugestoes(nomes)
+      })
+      .catch(() => {
+        if (!cancelled) setCidadesSugestoes([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   if (user && loja) {
     navigate('/')
@@ -293,8 +315,14 @@ export default function CadastroLoja() {
                     value={form.cidade}
                     onChange={handleChange}
                     required
+                    list="cidades-br-datalist"
                     className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
                   />
+                  <datalist id="cidades-br-datalist">
+                    {cidadesSugestoes.map((nomeCidade) => (
+                      <option key={nomeCidade} value={nomeCidade} />
+                    ))}
+                  </datalist>
                 </div>
 
                 {/* Upload de logo */}

@@ -96,6 +96,9 @@ async function cachedRequest(path) {
 }
 
 export const api = {
+  cidades: {
+    listar: (estado) => request(`/cidades?estado=${encodeURIComponent(String(estado || '').toUpperCase())}`),
+  },
   lojas: {
     home: () => cachedRequest('/lojas/home'),
     listarAtivas: () => cachedRequest('/lojas/ativos'),

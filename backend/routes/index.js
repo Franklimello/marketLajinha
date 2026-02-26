@@ -20,6 +20,7 @@ const avaliacoesRoutes = require('./avaliacoesRoutes');
 const chatRoutes = require('./chatRoutes');
 const promocoesRoutes = require('./promocoesRoutes');
 const storiesRoutes = require('./storiesRoutes');
+const cidadesRoutes = require('./cidadesRoutes');
 
 router.get('/health', (req, res) => res.json({ ok: true, mensagem: 'API marcket no ar.' }));
 
@@ -38,6 +39,7 @@ router.use('/auth', authRoutes);
 router.use('/avaliacoes', avaliacoesRoutes);
 router.use('/chat', chatRoutes);
 router.use('/promocoes', promocoesRoutes);
+router.use('/cidades', cidadesRoutes);
 router.use('/', storiesRoutes);
 
 module.exports = router;

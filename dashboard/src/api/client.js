@@ -26,6 +26,9 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  cidades: {
+    listar: (estado) => request(`/cidades?estado=${encodeURIComponent(String(estado || '').toUpperCase())}`),
+  },
   lojas: {
     criar: (data) => request('/lojas', { method: 'POST', body: JSON.stringify(data) }),
     minha: () => request('/lojas/minha'),

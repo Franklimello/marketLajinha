@@ -22,6 +22,7 @@ export default function PerfilPage() {
   const [formCadastro, setFormCadastro] = useState({ nome: '', telefone: '' })
   const [cadastroInit, setCadastroInit] = useState(false)
   const [ativandoPush, setAtivandoPush] = useState(false)
+  const [cidadesSugestoes, setCidadesSugestoes] = useState([])
 
   useEffect(() => {
     if (!cadastroInit && firebaseUser && !cliente) {
@@ -40,6 +41,27 @@ export default function PerfilPage() {
       setEnderecos(cliente.enderecos || [])
     }
   }, [cliente])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')])
+      .then(([mg, es]) => {
+        if (cancelled) return
+        const lista = [
+          ...(mg.status === 'fulfilled' && Array.isArray(mg.value) ? mg.value : []),
+          ...(es.status === 'fulfilled' && Array.isArray(es.value) ? es.value : []),
+        ]
+        const nomes = Array.from(new Set(lista.map((c) => String(c?.nome || '').trim()).filter(Boolean)))
+          .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        setCidadesSugestoes(nomes)
+      })
+      .catch(() => {
+        if (!cancelled) setCidadesSugestoes([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function carregarEnderecos() {
     try { setEnderecos(await api.clientes.enderecos()) } catch {}
@@ -230,7 +252,12 @@ export default function PerfilPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-stone-600 mb-1">Cidade *</label>
-              <input name="cidade" value={formEnd.cidade} onChange={handleEndChange} required placeholder="Ex: Ibatiba" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+              <input name="cidade" value={formEnd.cidade} onChange={handleEndChange} required placeholder="Ex: Ibatiba" list="cidades-br-datalist-perfil" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+              <datalist id="cidades-br-datalist-perfil">
+                {cidadesSugestoes.map((nomeCidade) => (
+                  <option key={nomeCidade} value={nomeCidade} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-xs font-medium text-stone-600 mb-1">Bairro *</label>

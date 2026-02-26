@@ -16,6 +16,7 @@ export default function MinhaLoja() {
   const [sucesso, setSucesso] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [toggling, setToggling] = useState(false)
+  const [cidadesSugestoes, setCidadesSugestoes] = useState([])
   const fileInputRef = useRef(null)
   const bannerInputRef = useRef(null)
 
@@ -37,6 +38,27 @@ export default function MinhaLoja() {
   }
 
   const [horarios, setHorarios] = useState(HORARIOS_SEMANA_PADRAO)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')])
+      .then(([mg, es]) => {
+        if (cancelled) return
+        const lista = [
+          ...(mg.status === 'fulfilled' && Array.isArray(mg.value) ? mg.value : []),
+          ...(es.status === 'fulfilled' && Array.isArray(es.value) ? es.value : []),
+        ]
+        const nomes = Array.from(new Set(lista.map((c) => String(c?.nome || '').trim()).filter(Boolean)))
+          .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        setCidadesSugestoes(nomes)
+      })
+      .catch(() => {
+        if (!cancelled) setCidadesSugestoes([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (loja) {
@@ -340,7 +362,7 @@ export default function MinhaLoja() {
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Cidade *</label>
-            <input name="cidade" value={form.cidade} onChange={handleChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <input name="cidade" value={form.cidade} onChange={handleChange} required list="cidades-br-datalist-minha-loja" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
           </div>
         </div>
 
@@ -547,9 +569,14 @@ export default function MinhaLoja() {
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Cidade (PIX)</label>
-            <input name="pix_cidade" value={form.pix_cidade} onChange={handleChange} placeholder="Cidade do titular" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <input name="pix_cidade" value={form.pix_cidade} onChange={handleChange} placeholder="Cidade do titular" list="cidades-br-datalist-minha-loja" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
           </div>
         </div>
+        <datalist id="cidades-br-datalist-minha-loja">
+          {cidadesSugestoes.map((nomeCidade) => (
+            <option key={nomeCidade} value={nomeCidade} />
+          ))}
+        </datalist>
         <p className="text-xs text-stone-400">
           Configure seus dados PIX para permitir que clientes paguem online via QR Code dinâmico com o valor exato da compra.
         </p>

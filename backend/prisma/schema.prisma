@@ -198,6 +198,16 @@ model EnderecoCliente {
   @@index([cliente_id])
 }
 
+model Cidades {
+  id       String @id @default(cuid())
+  id_ibge  Int    @unique
+  nome     String
+  estado   String
+
+  @@unique([estado, nome])
+  @@index([estado, nome])
+}
+
 model Pedidos {
   id               String         @id @default(cuid())
   loja_id          String
