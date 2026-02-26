@@ -1,3 +1,34 @@
+// ──────────── Firebase Cloud Messaging ────────────
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: 'AIzaSyDF51FzoLyRU52X4-jXMW1evIr3DKw9vQ8',
+  authDomain: 'marcketlainha.firebaseapp.com',
+  projectId: 'marcketlainha',
+  storageBucket: 'marcketlainha.firebasestorage.app',
+  messagingSenderId: '910649841875',
+  appId: '1:910649841875:web:3ea1a73381a6914f56dc26',
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  const notification = payload.notification || {};
+  const data = payload.data || {};
+
+  self.registration.showNotification(notification.title || 'UaiFood', {
+    body: notification.body || 'Você tem uma atualização.',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    data: { url: data.url || '/pedidos' },
+    requireInteraction: true,
+    tag: data.pedidoId || 'status-pedido',
+  });
+});
+
+// ──────────── Caches ────────────
 const CACHE_VERSION = 'vite-pwa-v1';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const IMAGES_CACHE = 'images-cache-v1';
@@ -96,4 +127,23 @@ self.addEventListener('fetch', (event) => {
       });
     })
   );
+});
+
+// ──────────── Notification click ────────────
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/pedidos';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url.includes(url) && 'focus' in c) return c.focus();
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
