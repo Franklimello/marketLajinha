@@ -86,11 +86,19 @@ export function AuthProvider({ children }) {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
 
-      const reg = await navigator.serviceWorker.ready
+      // Registra explicitamente o firebase-messaging-sw.js (não o sw.js principal,
+      // que o Vite transforma e remove o importScripts necessário para o FCM)
+      let fcmSwReg
+      try {
+        fcmSwReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+      } catch {
+        // fallback: usa o SW já registrado
+        fcmSwReg = await navigator.serviceWorker.ready
+      }
 
       const fcmToken = await messagingEnv.getToken(messagingEnv.messaging, {
         vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: reg,
+        serviceWorkerRegistration: fcmSwReg,
       })
       if (fcmToken) {
         await apiFetch('/clientes/me/fcm-token', authToken, {
@@ -109,10 +117,12 @@ export function AuthProvider({ children }) {
     getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
   }, [])
 
-  // ── Se messagingEnv carregou DEPOIS do onAuthStateChanged (race condition),
-  //    re-tenta o registro de push com o token e cliente já disponíveis ──────
+  // Se o messagingEnv carregou DEPOIS do onAuthStateChanged (race condition),
+  // re-tenta o registro de push com o token e cliente já disponíveis.
+  // Reseta o flag para forçar novo token caso o SW anterior fosse incorreto.
   useEffect(() => {
     if (!messagingEnv || !token || !cliente) return
+    pushRegistered.current = false
     registrarPush(token)
   }, [messagingEnv, token, cliente, registrarPush])
 
