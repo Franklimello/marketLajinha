@@ -178,10 +178,10 @@ async function listarAtivasHome() {
         ...rest,
         cupom_ativo: cupomAtivo
           ? {
-              codigo: cupomAtivo.codigo,
-              tipo_desconto: cupomAtivo.tipo_desconto,
-              valor_desconto: Number(cupomAtivo.valor_desconto || 0),
-            }
+            codigo: cupomAtivo.codigo,
+            tipo_desconto: cupomAtivo.tipo_desconto,
+            valor_desconto: Number(cupomAtivo.valor_desconto || 0),
+          }
           : null,
         nota_media: media,
         total_avaliacoes: notas.length,
@@ -248,6 +248,11 @@ async function atualizar(id, data) {
     delete payload.banner_url;
   }
   if (payload.vencimento) payload.vencimento = new Date(payload.vencimento);
+  // Se os horários automáticos forem atualizados, desativa o modo manual (forcar_status)
+  // para que a loja passe a abrir/fechar conforme o horário configurado.
+  if (Object.prototype.hasOwnProperty.call(payload, 'horarios_semana')) {
+    payload.forcar_status = false;
+  }
   const loja = await prisma.lojas.update({ where: { id }, data: payload });
   await invalidarCache('lojas:*');
   return loja;

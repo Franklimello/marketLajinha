@@ -32,7 +32,7 @@ export default function MinhaLoja() {
     try {
       const parsed = JSON.parse(raw || '[]')
       if (Array.isArray(parsed) && parsed.length === 7) return parsed
-    } catch {}
+    } catch { }
     return HORARIOS_SEMANA_PADRAO
   }
 
@@ -188,13 +188,17 @@ export default function MinhaLoja() {
         const p = `lojas/${loja.id}/banner_${Date.now()}.webp`
         banner_url = await uploadImagem(bannerFile, p)
       }
+      const eraModoManual = loja?.forcar_status
       const atualizada = await api.lojas.atualizar(loja.id, { ...form, logo_url, banner_url, horarios_semana: JSON.stringify(horarios) })
       atualizarLoja(atualizada)
       setLogoFile(null)
       setLogoPreview(null)
       setBannerFile(null)
       setBannerPreview(null)
-      setSucesso('Loja atualizada com sucesso!')
+      setSucesso(eraModoManual
+        ? 'Loja atualizada! Modo automático reativado conforme os horários.'
+        : 'Loja atualizada com sucesso!'
+      )
       setTimeout(() => setSucesso(''), 3000)
     } catch (err) {
       setErro(err.message)
@@ -314,11 +318,10 @@ export default function MinhaLoja() {
                     key={cat}
                     type="button"
                     onClick={() => toggleCategoria(cat)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      ativo
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${ativo
                         ? 'bg-amber-600 text-white'
                         : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                    }`}
+                      }`}
                   >
                     {cat}
                   </button>
@@ -364,11 +367,10 @@ export default function MinhaLoja() {
               ].map((opt) => (
                 <label
                   key={opt.value}
-                  className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${
-                    form.modo_atendimento === opt.value
+                  className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${form.modo_atendimento === opt.value
                       ? 'border-amber-500 bg-amber-50'
                       : 'border-stone-200 hover:border-stone-300'
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"
@@ -401,9 +403,8 @@ export default function MinhaLoja() {
             return (
               <div
                 key={idx}
-                className={`flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-lg border transition-colors ${
-                  isHoje ? 'border-amber-300 bg-amber-50/50' : 'border-stone-200 bg-stone-50/50'
-                }`}
+                className={`flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-lg border transition-colors ${isHoje ? 'border-amber-300 bg-amber-50/50' : 'border-stone-200 bg-stone-50/50'
+                  }`}
               >
                 <label className="flex items-center gap-2 min-w-[120px] cursor-pointer select-none">
                   <input
@@ -490,9 +491,8 @@ export default function MinhaLoja() {
             return (
               <label
                 key={opt.value}
-                className={`flex items-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-all ${
-                  ativo ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'
-                }`}
+                className={`flex items-center gap-2 p-3 border-2 rounded-xl cursor-pointer transition-all ${ativo ? 'border-amber-500 bg-amber-50' : 'border-stone-200 hover:border-stone-300'
+                  }`}
               >
                 <input
                   type="checkbox"
