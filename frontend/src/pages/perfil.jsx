@@ -7,12 +7,17 @@ import BAIRROS_DISPONIVEIS from '../data/bairros'
 import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiChevronLeft, FiSave, FiX, FiBell } from 'react-icons/fi'
 import { canUseWebPush } from '../utils/pwaEnvironment'
 
+const ESTADOS_SUPORTADOS = [
+  { sigla: 'MG', nome: 'Minas Gerais' },
+  { sigla: 'ES', nome: 'Espirito Santo' },
+]
+
 export default function PerfilPage() {
   const { logado, carregando: authCarregando, cliente, firebaseUser, logout, atualizarPerfil, perfilCompleto, cadastrarCliente, ativarPushPorClique, pushPermission } = useAuth()
   const navigate = useNavigate()
   const [enderecos, setEnderecos] = useState([])
   const [editEndereco, setEditEndereco] = useState(null)
-  const [formEnd, setFormEnd] = useState({ apelido: '', cidade: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: false })
+  const [formEnd, setFormEnd] = useState({ apelido: '', estado: '', cidade: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: false })
   const [formPerfil, setFormPerfil] = useState({ nome: '', telefone: '' })
   const [editandoPerfil, setEditandoPerfil] = useState(false)
   const [erro, setErro] = useState('')
@@ -43,15 +48,16 @@ export default function PerfilPage() {
   }, [cliente])
 
   useEffect(() => {
+    if (!formEnd.estado) {
+      setCidadesSugestoes([])
+      return
+    }
+
     let cancelled = false
-    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')])
-      .then(([mg, es]) => {
+    api.cidades.listar(formEnd.estado)
+      .then((lista) => {
         if (cancelled) return
-        const lista = [
-          ...(mg.status === 'fulfilled' && Array.isArray(mg.value) ? mg.value : []),
-          ...(es.status === 'fulfilled' && Array.isArray(es.value) ? es.value : []),
-        ]
-        const nomes = Array.from(new Set(lista.map((c) => String(c?.nome || '').trim()).filter(Boolean)))
+        const nomes = Array.from(new Set((Array.isArray(lista) ? lista : []).map((c) => String(c?.nome || '').trim()).filter(Boolean)))
           .sort((a, b) => a.localeCompare(b, 'pt-BR'))
         setCidadesSugestoes(nomes)
       })
@@ -61,7 +67,25 @@ export default function PerfilPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [formEnd.estado])
+
+  useEffect(() => {
+    if (!editEndereco || !formEnd.cidade || formEnd.estado) return
+    let cancelled = false
+
+    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')]).then(([mg, es]) => {
+      if (cancelled) return
+      const nomeCidade = String(formEnd.cidade || '').trim()
+      const emMg = (mg.status === 'fulfilled' ? mg.value : []).some((c) => c?.nome === nomeCidade)
+      const emEs = (es.status === 'fulfilled' ? es.value : []).some((c) => c?.nome === nomeCidade)
+      if (emMg) setFormEnd((prev) => ({ ...prev, estado: 'MG' }))
+      else if (emEs) setFormEnd((prev) => ({ ...prev, estado: 'ES' }))
+    }).catch(() => { })
+
+    return () => {
+      cancelled = true
+    }
+  }, [editEndereco, formEnd.cidade, formEnd.estado])
 
   async function carregarEnderecos() {
     try { setEnderecos(await api.clientes.enderecos()) } catch {}
@@ -96,16 +120,23 @@ export default function PerfilPage() {
   }
 
   // Formulário de endereço
-  function handleEndChange(e) { setFormEnd((p) => ({ ...p, [e.target.name]: e.target.value })) }
+  function handleEndChange(e) {
+    const { name, value } = e.target
+    if (name === 'estado') {
+      setFormEnd((p) => ({ ...p, estado: value, cidade: '' }))
+      return
+    }
+    setFormEnd((p) => ({ ...p, [name]: value }))
+  }
 
   function abrirNovoEndereco() {
-    setFormEnd({ apelido: '', cidade: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: enderecos.length === 0 })
+    setFormEnd({ apelido: '', estado: '', cidade: '', bairro: '', rua: '', numero: '', complemento: '', referencia: '', padrao: enderecos.length === 0 })
     setEditEndereco('novo')
     setErro('')
   }
 
   function abrirEditarEndereco(end) {
-    setFormEnd({ apelido: end.apelido, cidade: end.cidade || '', bairro: end.bairro, rua: end.rua, numero: end.numero, complemento: end.complemento, referencia: end.referencia, padrao: end.padrao })
+    setFormEnd({ apelido: end.apelido, estado: '', cidade: end.cidade || '', bairro: end.bairro, rua: end.rua, numero: end.numero, complemento: end.complemento, referencia: end.referencia, padrao: end.padrao })
     setEditEndereco(end)
     setErro('')
   }
@@ -114,11 +145,13 @@ export default function PerfilPage() {
     e.preventDefault()
     setErro('')
     setSalvando(true)
+    const payloadEndereco = { ...formEnd }
+    delete payloadEndereco.estado
     try {
       if (editEndereco === 'novo') {
-        await api.clientes.criarEndereco(formEnd)
+        await api.clientes.criarEndereco(payloadEndereco)
       } else {
-        await api.clientes.atualizarEndereco(editEndereco.id, formEnd)
+        await api.clientes.atualizarEndereco(editEndereco.id, payloadEndereco)
       }
       await carregarEnderecos()
       setEditEndereco(null)
@@ -251,13 +284,25 @@ export default function PerfilPage() {
               <input name="apelido" value={formEnd.apelido} onChange={handleEndChange} placeholder="ex: Casa, Trabalho" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-stone-600 mb-1">Cidade *</label>
-              <input name="cidade" value={formEnd.cidade} onChange={handleEndChange} required placeholder="Ex: Ibatiba" list="cidades-br-datalist-perfil" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
-              <datalist id="cidades-br-datalist-perfil">
-                {cidadesSugestoes.map((nomeCidade) => (
-                  <option key={nomeCidade} value={nomeCidade} />
+              <label className="block text-xs font-medium text-stone-600 mb-1">Estado *</label>
+              <select name="estado" value={formEnd.estado || ''} onChange={handleEndChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white">
+                <option value="">Selecione o estado</option>
+                {ESTADOS_SUPORTADOS.map((uf) => (
+                  <option key={uf.sigla} value={uf.sigla}>{uf.nome}</option>
                 ))}
-              </datalist>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-stone-600 mb-1">Cidade *</label>
+              <select name="cidade" value={formEnd.cidade} onChange={handleEndChange} required disabled={!formEnd.estado} className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white disabled:bg-stone-100">
+                <option value="">{formEnd.estado ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
+                {formEnd.cidade && !cidadesSugestoes.includes(formEnd.cidade) && (
+                  <option value={formEnd.cidade}>{formEnd.cidade}</option>
+                )}
+                {cidadesSugestoes.map((nomeCidade) => (
+                  <option key={nomeCidade} value={nomeCidade}>{nomeCidade}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-stone-600 mb-1">Bairro *</label>

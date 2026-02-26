@@ -5,6 +5,11 @@ import { uploadImagem } from '../config/firebase'
 import { FiSave, FiExternalLink, FiUpload, FiX, FiCamera, FiClock, FiPower } from 'react-icons/fi'
 import CATEGORIAS_NEGOCIO from '../data/categoriasNegocio'
 
+const ESTADOS_SUPORTADOS = [
+  { sigla: 'MG', nome: 'Minas Gerais' },
+  { sigla: 'ES', nome: 'Espirito Santo' },
+]
+
 export default function MinhaLoja() {
   const { loja, atualizarLoja } = useAuth()
   const [form, setForm] = useState(null)
@@ -40,25 +45,27 @@ export default function MinhaLoja() {
   const [horarios, setHorarios] = useState(HORARIOS_SEMANA_PADRAO)
 
   useEffect(() => {
+    if (!form?.estado) {
+      setCidadesSugestoes([])
+      return
+    }
+
     let cancelled = false
-    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')])
-      .then(([mg, es]) => {
+    api.cidades.listar(form.estado)
+      .then((lista) => {
         if (cancelled) return
-        const lista = [
-          ...(mg.status === 'fulfilled' && Array.isArray(mg.value) ? mg.value : []),
-          ...(es.status === 'fulfilled' && Array.isArray(es.value) ? es.value : []),
-        ]
-        const nomes = Array.from(new Set(lista.map((c) => String(c?.nome || '').trim()).filter(Boolean)))
+        const nomes = Array.from(new Set((Array.isArray(lista) ? lista : []).map((c) => String(c?.nome || '').trim()).filter(Boolean)))
           .sort((a, b) => a.localeCompare(b, 'pt-BR'))
         setCidadesSugestoes(nomes)
       })
       .catch(() => {
         if (!cancelled) setCidadesSugestoes([])
       })
+
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [form?.estado])
 
   useEffect(() => {
     if (loja) {
@@ -66,6 +73,7 @@ export default function MinhaLoja() {
         nome: loja.nome || '',
         slug: loja.slug || '',
         categoria_negocio: loja.categoria_negocio || '',
+        estado: '',
         cidade: loja.cidade || '',
         endereco: loja.endereco || '',
         telefone: loja.telefone || '',
@@ -93,12 +101,35 @@ export default function MinhaLoja() {
     }
   }, [loja])
 
+  useEffect(() => {
+    if (!form?.cidade || form?.estado) return
+    let cancelled = false
+
+    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')]).then(([mg, es]) => {
+      if (cancelled) return
+      const nomeCidade = String(form.cidade || '').trim()
+      const emMg = (mg.status === 'fulfilled' ? mg.value : []).some((c) => c?.nome === nomeCidade)
+      const emEs = (es.status === 'fulfilled' ? es.value : []).some((c) => c?.nome === nomeCidade)
+      if (emMg) setForm((prev) => ({ ...prev, estado: 'MG' }))
+      else if (emEs) setForm((prev) => ({ ...prev, estado: 'ES' }))
+    }).catch(() => { })
+
+    return () => {
+      cancelled = true
+    }
+  }, [form?.cidade, form?.estado])
+
   if (!form) {
     return <div className="flex items-center justify-center py-20 text-stone-400">Carregando...</div>
   }
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target
+    if (name === 'estado') {
+      setForm((prev) => ({ ...prev, estado: value, cidade: '', pix_cidade: '' }))
+      return
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : (name === 'taxa_entrega' || name === 'pedido_minimo') ? parseFloat(value) || 0 : value,
@@ -217,7 +248,9 @@ export default function MinhaLoja() {
         banner_url = await uploadImagem(bannerFile, p)
       }
       const eraModoManual = loja?.forcar_status
-      const atualizada = await api.lojas.atualizar(loja.id, { ...form, logo_url, banner_url, horarios_semana: JSON.stringify(horarios) })
+      const payload = { ...form }
+      delete payload.estado
+      const atualizada = await api.lojas.atualizar(loja.id, { ...payload, logo_url, banner_url, horarios_semana: JSON.stringify(horarios) })
       atualizarLoja(atualizada)
       setLogoFile(null)
       setLogoPreview(null)
@@ -361,8 +394,25 @@ export default function MinhaLoja() {
             </p>
           </div>
           <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Estado *</label>
+            <select name="estado" value={form.estado || ''} onChange={handleChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white">
+              <option value="">Selecione o estado</option>
+              {ESTADOS_SUPORTADOS.map((uf) => (
+                <option key={uf.sigla} value={uf.sigla}>{uf.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Cidade *</label>
-            <input name="cidade" value={form.cidade} onChange={handleChange} required list="cidades-br-datalist-minha-loja" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <select name="cidade" value={form.cidade} onChange={handleChange} required disabled={!form.estado} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white disabled:bg-stone-100">
+              <option value="">{form.estado ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
+              {form.cidade && !cidadesSugestoes.includes(form.cidade) && (
+                <option value={form.cidade}>{form.cidade}</option>
+              )}
+              {cidadesSugestoes.map((nomeCidade) => (
+                <option key={nomeCidade} value={nomeCidade}>{nomeCidade}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -569,14 +619,17 @@ export default function MinhaLoja() {
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Cidade (PIX)</label>
-            <input name="pix_cidade" value={form.pix_cidade} onChange={handleChange} placeholder="Cidade do titular" list="cidades-br-datalist-minha-loja" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <select name="pix_cidade" value={form.pix_cidade} onChange={handleChange} disabled={!form.estado} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white disabled:bg-stone-100">
+              <option value="">{form.estado ? 'Selecione a cidade do titular' : 'Selecione o estado primeiro'}</option>
+              {form.pix_cidade && !cidadesSugestoes.includes(form.pix_cidade) && (
+                <option value={form.pix_cidade}>{form.pix_cidade}</option>
+              )}
+              {cidadesSugestoes.map((nomeCidade) => (
+                <option key={`pix-${nomeCidade}`} value={nomeCidade}>{nomeCidade}</option>
+              ))}
+            </select>
           </div>
         </div>
-        <datalist id="cidades-br-datalist-minha-loja">
-          {cidadesSugestoes.map((nomeCidade) => (
-            <option key={nomeCidade} value={nomeCidade} />
-          ))}
-        </datalist>
         <p className="text-xs text-stone-400">
           Configure seus dados PIX para permitir que clientes paguem online via QR Code dinâmico com o valor exato da compra.
         </p>

@@ -6,6 +6,11 @@ import { uploadImagem } from '../config/firebase'
 import { FiUpload, FiX } from 'react-icons/fi'
 import CATEGORIAS_NEGOCIO from '../data/categoriasNegocio'
 
+const ESTADOS_SUPORTADOS = [
+  { sigla: 'MG', nome: 'Minas Gerais' },
+  { sigla: 'ES', nome: 'Espirito Santo' },
+]
+
 export default function CadastroLoja() {
   const [etapa, setEtapa] = useState(1)
   const [form, setForm] = useState({
@@ -15,6 +20,7 @@ export default function CadastroLoja() {
     nome: '',
     slug: '',
     categoria_negocio: '',
+    estado: '',
     cidade: '',
     logo_url: '',
     taxa_entrega: 0,
@@ -30,15 +36,16 @@ export default function CadastroLoja() {
   const fileInputRef = useRef(null)
 
   useEffect(() => {
+    if (!form.estado) {
+      setCidadesSugestoes([])
+      return
+    }
+
     let cancelled = false
-    Promise.allSettled([api.cidades.listar('MG'), api.cidades.listar('ES')])
-      .then(([mg, es]) => {
+    api.cidades.listar(form.estado)
+      .then((lista) => {
         if (cancelled) return
-        const lista = [
-          ...(mg.status === 'fulfilled' && Array.isArray(mg.value) ? mg.value : []),
-          ...(es.status === 'fulfilled' && Array.isArray(es.value) ? es.value : []),
-        ]
-        const nomes = Array.from(new Set(lista.map((c) => String(c?.nome || '').trim()).filter(Boolean)))
+        const nomes = Array.from(new Set((Array.isArray(lista) ? lista : []).map((c) => String(c?.nome || '').trim()).filter(Boolean)))
           .sort((a, b) => a.localeCompare(b, 'pt-BR'))
         setCidadesSugestoes(nomes)
       })
@@ -48,7 +55,7 @@ export default function CadastroLoja() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [form.estado])
 
   if (user && loja) {
     navigate('/')
@@ -57,6 +64,11 @@ export default function CadastroLoja() {
 
   function handleChange(e) {
     const { name, value } = e.target
+    if (name === 'estado') {
+      setForm((prev) => ({ ...prev, estado: value, cidade: '' }))
+      return
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: name === 'taxa_entrega' ? parseFloat(value) || 0 : value,
@@ -309,20 +321,35 @@ export default function CadastroLoja() {
                   </p>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Estado *</label>
+                  <select
+                    name="estado"
+                    value={form.estado}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
+                  >
+                    <option value="">Selecione o estado</option>
+                    {ESTADOS_SUPORTADOS.map((uf) => (
+                      <option key={uf.sigla} value={uf.sigla}>{uf.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-stone-700 mb-1">Cidade *</label>
-                  <input
+                  <select
                     name="cidade"
                     value={form.cidade}
                     onChange={handleChange}
                     required
-                    list="cidades-br-datalist"
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-                  />
-                  <datalist id="cidades-br-datalist">
+                    disabled={!form.estado}
+                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white disabled:bg-stone-100"
+                  >
+                    <option value="">{form.estado ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
                     {cidadesSugestoes.map((nomeCidade) => (
-                      <option key={nomeCidade} value={nomeCidade} />
+                      <option key={nomeCidade} value={nomeCidade}>{nomeCidade}</option>
                     ))}
-                  </datalist>
+                  </select>
                 </div>
 
                 {/* Upload de logo */}
