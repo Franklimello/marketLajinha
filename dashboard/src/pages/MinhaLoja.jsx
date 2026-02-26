@@ -143,24 +143,30 @@ export default function MinhaLoja() {
   const forcadoManual = loja?.forcar_status
 
   async function handleToggle(abrir) {
+    setErro('')
     setToggling(true)
     try {
       const atualizada = await api.lojas.toggle(loja.id, abrir)
       atualizarLoja(atualizada)
+      setSucesso(abrir ? 'Loja aberta manualmente com sucesso.' : 'Loja fechada manualmente com sucesso.')
+      setTimeout(() => setSucesso(''), 2500)
     } catch (err) {
-      alert(err.message)
+      setErro(err.message || 'Não foi possível atualizar o status da loja.')
     } finally {
       setToggling(false)
     }
   }
 
   async function handleVoltarAutomatico() {
+    setErro('')
     setToggling(true)
     try {
       const atualizada = await api.lojas.voltarAutomatico(loja.id)
       atualizarLoja(atualizada)
+      setSucesso('Modo automático reativado com sucesso.')
+      setTimeout(() => setSucesso(''), 2500)
     } catch (err) {
-      alert(err.message)
+      setErro(err.message || 'Não foi possível voltar ao modo automático.')
     } finally {
       setToggling(false)
     }

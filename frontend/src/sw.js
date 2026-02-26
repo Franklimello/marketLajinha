@@ -53,6 +53,18 @@ function isCacheableResponse(response) {
   return response && (response.ok || response.type === 'opaque');
 }
 
+function notificationUrlFromData(data) {
+  if (!data) return '/pedidos';
+  const candidate = data.url || data.link || data.click_action || '/pedidos';
+  try {
+    const parsed = new URL(candidate, self.location.origin);
+    if (parsed.origin !== self.location.origin) return '/pedidos';
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return '/pedidos';
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -121,4 +133,49 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data?.json() || {};
+  } catch {
+    payload = {};
+  }
+
+  const notification = payload.notification || {};
+  const data = payload.data || {};
+
+  const title = notification.title || data.title || 'UaiFood';
+  const body = notification.body || data.body || 'Você tem uma atualização.';
+  const targetUrl = notificationUrlFromData(data);
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      vibrate: [200, 100, 200],
+      data: { url: targetUrl },
+      requireInteraction: true,
+      tag: data.pedidoId || data.tag || 'pedido',
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/pedidos';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        const currentUrl = new URL(client.url);
+        const targetUrl = new URL(url, self.location.origin);
+        if (`${currentUrl.pathname}${currentUrl.search}` === `${targetUrl.pathname}${targetUrl.search}` && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
 });

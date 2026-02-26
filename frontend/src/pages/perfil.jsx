@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import SEO from '../componentes/SEO'
 import BAIRROS_DISPONIVEIS from '../data/bairros'
-import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiChevronLeft, FiSave, FiX } from 'react-icons/fi'
+import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiChevronLeft, FiSave, FiX, FiBell } from 'react-icons/fi'
+import { canUseWebPush } from '../utils/pwaEnvironment'
 
 export default function PerfilPage() {
-  const { logado, carregando: authCarregando, cliente, firebaseUser, logout, atualizarPerfil, perfilCompleto, cadastrarCliente } = useAuth()
+  const { logado, carregando: authCarregando, cliente, firebaseUser, logout, atualizarPerfil, perfilCompleto, cadastrarCliente, ativarPushPorClique, pushPermission } = useAuth()
   const navigate = useNavigate()
   const [enderecos, setEnderecos] = useState([])
   const [editEndereco, setEditEndereco] = useState(null)
@@ -20,6 +21,7 @@ export default function PerfilPage() {
 
   const [formCadastro, setFormCadastro] = useState({ nome: '', telefone: '' })
   const [cadastroInit, setCadastroInit] = useState(false)
+  const [ativandoPush, setAtivandoPush] = useState(false)
 
   useEffect(() => {
     if (!cadastroInit && firebaseUser && !cliente) {
@@ -125,6 +127,26 @@ export default function PerfilPage() {
     finally { setSalvando(false) }
   }
 
+  async function ativarPush() {
+    setErro('')
+    setSucesso('')
+    setAtivandoPush(true)
+    try {
+      const result = await ativarPushPorClique()
+      if (result.ok) {
+        setSucesso('Notificações ativadas com sucesso!')
+      } else if (result.reason === 'unsupported') {
+        setErro('Para ativar notificações no iPhone, instale o app na Tela de Início e abra por lá.')
+      } else {
+        setErro('Não foi possível ativar as notificações agora.')
+      }
+    } finally {
+      setAtivandoPush(false)
+    }
+  }
+
+  const pushDisponivel = canUseWebPush({ requireStandalone: true })
+
   return (
     <div className="max-w-lg mx-auto px-4 py-4">
       <SEO title="Minha conta" noIndex />
@@ -158,6 +180,33 @@ export default function PerfilPage() {
             </div>
             <button onClick={() => setEditandoPerfil(true)} className="text-red-600 hover:text-red-700 text-sm font-medium">Editar</button>
           </div>
+        )}
+      </div>
+
+      {/* Notificações push */}
+      <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-stone-900 flex items-center gap-2">
+              <FiBell /> Notificações
+            </h2>
+            <p className="text-xs text-stone-500 mt-1">
+              Status: {pushPermission === 'granted' ? 'ativadas' : pushPermission === 'denied' ? 'bloqueadas' : 'não ativadas'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={ativarPush}
+            disabled={ativandoPush || pushPermission === 'granted'}
+            className="px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {ativandoPush ? 'Ativando...' : pushPermission === 'granted' ? 'Ativo' : 'Ativar'}
+          </button>
+        </div>
+        {!pushDisponivel && (
+          <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2.5 py-2 mt-3">
+            Abra o app instalado na Tela de Início (HTTPS) para habilitar push no iOS Safari.
+          </p>
         )}
       </div>
 

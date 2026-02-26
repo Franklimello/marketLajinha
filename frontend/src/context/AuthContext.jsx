@@ -32,6 +32,9 @@ export function AuthProvider({ children }) {
   const [pedidosAtivos, setPedidosAtivos] = useState(0)
   const [messagingEnv, setMessagingEnv] = useState(null)
   const [isStandaloneApp, setIsStandaloneApp] = useState(isStandaloneMode)
+  const [pushPermission, setPushPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  )
 
   // Ref para evitar registrar push múltiplas vezes na mesma sessão
   const pushRegistered = useRef(false)
@@ -81,21 +84,36 @@ export function AuthProvider({ children }) {
   }
 
   // ── registrarPush declarado antes dos useEffects que o chamam ──────────────
-  const registrarPush = useCallback(async (authToken) => {
+  const registrarPush = useCallback(async (authToken, { userGesture = false } = {}) => {
     if (!messagingEnv || !authToken) return
     if (!canUseWebPush({ requireStandalone: true })) return
     if (pushRegistered.current) return
     try {
-      if (Notification.permission === 'denied') return
-      const permission = await Notification.requestPermission()
+      const currentPermission = Notification.permission
+      if (currentPermission === 'denied') {
+        setPushPermission('denied')
+        return
+      }
+
+      // Evita prompt automático: no iOS/Safari, o pedido deve ocorrer por gesto.
+      if (currentPermission === 'default' && !userGesture) return
+
+      const permission =
+        currentPermission === 'granted'
+          ? 'granted'
+          : await Notification.requestPermission()
+
+      setPushPermission(permission)
       if (permission !== 'granted') return
 
-      // O FCM SDK encontra e registra /firebase-messaging-sw.js automaticamente.
-      // NÃO registramos manualmente pois isso criaria um segundo SW competindo
-      // com o sw.js principal no mesmo scope '/', causando reload infinito.
+      // Usa o SW principal já registrado para evitar conflito entre workers.
+      const serviceWorkerRegistration = await navigator.serviceWorker.ready
+
       const fcmToken = await messagingEnv.getToken(messagingEnv.messaging, {
         vapidKey: VAPID_KEY,
+        serviceWorkerRegistration,
       })
+
       if (fcmToken) {
         await apiFetch('/clientes/me/fcm-token', authToken, {
           method: 'POST',
@@ -127,6 +145,18 @@ export function AuthProvider({ children }) {
   // ── Carrega o Firebase Messaging de forma assíncrona ──────────────────────
   useEffect(() => {
     getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
+  }, [])
+
+  useEffect(() => {
+    if (typeof Notification === 'undefined') return
+    const syncPermission = () => setPushPermission(Notification.permission)
+    syncPermission()
+    document.addEventListener('visibilitychange', syncPermission)
+    window.addEventListener('focus', syncPermission)
+    return () => {
+      document.removeEventListener('visibilitychange', syncPermission)
+      window.removeEventListener('focus', syncPermission)
+    }
   }, [])
 
   // Se o messagingEnv carregou DEPOIS do onAuthStateChanged (race condition),
@@ -192,6 +222,17 @@ export function AuthProvider({ children }) {
     pushRegistered.current = false
   }
 
+  const ativarPushPorClique = useCallback(async () => {
+    if (!token) return { ok: false, reason: 'unauthenticated' }
+    if (!canUseWebPush({ requireStandalone: true })) return { ok: false, reason: 'unsupported' }
+    try {
+      await registrarPush(token, { userGesture: true })
+      return { ok: Notification.permission === 'granted' }
+    } catch {
+      return { ok: false, reason: 'error' }
+    }
+  }, [token, registrarPush])
+
   useEffect(() => {
     if (!firebaseUser) return undefined
     const timer = setInterval(async () => {
@@ -208,11 +249,12 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     firebaseUser, cliente, carregando, token, getToken,
     cadastrarCliente, atualizarPerfil, recarregarCliente, logout, registrarPush,
+    ativarPushPorClique, pushPermission,
     logado: !!firebaseUser,
     perfilCompleto: !!cliente,
     pedidosAtivos, setPedidosAtivos,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [firebaseUser, cliente, carregando, token, pedidosAtivos, registrarPush])
+  }), [firebaseUser, cliente, carregando, token, pedidosAtivos, registrarPush, ativarPushPorClique, pushPermission])
 
   return (
     <AuthContext.Provider value={value}>

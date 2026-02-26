@@ -42,23 +42,22 @@ function checarHorario(abertura, fechamento) {
 
 /**
  * Verifica se a loja está aberta agora.
- * Prioridade: horarios_semana > forcar_status > horario_abertura/fechamento > campo aberta.
- * Quando horários da semana estão configurados, eles sempre prevalecem (abertura automática).
- * O forcar_status (modo manual) só tem efeito quando não há horários automáticos definidos.
+ * Prioridade: forcar_status > horarios_semana > horario_abertura/fechamento > campo aberta.
+ * Em modo manual, a escolha do lojista sempre prevalece, mesmo com horários da semana configurados.
  */
 function calcularAbertaAgora(loja) {
+  // Modo manual sempre prevalece para permitir abrir/fechar imediatamente.
+  if (loja.forcar_status) return loja.aberta;
+
   const semana = parseHorariosSemana(loja);
   if (semana) {
-    // Horários configurados: sempre seguem o calendário, ignorando modo manual.
+    // Horários configurados: seguem o calendário quando não há override manual.
     // Usa o dia da semana no fuso de Brasília.
     const { diaSemana } = agoraBrasilia();
     const hoje = semana[diaSemana];
     if (!hoje || !hoje.aberto) return false;
     return checarHorario(hoje.abertura, hoje.fechamento);
   }
-
-  // Sem horários da semana: o modo manual (forcar_status) tem efeito.
-  if (loja.forcar_status) return loja.aberta;
 
   const ab = loja.horario_abertura;
   const fe = loja.horario_fechamento;
