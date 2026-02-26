@@ -90,6 +90,17 @@ const CATEGORIA_ICONES = [
   { k: 'churr', Icon: BowlFood },
 ]
 
+const CATEGORIA_CORES = [
+  '#ef4444', // red-500
+  '#f59e0b', // amber-500
+  '#10b981', // emerald-500
+  '#3b82f6', // blue-500
+  '#8b5cf6', // violet-500
+  '#ec4899', // pink-500
+  '#f97316', // orange-500
+  '#06b6d4', // cyan-500
+]
+
 function saudacao() {
   const h = new Date().getHours()
   if (h < 12) return 'Bom dia'
@@ -119,6 +130,16 @@ function normalizeText(value) {
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
+}
+
+function corDaCategoria(nome) {
+  const key = normalizeText(nome)
+  if (!key) return CATEGORIA_CORES[0]
+  let hash = 0
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0
+  }
+  return CATEGORIA_CORES[hash % CATEGORIA_CORES.length]
 }
 
 function getStoriesSeenMap() {
@@ -182,11 +203,12 @@ function extrairCategorias(lojas) {
   }
   return Array.from(categoriasMap.values())
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-    .map((nome) => ({ nome, Icon: iconCategoria(nome) }))
+    .map((nome) => ({ nome, Icon: iconCategoria(nome), cor: corDaCategoria(nome) }))
 }
 
 const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggle }) {
   const Icon = categoria.Icon || Tag
+  const corCategoria = categoria.cor || '#ef4444'
   return (
     <motion.button
       type="button"
@@ -217,6 +239,11 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className={`w-11 h-11 rounded-full flex items-center justify-center ${isActive ? 'bg-white/20 text-white' : 'bg-stone-100'
               }`}
+            style={
+              isActive
+                ? undefined
+                : { color: corCategoria, backgroundColor: `${corCategoria}1A` }
+            }
           >
             <Icon size={22} weight={isActive ? 'fill' : 'duotone'} />
           </motion.div>
