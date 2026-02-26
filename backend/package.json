@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npx prisma generate",
-    "start": "npm run backup:db:s3 && npx prisma migrate deploy && npx prisma generate && node index.js",
+    "start": "npx prisma migrate deploy && npx prisma generate && node index.js",
     "dev": "node index.js",
     "cidades:sync": "node scripts/sync-cidades-ibge.js",
     "backup:db": "node scripts/backup-db.js",
