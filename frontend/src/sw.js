@@ -1,6 +1,8 @@
-const CACHE_VERSION = 'vite-pwa-v1';
-const STATIC_CACHE = `static-${CACHE_VERSION}`;
-const IMAGES_CACHE = 'images-cache-v1';
+const CACHE_VERSION = 'v2-2026-02-26';
+const CACHE_PREFIX = 'uaifood';
+const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
+const IMAGES_CACHE = `${CACHE_PREFIX}-images-${CACHE_VERSION}`;
 
 const INJECTED_MANIFEST = self.__WB_MANIFEST || [];
 
@@ -36,13 +38,20 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== STATIC_CACHE && key !== IMAGES_CACHE)
+          // Remove somente caches antigos deste app para evitar apagar dados de
+          // outras aplicações no mesmo domínio.
+          .filter((key) => key.startsWith(`${CACHE_PREFIX}-`))
+          .filter((key) => key !== STATIC_CACHE && key !== RUNTIME_CACHE && key !== IMAGES_CACHE)
           .map((key) => caches.delete(key))
       )
     )
   );
   self.clients.claim();
 });
+
+function isCacheableResponse(response) {
+  return response && (response.ok || response.type === 'opaque');
+}
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -57,7 +66,7 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache.match(request);
         const fetchPromise = fetch(request)
           .then((res) => {
-            if (res && res.ok) cache.put(request, res.clone());
+            if (isCacheableResponse(res)) cache.put(request, res.clone());
             return res;
           })
           .catch(() => cached || Response.error());
@@ -77,9 +86,19 @@ self.addEventListener('fetch', (event) => {
   // ── Navegação SPA: rede com fallback offline ──────────────────────────────
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(async () => {
-        return (await caches.match('/offline.html')) || Response.error();
-      })
+      fetch(request)
+        .then(async (response) => {
+          if (response && response.ok) {
+            const cache = await caches.open(RUNTIME_CACHE);
+            cache.put(request, response.clone());
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedPage = await caches.match(request);
+          if (cachedPage) return cachedPage;
+          return (await caches.match('/offline.html')) || (await caches.match('/')) || Response.error();
+        })
     );
     return;
   }
@@ -88,12 +107,14 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (!response || !response.ok) return response;
-        const copy = response.clone();
-        caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy));
-        return response;
-      });
+      return fetch(request)
+        .then((response) => {
+          if (!isCacheableResponse(response)) return response;
+          const copy = response.clone();
+          caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => Response.error());
     })
   );
 });

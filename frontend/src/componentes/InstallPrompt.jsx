@@ -13,7 +13,7 @@ function IOSGuideModal({ onClose }) {
         </div>
 
         <p className="text-sm text-stone-600 mb-5">
-          Para instalar no seu iPhone/iPad, siga os passos:
+          Toque em Compartilhar {'\u2192'} Adicionar à Tela de Início.
         </p>
 
         <div className="space-y-4">

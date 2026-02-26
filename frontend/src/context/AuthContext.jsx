@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, u
 import { auth, onAuthStateChanged, getMessagingCompat } from '../config/firebase'
 import { signOut } from 'firebase/auth'
 import { createSessionCookie, clearSessionCookie, refreshSessionCookie } from '../storage/authStorage'
+import { canUseWebPush, isStandaloneMode } from '../utils/pwaEnvironment'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || ''
@@ -30,6 +31,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
   const [pedidosAtivos, setPedidosAtivos] = useState(0)
   const [messagingEnv, setMessagingEnv] = useState(null)
+  const [isStandaloneApp, setIsStandaloneApp] = useState(isStandaloneMode)
 
   // Ref para evitar registrar push múltiplas vezes na mesma sessão
   const pushRegistered = useRef(false)
@@ -80,9 +82,11 @@ export function AuthProvider({ children }) {
 
   // ── registrarPush declarado antes dos useEffects que o chamam ──────────────
   const registrarPush = useCallback(async (authToken) => {
-    if (!messagingEnv || !authToken || !('serviceWorker' in navigator) || !('Notification' in window)) return
+    if (!messagingEnv || !authToken) return
+    if (!canUseWebPush({ requireStandalone: true })) return
     if (pushRegistered.current) return
     try {
+      if (Notification.permission === 'denied') return
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
 
@@ -104,6 +108,22 @@ export function AuthProvider({ children }) {
     }
   }, [messagingEnv])
 
+  // Mantém o estado de standalone sincronizado para habilitar push
+  // somente após instalação do app no iPhone/Safari.
+  useEffect(() => {
+    const media = window.matchMedia('(display-mode: standalone)')
+    const syncStandalone = () => setIsStandaloneApp(isStandaloneMode())
+
+    syncStandalone()
+    media.addEventListener('change', syncStandalone)
+    window.addEventListener('appinstalled', syncStandalone)
+
+    return () => {
+      media.removeEventListener('change', syncStandalone)
+      window.removeEventListener('appinstalled', syncStandalone)
+    }
+  }, [])
+
   // ── Carrega o Firebase Messaging de forma assíncrona ──────────────────────
   useEffect(() => {
     getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
@@ -113,10 +133,10 @@ export function AuthProvider({ children }) {
   // re-tenta o registro de push com o token e cliente já disponíveis.
   // Reseta o flag para forçar novo token caso o SW anterior fosse incorreto.
   useEffect(() => {
-    if (!messagingEnv || !token || !cliente) return
+    if (!messagingEnv || !token || !cliente || !isStandaloneApp) return
     pushRegistered.current = false
     registrarPush(token)
-  }, [messagingEnv, token, cliente, registrarPush])
+  }, [messagingEnv, token, cliente, isStandaloneApp, registrarPush])
 
   // ── Auth state ────────────────────────────────────────────────────────────
   useEffect(() => {

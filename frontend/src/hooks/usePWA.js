@@ -1,19 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
+import { isIOSSafari, isStandaloneMode } from '../utils/pwaEnvironment'
 
-// ── Helpers puros (sem side-effects) ────────────────────────────────────────
-
-/** true se o dispositivo é iOS (Safari não dispara beforeinstallprompt) */
-function isIOSDevice() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
-}
-
-/** true se o app está rodando como PWA instalado (modo standalone) */
-function isRunningStandalone() {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true
-  )
-}
+const IOS_GUIDE_DISMISSED_KEY = 'pwa:ios-install-guide:dismissed:v1'
 
 // ── Captura global do prompt (resolve a race condition) ──────────────────────
 //
@@ -50,21 +39,21 @@ export function usePWA() {
   // Lazy initializers: leem o estado do mundo no momento da montagem,
   // sem precisar de setState síncrono dentro de useEffect (evita lint).
   const [deferredPrompt, setDeferredPrompt] = useState(
-    () => window.__pwaPrompt ?? null     // prompt já capturado globalmente
+    () => (typeof window !== 'undefined' ? window.__pwaPrompt ?? null : null) // prompt já capturado globalmente
   )
   const [canInstall, setCanInstall] = useState(
-    () => Boolean(window.__pwaPrompt)    // true se há prompt disponível
+    () => (typeof window !== 'undefined' ? Boolean(window.__pwaPrompt) : false) // true se há prompt disponível
   )
-  const [installed, setInstalled] = useState(isRunningStandalone)  // já é PWA?
-  const [isIOS, setIsIOS] = useState(isIOSDevice)                  // iOS?
+  const [installed, setInstalled] = useState(isStandaloneMode) // já é PWA?
+  const [isIOS, setIsIOS] = useState(isIOSSafari) // iOS Safari?
   const [showIOSGuide, setShowIOSGuide] = useState(false)          // guia manual iOS
   const [updateAvailable, setUpdateAvailable] = useState(false)    // nova versão do SW
   const [waitingWorker, setWaitingWorker] = useState(null)         // SW esperando
 
   // ── Efeito 1: listeners de instalação ──────────────────────────────────────
   useEffect(() => {
-    // Atualiza isIOS (necessário caso o hook monte em SSR ou ambiente sem window)
-    setIsIOS(isIOSDevice())
+    // Atualiza flag de ambiente iOS Safari na montagem
+    setIsIOS(isIOSSafari())
 
     // Se já está instalado, não precisa ouvir eventos de instalação
     if (installed) return
@@ -104,6 +93,19 @@ export function usePWA() {
     }
 
   }, [installed])
+
+  // ── Efeito 1.1: guia de instalação manual no Safari iOS ───────────────────
+  useEffect(() => {
+    if (!isIOS || installed) {
+      setShowIOSGuide(false)
+      return
+    }
+
+    // Exibe o modal somente no Safari iOS não instalado e se usuário ainda
+    // não tiver dispensado o guia.
+    const dismissed = getLocalItem(IOS_GUIDE_DISMISSED_KEY, false) === true
+    if (!dismissed) setShowIOSGuide(true)
+  }, [isIOS, installed])
 
   // ── Efeito 2: detecta atualização de Service Worker ───────────────────────
   useEffect(() => {
@@ -167,7 +169,10 @@ export function usePWA() {
   }, [deferredPrompt, isIOS])
 
   /** Fecha o guia de instalação iOS */
-  const dismissIOSGuide = useCallback(() => setShowIOSGuide(false), [])
+  const dismissIOSGuide = useCallback(() => {
+    setShowIOSGuide(false)
+    setLocalItem(IOS_GUIDE_DISMISSED_KEY, true)
+  }, [])
 
   /** Envia SKIP_WAITING ao SW que está aguardando ativação */
   const applyUpdate = useCallback(() => {
@@ -186,7 +191,7 @@ export function usePWA() {
     canInstall: canInstall && !installed,  // mostra botão só se instalável
     installed,
     isIOS,
-    isStandalone: isRunningStandalone(),
+    isStandalone: isStandaloneMode(),
     showIOSGuide,
     updateAvailable,
     promptInstall,

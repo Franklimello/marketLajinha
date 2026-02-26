@@ -5,6 +5,8 @@
   --font-base: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-heading: "Sora", "Inter", system-ui, sans-serif;
   --font-numeric: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
 }
 
 html, body, #root {
@@ -26,6 +28,11 @@ input, textarea, select, button {
   font-family: var(--font-base);
 }
 
+/* Evita zoom automático do Safari iOS ao focar campos de formulário */
+input, textarea, select {
+  font-size: 16px;
+}
+
 .font-numeric {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
@@ -42,6 +49,7 @@ input, textarea, select, button {
 
 .app-shell--standalone {
   -webkit-tap-highlight-color: transparent;
+  padding-bottom: var(--safe-area-bottom);
 }
 
 @keyframes slide-up {
