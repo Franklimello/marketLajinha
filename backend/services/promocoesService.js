@@ -49,14 +49,27 @@ async function validarProdutoDaLoja(lojaId, produtoId) {
 
 async function criar(lojaId, data) {
   const produto = await validarProdutoDaLoja(lojaId, data.produto_id);
+  const precoPromocional = Number(data.preco_promocional || 0);
+  const precoOriginal = Number(produto.preco || 0);
+  if (precoPromocional <= 0) {
+    const err = new Error('Preço promocional deve ser maior que zero.');
+    err.status = 400;
+    throw err;
+  }
+  if (precoOriginal > 0 && precoPromocional >= precoOriginal) {
+    const err = new Error('Preço promocional deve ser menor que o preço original do produto.');
+    err.status = 400;
+    throw err;
+  }
+
   return prisma.promocao.create({
     data: {
       loja_id: lojaId,
       produto_id: produto.id,
-      titulo: data.titulo,
+      titulo: String(data.titulo || produto.nome || '').trim() || produto.nome,
       descricao: data.descricao || '',
       imagem_url: data.imagem_url || produto.imagem_url || '',
-      preco_promocional: data.preco_promocional || 0,
+      preco_promocional: precoPromocional,
       ativo: data.ativo !== undefined ? data.ativo : true,
       destaque_inicio: data.destaque_inicio ? new Date(data.destaque_inicio) : null,
       destaque_fim: data.destaque_fim ? new Date(data.destaque_fim) : null,
@@ -86,10 +99,38 @@ async function atualizar(id, data) {
   if (data.imagem_url !== undefined) {
     updateData.imagem_url = data.imagem_url || produtoSelecionado?.imagem_url || '';
   }
-  if (data.preco_promocional !== undefined) updateData.preco_promocional = data.preco_promocional;
+  if (data.preco_promocional !== undefined) {
+    const novoPrecoPromo = Number(data.preco_promocional || 0);
+    if (novoPrecoPromo <= 0) {
+      const err = new Error('Preço promocional deve ser maior que zero.');
+      err.status = 400;
+      throw err;
+    }
+    const promocaoAtual = await prisma.promocao.findUnique({
+      where: { id },
+      select: { produto_id: true, produto: { select: { preco: true } } },
+    });
+    const precoOriginal = Number(
+      produtoSelecionado?.preco
+      ?? promocaoAtual?.produto?.preco
+      ?? 0
+    );
+    if (precoOriginal > 0 && novoPrecoPromo >= precoOriginal) {
+      const err = new Error('Preço promocional deve ser menor que o preço original do produto.');
+      err.status = 400;
+      throw err;
+    }
+    updateData.preco_promocional = novoPrecoPromo;
+  }
   if (data.ativo !== undefined) updateData.ativo = data.ativo;
   if (data.destaque_inicio !== undefined) updateData.destaque_inicio = data.destaque_inicio ? new Date(data.destaque_inicio) : null;
   if (data.destaque_fim !== undefined) updateData.destaque_fim = data.destaque_fim ? new Date(data.destaque_fim) : null;
+  if (data.produto_id !== undefined && data.titulo === undefined) {
+    updateData.titulo = produtoSelecionado?.nome;
+  }
+  if (data.produto_id !== undefined && data.imagem_url === undefined) {
+    updateData.imagem_url = produtoSelecionado?.imagem_url || '';
+  }
   return prisma.promocao.update({ where: { id }, data: updateData, include: INCLUDE_PRODUTO });
 }
 

@@ -1,15 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
-import { uploadImagem } from '../config/firebase'
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiTag, FiImage, FiCamera, FiPackage } from 'react-icons/fi'
+import { FiPlus, FiEdit2, FiTrash2, FiX, FiTag } from 'react-icons/fi'
 
 const EMPTY = {
   produto_id: '',
-  titulo: '',
-  descricao: '',
   preco_promocional: '',
-  imagem_url: '',
   ativo: true,
   destaque_inicio: '',
   destaque_fim: '',
@@ -33,10 +29,6 @@ export default function Promocoes() {
   const [form, setForm] = useState(EMPTY)
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
-  const [imagemFile, setImagemFile] = useState(null)
-  const [imagemPreview, setImagemPreview] = useState(null)
-  const fileInputRef = useRef(null)
-  const cameraInputRef = useRef(null)
 
   async function carregar() {
     try { setPromocoes(await api.promocoes.listar()) } catch {}
@@ -68,15 +60,17 @@ export default function Promocoes() {
   useEffect(() => { carregar() }, [])
   useEffect(() => { carregarProdutos() }, [loja?.id])
 
+  const produtosAtivos = useMemo(
+    () => produtos.filter((p) => p.ativo),
+    [produtos]
+  )
+
   function abrirModal(promocao = null) {
     if (promocao) {
       setEditando(promocao.id)
       setForm({
         produto_id: promocao.produto_id || '',
-        titulo: promocao.titulo || '',
-        descricao: promocao.descricao || '',
         preco_promocional: Number(promocao.preco_promocional || 0),
-        imagem_url: promocao.imagem_url || '',
         ativo: promocao.ativo ?? true,
         destaque_inicio: toLocalInput(promocao.destaque_inicio),
         destaque_fim: toLocalInput(promocao.destaque_fim),
@@ -85,52 +79,31 @@ export default function Promocoes() {
       setEditando(null)
       setForm(EMPTY)
     }
-    setImagemFile(null)
-    setImagemPreview(null)
     setErro('')
     setModal(true)
-  }
-
-  function handleImagem(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) { setErro('Selecione uma imagem válida.'); return }
-    if (file.size > 5 * 1024 * 1024) { setErro('A imagem deve ter no máximo 5 MB.'); return }
-    setImagemFile(file)
-    setImagemPreview(URL.createObjectURL(file))
-    setErro('')
-  }
-
-  function removerImagem() {
-    setImagemFile(null)
-    setImagemPreview(null)
-    setForm((p) => ({ ...p, imagem_url: '' }))
-    if (fileInputRef.current) fileInputRef.current.value = ''
-    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   async function handleSalvar(e) {
     e.preventDefault()
     setErro('')
     if (!form.produto_id) return setErro('Selecione um produto da loja.')
-    if (!form.titulo.trim()) return setErro('Título é obrigatório.')
     if (Number(form.preco_promocional) <= 0) return setErro('Preço promocional deve ser maior que zero.')
+    if (!form.destaque_inicio || !form.destaque_fim) return setErro('Informe início e fim do período da promoção.')
+    if (new Date(form.destaque_fim) <= new Date(form.destaque_inicio)) return setErro('Fim deve ser maior que início.')
+    const produtoSelecionado = produtos.find((p) => p.id === form.produto_id)
+    if (!produtoSelecionado) return setErro('Produto selecionado não encontrado.')
+    if (Number(form.preco_promocional) >= Number(produtoSelecionado.preco || 0)) {
+      return setErro('Preço promocional deve ser menor que o preço original do produto.')
+    }
+
     setSalvando(true)
     try {
-      let imagem_url = form.imagem_url || ''
-      if (imagemFile) {
-        const path = `promocoes/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
-        imagem_url = await uploadImagem(imagemFile, path)
-      }
       const payload = {
         produto_id: form.produto_id,
-        titulo: form.titulo.trim(),
-        descricao: form.descricao.trim(),
         preco_promocional: Number(form.preco_promocional || 0),
-        imagem_url,
         ativo: !!form.ativo,
-        destaque_inicio: form.destaque_inicio || undefined,
-        destaque_fim: form.destaque_fim || undefined,
+        destaque_inicio: form.destaque_inicio,
+        destaque_fim: form.destaque_fim,
       }
       if (editando) await api.promocoes.atualizar(editando, payload)
       else await api.promocoes.criar(payload)
@@ -176,20 +149,27 @@ export default function Promocoes() {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-stone-900 truncate">{p.titulo}</p>
+                    <p className="font-semibold text-stone-900 truncate">{p.produto?.nome || p.titulo}</p>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${p.ativo ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
                       {p.ativo ? 'Ativa' : 'Inativa'}
                     </span>
                   </div>
-                  {p.descricao && <p className="text-xs text-stone-500 mt-0.5 line-clamp-2">{p.descricao}</p>}
-                  {p.produto?.nome && (
-                    <p className="text-xs text-stone-500 mt-1 inline-flex items-center gap-1">
-                      <FiPackage className="text-stone-400" />
-                      Produto: {p.produto.nome}
+                  {p.destaque_inicio && p.destaque_fim && (
+                    <p className="text-xs text-stone-500 mt-1">
+                      {new Date(p.destaque_inicio).toLocaleDateString('pt-BR')} até {new Date(p.destaque_fim).toLocaleDateString('pt-BR')}
                     </p>
                   )}
                   {Number(p.preco_promocional) > 0 && (
-                    <p className="text-sm font-bold text-amber-600 mt-1">R$ {Number(p.preco_promocional).toFixed(2).replace('.', ',')}</p>
+                    <div className="mt-1">
+                      {Number(p.produto?.preco || 0) > 0 && (
+                        <p className="text-xs text-stone-400 line-through font-numeric">
+                          R$ {Number(p.produto.preco).toFixed(2).replace('.', ',')}
+                        </p>
+                      )}
+                      <p className="text-sm font-bold text-amber-600 font-numeric">
+                        R$ {Number(p.preco_promocional).toFixed(2).replace('.', ',')}
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-1">
@@ -218,63 +198,60 @@ export default function Promocoes() {
                   value={form.produto_id}
                   onChange={(e) => {
                     const produtoId = e.target.value
-                    const produtoSel = produtos.find((p) => p.id === produtoId)
                     setForm((p) => ({
                       ...p,
                       produto_id: produtoId,
-                      titulo: p.titulo || produtoSel?.nome || '',
-                      imagem_url: p.imagem_url || produtoSel?.imagem_url || '',
                     }))
                   }}
                   required
                   className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm bg-white"
                 >
                   <option value="">{produtosCarregando ? 'Carregando produtos...' : 'Selecione um produto'}</option>
-                  {produtos.map((p) => (
+                  {produtosAtivos.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.nome} — R$ {Number(p.preco || 0).toFixed(2).replace('.', ',')} {!p.ativo ? '(inativo)' : ''}
+                      {p.nome} — R$ {Number(p.preco || 0).toFixed(2).replace('.', ',')}
                     </option>
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Título</label>
-                <input value={form.titulo} onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))} required className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Descrição</label>
-                <textarea value={form.descricao} onChange={(e) => setForm((p) => ({ ...p, descricao: e.target.value }))} rows={2} className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-2">Imagem da promoção</label>
-                <div className="flex items-center gap-3">
-                  {(imagemPreview || form.imagem_url) ? (
-                    <div className="relative">
-                      <img src={imagemPreview || form.imagem_url} alt="" className="w-20 h-20 rounded-lg object-cover border border-stone-200" />
-                      <button type="button" onClick={removerImagem} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"><FiX /></button>
+              {(() => {
+                const produto = produtosAtivos.find((p) => p.id === form.produto_id)
+                if (!produto) return null
+                const precoPromo = Number(form.preco_promocional || 0)
+                return (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-center gap-3">
+                    {produto.imagem_url ? (
+                      <img src={produto.imagem_url} alt={produto.nome} className="w-14 h-14 rounded-lg object-cover" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                        <FiTag />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">{produto.nome}</p>
+                      <p className="text-xs text-stone-400 line-through font-numeric">
+                        R$ {Number(produto.preco || 0).toFixed(2).replace('.', ',')}
+                      </p>
+                      {precoPromo > 0 && (
+                        <p className="text-sm font-bold text-red-600 font-numeric">
+                          R$ {precoPromo.toFixed(2).replace('.', ',')}
+                        </p>
+                      )}
                     </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-lg border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-300"><FiImage /></div>
-                  )}
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-stone-100 text-xs font-medium text-stone-700"><FiImage /> Galeria</button>
-                    <button type="button" onClick={() => cameraInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 text-xs font-medium text-amber-700"><FiCamera /> Câmera</button>
                   </div>
-                </div>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagem} className="hidden" />
-                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImagem} className="hidden" />
-              </div>
+                )
+              })()}
               <div>
                 <label className="block text-xs font-medium text-stone-600 mb-1">Preço promocional (R$)</label>
                 <input type="number" step="0.01" min="0" value={form.preco_promocional} onChange={(e) => setForm((p) => ({ ...p, preco_promocional: e.target.value }))} className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Início do destaque</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">Início da promoção</label>
                   <input type="datetime-local" value={form.destaque_inicio} onChange={(e) => setForm((p) => ({ ...p, destaque_inicio: e.target.value }))} className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Fim do destaque</label>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">Fim da promoção</label>
                   <input type="datetime-local" value={form.destaque_fim} onChange={(e) => setForm((p) => ({ ...p, destaque_fim: e.target.value }))} className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm" />
                 </div>
               </div>

@@ -651,6 +651,17 @@ export default function LojaPage() {
     setObsDetalhe('')
   }, [])
 
+  const abrirProdutoDaPromocao = useCallback((promo) => {
+    const produtoId = promo?.produto_id || promo?.produto?.id
+    if (!produtoId) return
+    const produto = (produtos?.dados || []).find((p) => p.id === produtoId)
+    if (!produto) {
+      alert('Produto da promoção não disponível no momento.')
+      return
+    }
+    addItemDireto(produto)
+  }, [produtos?.dados, addItemDireto])
+
   function addItemConfigurado(e) {
     const p = produtoDetalhe
     const jaNoCarrinho = Object.values(carrinho).reduce((sum, item) => {
@@ -2074,7 +2085,12 @@ export default function LojaPage() {
             <HorizontalCards
               items={promocoes}
               renderItem={(promo) => (
-                <div key={promo.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-amber-50 to-red-50 rounded-2xl border border-amber-200 overflow-hidden">
+                <button
+                  key={promo.id}
+                  type="button"
+                  onClick={() => abrirProdutoDaPromocao(promo)}
+                  className="snap-start shrink-0 w-64 bg-linear-to-br from-amber-50 to-red-50 rounded-2xl border border-amber-200 overflow-hidden text-left"
+                >
                   {(promo.imagem_url || promo.produto?.imagem_url) ? (
                     <img src={promo.imagem_url || promo.produto?.imagem_url} alt={promo.titulo} loading="lazy" className="w-full h-28 object-cover" />
                   ) : (
@@ -2083,9 +2099,7 @@ export default function LojaPage() {
                     </div>
                   )}
                   <div className="p-3">
-                    <h3 className="text-sm font-bold text-stone-900 line-clamp-1">{promo.titulo}</h3>
-                    {promo.produto?.nome && <p className="text-[11px] text-stone-500 mt-1">Produto: {promo.produto.nome}</p>}
-                    {promo.descricao && <p className="text-[11px] text-stone-600 mt-1 line-clamp-2">{promo.descricao}</p>}
+                    <h3 className="text-sm font-bold text-stone-900 line-clamp-1">{promo.produto?.nome || promo.titulo}</h3>
                     {Number(promo.preco_promocional || 0) > 0 && (
                       <div className="mt-2">
                         {Number(promo.produto?.preco || 0) > 0 && (
@@ -2096,10 +2110,11 @@ export default function LojaPage() {
                         <p className="text-lg font-extrabold text-red-700 font-numeric">
                           R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
                         </p>
+                        <p className="text-[11px] text-stone-500 mt-1">Toque para abrir o produto</p>
                       </div>
                     )}
                   </div>
-                </div>
+                </button>
               )}
             />
           </div>
