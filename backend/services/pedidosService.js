@@ -234,7 +234,8 @@ async function criar(data) {
         cupom_id: cupomId,
         total,
         agendado_para: agendadoPara,
-        status: agendadoPara ? 'PENDING' : 'APPROVED',
+        // Novo pedido sempre entra como "Pedido recebido" no painel.
+        status: 'APPROVED',
         itens: { create: itensComPreco },
       },
       include: INCLUDE_ITENS,
