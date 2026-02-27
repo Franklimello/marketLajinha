@@ -46,7 +46,7 @@ export default function Pedidos() {
   const { loja } = useAuth()
   const [pedidos, setPedidos] = useState([])
   const [carregando, setCarregando] = useState(true)
-  const [filtroStatus, setFiltroStatus] = useState('ATIVOS')
+  const [filtroStatus, setFiltroStatus] = useState('APPROVED')
   const [busca, setBusca] = useState('')
   const [pedidoAberto, setPedidoAberto] = useState(null)
   const [naoLidasMap, setNaoLidasMap] = useState({})
@@ -58,7 +58,7 @@ export default function Pedidos() {
   const pedidosCountRef = useRef(0)
   const pedidoIdsRef = useRef(new Set())
   const primeiraCargaRef = useRef(true)
-  const filtroStatusRef = useRef('ATIVOS')
+  const filtroStatusRef = useRef('APPROVED')
   const buscaRef = useRef('')
 
   useEffect(() => {
