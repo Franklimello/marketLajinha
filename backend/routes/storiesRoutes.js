@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/storiesController');
 const { authMiddleware, requireAuth } = require('../middleware');
-const { uploadStory, handleMulterError } = require('../middleware/uploadStory');
 
 router.get('/stories/active', ctrl.listarAtivos);
 
@@ -12,8 +11,6 @@ router.post(
   '/restaurants/:id/stories',
   authMiddleware,
   requireAuth,
-  uploadStory.single('image'),
-  handleMulterError,
   ctrl.criar
 );
 

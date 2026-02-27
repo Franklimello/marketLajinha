@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiCamera, FiClock, FiImage, FiTrash2, FiUpload } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
+import { uploadImagem } from '../config/firebase'
 
 const MAX_STORIES = 5
 
@@ -74,9 +75,9 @@ export default function Stories() {
     setSalvando(true)
     setErro('')
     try {
-      const fd = new FormData()
-      fd.append('image', arquivo)
-      await api.stories.criar(loja.id, fd)
+      const path = `stories/${loja.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
+      const image_url = await uploadImagem(arquivo, path)
+      await api.stories.criar(loja.id, { image_url })
       setArquivo(null)
       setPreview('')
       if (fileInputRef.current) fileInputRef.current.value = ''

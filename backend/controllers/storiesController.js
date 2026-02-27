@@ -1,14 +1,9 @@
-const fs = require('fs');
 const storiesService = require('../services/storiesService');
 
 function toBoolean(value) {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') return value.toLowerCase() === 'true';
   return false;
-}
-
-function buildPublicImageUrl(req, fileName) {
-  return `${req.protocol}://${req.get('host')}/uploads/stories/${fileName}`;
 }
 
 async function criar(req, res, next) {
@@ -18,10 +13,13 @@ async function criar(req, res, next) {
     if (req.user.loja_id !== restauranteId) {
       return res.status(403).json({ erro: 'Você só pode publicar stories da sua loja.' });
     }
-    if (!req.file) return res.status(400).json({ erro: 'Arquivo de imagem é obrigatório.' });
+    const imageUrl = String(req.body?.image_url || '').trim();
+    if (!imageUrl || !/^https?:\/\//i.test(imageUrl)) {
+      return res.status(400).json({ erro: 'URL pública da imagem é obrigatória.' });
+    }
 
     const story = await storiesService.criarStory(restauranteId, {
-      image_url: buildPublicImageUrl(req, req.file.filename),
+      image_url: imageUrl,
       link_url: req.body?.link_url || null,
       coupon_code: req.body?.coupon_code || null,
       is_sponsored: toBoolean(req.body?.is_sponsored),
@@ -29,7 +27,6 @@ async function criar(req, res, next) {
 
     return res.status(201).json(story);
   } catch (e) {
-    if (req.file?.path) fs.unlink(req.file.path, () => {});
     if (e.status) return res.status(e.status).json({ erro: e.message });
     next(e);
   }
