@@ -101,6 +101,8 @@ async function criar(data) {
       nome: rest.nome,
       descricao: rest.descricao || '',
       preco: rest.preco,
+      preco_promocional: rest.preco_promocional || 0,
+      em_promocao: rest.em_promocao !== undefined ? rest.em_promocao : false,
       estoque: rest.estoque || 0,
       controla_estoque: rest.controla_estoque !== undefined ? rest.controla_estoque : false,
       imagem_url: rest.imagem_url || '',

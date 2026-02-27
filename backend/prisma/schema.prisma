@@ -114,6 +114,8 @@ model Produtos {
   nome             String
   descricao        String
   preco            Decimal
+  preco_promocional Decimal @default(0)
+  em_promocao      Boolean  @default(false)
   estoque          Int
   controla_estoque Boolean  @default(false)
   imagem_url       String

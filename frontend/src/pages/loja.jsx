@@ -73,6 +73,16 @@ function getComboImages(combo) {
   ])
 }
 
+function isPromocaoAtiva(produto) {
+  return !!produto?.em_promocao && Number(produto?.preco_promocional || 0) > 0
+}
+
+function getPrecoProduto(produto, variacao = null) {
+  if (variacao) return Number(variacao.preco || 0)
+  if (isPromocaoAtiva(produto)) return Number(produto.preco_promocional || 0)
+  return Number(produto?.preco || 0)
+}
+
 const ComboImageStrip = memo(function ComboImageStrip({ combo }) {
   const imagens = getComboImages(combo)
   if (!imagens.length) return null
@@ -127,7 +137,7 @@ function restaurarCarrinho(snapshot, produtos, combos) {
     if (!produto) continue
     const variacao = (produto.variacoes || []).find((v) => v.id === row.variacaoId) || null
     const adicionais = (produto.adicionais || []).filter((a) => (row.adicionaisIds || []).includes(a.id))
-    const precoBase = variacao ? Number(variacao.preco) : Number(produto.preco)
+    const precoBase = getPrecoProduto(produto, variacao)
     const precoAdds = adicionais.reduce((s, a) => s + Number(a.preco), 0)
     result[row.key] = {
       produto,
@@ -181,7 +191,7 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
       <h2 className="text-base font-bold text-stone-900 mb-3">Destaques</h2>
       <div ref={ref} className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
         {produtos.map((p) => {
-          const preco = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map(v => Number(v.preco))) : Number(p.preco)
+          const preco = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map(v => Number(v.preco))) : getPrecoProduto(p)
           return (
             <button key={p.id} onClick={() => onAdd(p)} className="snap-start shrink-0 w-[120px] text-left">
               <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
@@ -623,7 +633,7 @@ export default function LojaPage() {
     }
     const variacao = p.variacoes?.find((v) => v.id === variacaoSel) || null
     const adds = p.adicionais?.filter((a) => adicionaisSel.includes(a.id)) || []
-    const precoBase = variacao ? Number(variacao.preco) : Number(p.preco)
+    const precoBase = getPrecoProduto(p, variacao)
     const precoAdds = adds.reduce((s, a) => s + Number(a.preco), 0)
     const precoUnit = precoBase + precoAdds
 
@@ -1653,7 +1663,7 @@ export default function LojaPage() {
     const temAdicionais = p.adicionais?.length > 0
     const gruposAdicionais = agruparAdicionaisProduto(p.adicionais || [])
     const varSel = p.variacoes?.find((v) => v.id === variacaoSel)
-    const precoBase = varSel ? Number(varSel.preco) : Number(p.preco)
+    const precoBase = getPrecoProduto(p, varSel)
     const precoAdds = (p.adicionais || []).filter((a) => adicionaisSel.includes(a.id)).reduce((s, a) => s + Number(a.preco), 0)
     const precoUnitario = precoBase + precoAdds
     const precoTotal = precoUnitario * qtdDetalhe
@@ -2182,17 +2192,26 @@ export default function LojaPage() {
               {(produtosPorCategoria[categoriaSel] || []).map((p, idx) => {
                 const qtd = qtdMap[p.id] || 0
                 const temConfig = (p.variacoes?.length > 0) || (p.adicionais?.length > 0)
-                const precoMin = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map((v) => Number(v.preco))) : Number(p.preco)
+                const precoMin = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map((v) => Number(v.preco))) : getPrecoProduto(p)
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
+                const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
                   <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 bg-white rounded-xl border p-3 text-left transition-colors ${semEstoque ? 'border-stone-200 opacity-60' : 'border-stone-100 hover:bg-stone-50 active:bg-stone-100'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-red-600 font-bold text-sm font-numeric">
-                          {p.variacoes?.length > 0 ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}` : `R$ ${Number(p.preco).toFixed(2).replace('.', ',')}`}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          {temPromocao && (
+                            <span className="text-xs text-stone-400 line-through font-numeric">
+                              R$ {Number(p.preco).toFixed(2).replace('.', ',')}
+                            </span>
+                          )}
+                          <p className="text-red-600 font-bold text-sm font-numeric">
+                            {p.variacoes?.length > 0 ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}` : `R$ ${precoMin.toFixed(2).replace('.', ',')}`}
+                          </p>
+                        </div>
+                        {temPromocao && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">promoção</span>}
                         {temConfig && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">personalizar</span>}
                         {p.controla_estoque && (
                           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${semEstoque ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-600'}`}>

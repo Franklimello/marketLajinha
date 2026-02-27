@@ -2,10 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import ModalProduto from '../components/ModalProduto'
-import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiPackage, FiStar, FiX } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiPackage, FiStar, FiX, FiTag } from 'react-icons/fi'
 
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function produtoTemPromocaoAtiva(produto) {
+  return !!produto?.em_promocao && Number(produto?.preco_promocional || 0) > 0
 }
 
 /** Toggle switch simples */
@@ -44,6 +48,9 @@ export default function Produtos() {
   const [categoriaAtualEdicao, setCategoriaAtualEdicao] = useState('')
   const [categoriaNovoNome, setCategoriaNovoNome] = useState('')
   const [salvandoEdicaoCategoria, setSalvandoEdicaoCategoria] = useState(false)
+  const [produtoPromocao, setProdutoPromocao] = useState(null)
+  const [precoPromocionalInput, setPrecoPromocionalInput] = useState('')
+  const [salvandoPromocao, setSalvandoPromocao] = useState(false)
 
   // Categorias desativadas (nomes em um Set para lookup O(1))
   const [catsDesativadas, setCatsDesativadas] = useState(new Set())
@@ -148,6 +155,64 @@ export default function Produtos() {
       )
     } catch (err) {
       alert(err.message || 'Não foi possível remover o destaque.')
+    }
+  }
+
+  function abrirModalPromocao(produto) {
+    if ((produto?.variacoes || []).length > 0) {
+      alert('Para produto com tamanhos/variações, ajuste os preços nas próprias variações.')
+      return
+    }
+    setProdutoPromocao(produto)
+    setPrecoPromocionalInput(Number(produto?.preco_promocional || 0) > 0 ? String(produto.preco_promocional) : '')
+  }
+
+  function fecharModalPromocao() {
+    if (salvandoPromocao) return
+    setProdutoPromocao(null)
+    setPrecoPromocionalInput('')
+  }
+
+  async function salvarPromocaoProduto() {
+    if (!produtoPromocao?.id) return
+    const precoBase = Number(produtoPromocao.preco || 0)
+    const precoPromo = Number(precoPromocionalInput || 0)
+
+    if (!(precoPromo > 0)) {
+      alert('Informe um preço promocional maior que zero.')
+      return
+    }
+    if (precoPromo >= precoBase) {
+      alert('O preço promocional deve ser menor que o preço original.')
+      return
+    }
+
+    setSalvandoPromocao(true)
+    try {
+      const atualizado = await api.produtos.atualizar(produtoPromocao.id, {
+        em_promocao: true,
+        preco_promocional: precoPromo,
+      })
+      setTodosProdutos((prev) => prev.map((p) => (p.id === atualizado.id ? { ...p, ...atualizado } : p)))
+      fecharModalPromocao()
+    } catch (err) {
+      alert(err.message || 'Não foi possível ativar a promoção.')
+    } finally {
+      setSalvandoPromocao(false)
+    }
+  }
+
+  async function desfazerPromocaoProduto(produto) {
+    if (!produto?.id) return
+    if (!confirm(`Desfazer promoção de "${produto.nome}"?`)) return
+    try {
+      const atualizado = await api.produtos.atualizar(produto.id, {
+        em_promocao: false,
+        preco_promocional: 0,
+      })
+      setTodosProdutos((prev) => prev.map((p) => (p.id === atualizado.id ? { ...p, ...atualizado } : p)))
+    } catch (err) {
+      alert(err.message || 'Não foi possível desfazer a promoção.')
     }
   }
 
@@ -469,6 +534,10 @@ export default function Produtos() {
                         className={`flex items-center gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors ${!p.ativo ? 'opacity-50' : ''
                           }`}
                       >
+                        {(() => {
+                          const temPromocao = produtoTemPromocaoAtiva(p)
+                          return (
+                            <>
                         {p.imagem_url ? (
                           <img src={p.imagem_url} alt={p.nome} className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0" />
                         ) : (
@@ -486,10 +555,26 @@ export default function Produtos() {
                           {p.descricao && (
                             <p className="text-xs sm:text-sm text-stone-400 mt-0.5 line-clamp-1 sm:line-clamp-2">{p.descricao}</p>
                           )}
-                          <p className="font-bold text-stone-900 text-sm mt-0.5 sm:hidden">{formatCurrency(p.preco)}</p>
+                          <div className="mt-0.5 sm:hidden">
+                            {temPromocao ? (
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-stone-400 line-through">{formatCurrency(p.preco)}</p>
+                                <p className="font-bold text-red-600 text-sm">{formatCurrency(p.preco_promocional)}</p>
+                              </div>
+                            ) : (
+                              <p className="font-bold text-stone-900 text-sm">{formatCurrency(p.preco)}</p>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right shrink-0 hidden sm:block">
-                          <p className="font-bold text-stone-900">{formatCurrency(p.preco)}</p>
+                          {temPromocao ? (
+                            <>
+                              <p className="text-xs text-stone-400 line-through">{formatCurrency(p.preco)}</p>
+                              <p className="font-bold text-red-600">{formatCurrency(p.preco_promocional)}</p>
+                            </>
+                          ) : (
+                            <p className="font-bold text-stone-900">{formatCurrency(p.preco)}</p>
+                          )}
                           {p.controla_estoque ? (
                             <p className={`text-xs ${p.estoque > 0 ? 'text-stone-400' : 'text-red-500 font-semibold'}`}>
                               Est: {p.estoque}
@@ -499,6 +584,24 @@ export default function Produtos() {
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
+                          {temPromocao ? (
+                            <button
+                              onClick={() => desfazerPromocaoProduto(p)}
+                              className="px-2 py-1 text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
+                              title="Desfazer promoção"
+                            >
+                              Desfazer promoção
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => abrirModalPromocao(p)}
+                              className="px-2 py-1 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors inline-flex items-center gap-1"
+                              title="Colocar em promoção"
+                            >
+                              <FiTag className="text-xs" />
+                              Promoção
+                            </button>
+                          )}
                           {/* Toggle ativo/inativo do produto */}
                           <ToggleSwitch
                             checked={p.ativo}
@@ -521,6 +624,9 @@ export default function Produtos() {
                             <FiTrash2 className="text-base" />
                           </button>
                         </div>
+                            </>
+                          )
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -528,6 +634,47 @@ export default function Produtos() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {produtoPromocao && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b border-stone-200 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-stone-900">Colocar em promoção</h2>
+              <button onClick={fecharModalPromocao} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">
+                &times;
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-stone-50 border border-stone-200 rounded-lg p-3">
+                <p className="text-sm font-semibold text-stone-900">{produtoPromocao.nome}</p>
+                <p className="text-xs text-stone-500 mt-1">
+                  Preço atual: <span className="font-semibold">{formatCurrency(produtoPromocao.preco)}</span>
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Preço promocional (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={precoPromocionalInput}
+                  onChange={(e) => setPrecoPromocionalInput(e.target.value)}
+                  placeholder="Ex: 24.90"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+                />
+                <p className="text-xs text-stone-400 mt-1">O valor promocional deve ser menor que o preço atual.</p>
+              </div>
+              <button
+                onClick={salvarPromocaoProduto}
+                disabled={salvandoPromocao}
+                className="w-full py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+              >
+                {salvandoPromocao ? 'Salvando...' : 'Ativar promoção'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

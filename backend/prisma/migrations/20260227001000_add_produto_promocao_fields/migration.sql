@@ -1,0 +1,3 @@
+ALTER TABLE "Produtos"
+ADD COLUMN "preco_promocional" DECIMAL NOT NULL DEFAULT 0,
+ADD COLUMN "em_promocao" BOOLEAN NOT NULL DEFAULT false;
