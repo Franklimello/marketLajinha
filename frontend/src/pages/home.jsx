@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { FiStar, FiChevronLeft, FiChevronRight, FiGrid, FiList } from 'react-icons/fi'
+import { FiStar, FiChevronLeft, FiChevronRight, FiGrid, FiList, FiX } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {

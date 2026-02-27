@@ -1214,7 +1214,13 @@ export default function LojaPage() {
             <>
               <div className="flex justify-center mb-4"><img src={pixData.qrcode} alt="QR Code PIX" className="w-56 h-56 rounded-xl" /></div>
               <p className="text-xs text-stone-400 mb-3">Titular: <strong className="text-stone-600">{pixData.nome_titular}</strong></p>
-              <div className="bg-stone-50 rounded-lg p-3 mb-4"><p className="text-[10px] text-stone-400 mb-1 uppercase tracking-wider font-medium">PIX Copia e Cola</p><p className="text-xs text-stone-600 font-mono break-all leading-relaxed">{pixData.payload.substring(0, 80)}...</p></div>
+              <div className="bg-stone-50 rounded-lg p-3 mb-4">
+                <p className="text-[10px] text-stone-400 mb-1 uppercase tracking-wider font-medium">PIX Copia e Cola</p>
+                <p className="text-xs text-stone-600 font-mono break-all leading-relaxed">
+                  {String(pixData?.payload || '').slice(0, 80) || 'Código PIX indisponível no momento.'}
+                  {pixData?.payload ? '...' : ''}
+                </p>
+              </div>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
                 <p className="text-xs font-semibold text-amber-800">
                   Após pagar, envie o comprovante para a loja para agilizar a confirmação.
