@@ -109,9 +109,9 @@ export const api = {
   stories: {
     listarAtivas: () => request('/stories/active'),
     listarMinhas: () => request('/stories/mine'),
-    criar: (restaurantId, formData) => request(`/restaurants/${restaurantId}/stories`, {
+    criar: (restaurantId, data) => request(`/restaurants/${restaurantId}/stories`, {
       method: 'POST',
-      body: formData,
+      body: JSON.stringify(data),
     }),
     excluir: (id) => request(`/stories/${id}`, { method: 'DELETE' }),
   },
