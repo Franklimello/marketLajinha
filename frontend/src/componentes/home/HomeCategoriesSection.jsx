@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import { FiX } from 'react-icons/fi'
 
 export default function HomeCategoriesSection({
@@ -25,36 +24,20 @@ export default function HomeCategoriesSection({
         })}
       </div>
 
-      <AnimatePresence mode="wait">
-        {categoriaSel && (
-          <motion.div
-            key="filtro-ativo"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="flex items-center gap-2 mb-3"
+      {categoriaSel && (
+        <div className="flex items-center gap-2 mb-3 animate-fade-in-up">
+          <span className="text-sm text-stone-600">Filtrando por:</span>
+          <button
+            onClick={onClearCategoria}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm font-medium hover:bg-red-100 transition-colors"
           >
-            <span className="text-sm text-stone-600">Filtrando por:</span>
-            <button
-              onClick={onClearCategoria}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm font-medium hover:bg-red-100 transition-colors"
-            >
-              <span>{categoriaSel}</span>
-              <motion.span
-                initial={{ rotate: -45, opacity: 0.8 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.94 }}
-                transition={{ duration: 0.2 }}
-                className="inline-flex"
-              >
-                <FiX size={14} />
-              </motion.span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <span>{categoriaSel}</span>
+            <span className="inline-flex transition-transform duration-150 hover:scale-105 active:scale-95">
+              <FiX size={14} />
+            </span>
+          </button>
+        </div>
+      )}
     </>
   )
 }

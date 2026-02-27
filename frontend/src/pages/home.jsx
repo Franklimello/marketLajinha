@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { FiStar, FiChevronLeft, FiChevronRight, FiGrid, FiList, FiX } from 'react-icons/fi'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {
   Pizza,
@@ -246,33 +245,22 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
   const Icon = categoria.Icon || Tag
   const corCategoria = categoria.cor || '#ef4444'
   return (
-    <motion.button
+    <button
       type="button"
-      layout
-      whileTap={{ scale: 0.95 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
       onClick={onToggle}
-      className="relative shrink-0 rounded-2xl"
+      className="relative shrink-0 rounded-2xl active:scale-95 transition-transform duration-150"
     >
-      <motion.div
-        layout
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className={`relative px-2.5 py-2 rounded-2xl border ${isActive
+      <div
+        className={`relative px-2.5 py-2 rounded-2xl border transition-colors duration-200 ${isActive
           ? 'border-red-600 shadow-sm'
           : 'border-stone-200 bg-white hover:bg-stone-50'
           }`}
       >
         {isActive && (
-          <motion.span
-            layoutId="categoria-pill"
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="absolute inset-0 rounded-2xl bg-red-600"
-          />
+          <span className="absolute inset-0 rounded-2xl bg-red-600" />
         )}
         <div className="relative z-10 flex flex-col items-center gap-1.5 min-w-[64px]">
-          <motion.div
-            layout
-            transition={{ duration: 0.25, ease: 'easeOut' }}
+          <div
             className={`w-11 h-11 rounded-full flex items-center justify-center ${isActive ? 'bg-white/20 text-white' : 'bg-stone-100'
               }`}
             style={
@@ -282,13 +270,13 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
             }
           >
             <Icon size={22} weight={isActive ? 'fill' : 'duotone'} />
-          </motion.div>
+          </div>
           <span className={`font-heading text-[11px] font-bold tracking-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-700'}`}>
             {categoria.nome}
           </span>
         </div>
-      </motion.div>
-    </motion.button>
+      </div>
+    </button>
   )
 })
 
@@ -497,7 +485,10 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
   const rippleIdRef = useRef(0)
   const rippleTimersRef = useRef([])
   const isAboveFold = idx < 4
-  const prefetch = usePrefetchLoja(loja.slug)
+  const prefetch = usePrefetchLoja(loja.slug, {
+    prefetchOnViewport: idx < 4 ? 'full' : 'chunk',
+    viewportThreshold: 0.6,
+  })
   const shouldAnimate = idx < 8
 
   useEffect(() => {
@@ -624,7 +615,10 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
 const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
   const aberta = loja.aberta_agora ?? loja.aberta
   const taxa = typeof taxaBairro === 'number' ? taxaBairro : (loja.taxa_entrega ?? 0)
-  const prefetch = usePrefetchLoja(loja.slug)
+  const prefetch = usePrefetchLoja(loja.slug, {
+    prefetchOnViewport: idx < 3 ? 'full' : 'chunk',
+    viewportThreshold: 0.65,
+  })
   const [imgError, setImgError] = useState(false)
   const isAboveFold = idx < 6
   const shouldAnimate = idx < 8
@@ -897,28 +891,48 @@ export default function HomePage() {
     if (lojasPendentes.length === 0) return
 
     lojasPendentes.forEach((loja) => lojasComTaxaCarregadaRef.current.add(loja.id))
+    let cancelled = false
 
-    Promise.all(
-      lojasPendentes.map(async (loja) => {
-        try {
-          const bairros = await api.lojas.bairros(loja.id)
-          const match = Array.isArray(bairros)
-            ? bairros.find((b) => normalizeText(b?.nome) === bairroNormalizado)
-            : null
+    async function carregarTaxas() {
+      const resultados = []
+      let cursor = 0
+      const concurrency = Math.min(4, lojasPendentes.length)
 
-          if (!match) return { lojaId: loja.id, taxa: null }
-          return { lojaId: loja.id, taxa: Number(match.taxa) || 0 }
-        } catch {
-          return { lojaId: loja.id, taxa: null }
+      async function worker() {
+        while (!cancelled) {
+          const atual = cursor
+          cursor += 1
+          if (atual >= lojasPendentes.length) return
+          const loja = lojasPendentes[atual]
+
+          try {
+            const bairros = await api.lojas.bairros(loja.id)
+            const match = Array.isArray(bairros)
+              ? bairros.find((b) => normalizeText(b?.nome) === bairroNormalizado)
+              : null
+
+            resultados.push({ lojaId: loja.id, taxa: match ? Number(match.taxa) || 0 : null })
+          } catch {
+            resultados.push({ lojaId: loja.id, taxa: null })
+          }
         }
-      })
-    ).then((resultados) => {
+      }
+
+      await Promise.all(Array.from({ length: concurrency }, () => worker()))
+      if (cancelled) return
+
       setTaxaBairroPorLoja((prev) => {
         const next = { ...prev }
         for (const r of resultados) next[r.lojaId] = r.taxa
         return next
       })
-    })
+    }
+
+    carregarTaxas()
+
+    return () => {
+      cancelled = true
+    }
   }, [bairroPadrao, lojasVisiveis])
 
   function openStories(groupIdx) {
@@ -1203,31 +1217,25 @@ export default function HomePage() {
         suporteInstagram={SUPORTE_INSTAGRAM}
       />
 
-      <AnimatePresence>
-        {storyModalOpen && (
-          <motion.div
-            key="story-modal"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            onPointerDown={onStoryPointerDown}
-            onPointerUp={onStoryPointerUp}
-          >
-            <StoryViewerModal
-              grupos={storiesGroups}
-              groupIndex={storyGroupIndex}
-              storyIndex={storyIndex}
-              progress={storyProgress}
-              onPrev={prevStory}
-              onNext={nextStory}
-              onNextStore={nextStoreStories}
-              hasNextStore={hasNextStore}
-              onClose={closeStories}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {storyModalOpen && (
+        <div
+          className="animate-fade-in-up"
+          onPointerDown={onStoryPointerDown}
+          onPointerUp={onStoryPointerUp}
+        >
+          <StoryViewerModal
+            grupos={storiesGroups}
+            groupIndex={storyGroupIndex}
+            storyIndex={storyIndex}
+            progress={storyProgress}
+            onPrev={prevStory}
+            onNext={nextStory}
+            onNextStore={nextStoreStories}
+            hasNextStore={hasNextStore}
+            onClose={closeStories}
+          />
+        </div>
+      )}
     </div>
   )
 }
