@@ -339,7 +339,7 @@ const StoryViewerModal = memo(function StoryViewerModal({
   if (!story) return null
 
   return (
-    <div className="fixed inset-0 z-130 bg-black/92 backdrop-blur-xs animate-scale-in">
+    <div className="fixed inset-0 z-[130] bg-black/92 backdrop-blur-xs animate-scale-in">
       <div className="w-full max-w-lg mx-auto h-full relative text-white select-none">
         <div className="absolute top-2 left-3 right-3 z-20 flex gap-1">
           {(grupo.stories || []).map((s, i) => (

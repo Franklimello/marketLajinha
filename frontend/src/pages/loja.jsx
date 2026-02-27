@@ -2311,7 +2311,7 @@ export default function LojaPage() {
       )}
 
       {showSubmitOverlay && (
-        <div className="fixed inset-0 z-120 bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[120] bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-stone-200 p-4">
             <p className="text-sm font-bold text-stone-900 mb-3">Finalizando pedido</p>
             <div className="relative h-2 rounded-full bg-stone-200 overflow-hidden mb-4">

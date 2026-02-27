@@ -331,7 +331,7 @@ export default function PerfilPage() {
       </button>
 
       {(modalCupons || modalAtendimento || modalDados || modalEnderecos || modalConfig || modalCidade) && (
-        <div className="fixed inset-0 z-120 bg-black/45 p-4 flex items-center justify-center">
+        <div className="fixed inset-0 z-[120] bg-black/45 p-4 flex items-center justify-center">
           <div className="absolute inset-0" onClick={() => {
             setModalCupons(false); setModalAtendimento(false); setModalDados(false); setModalEnderecos(false); setModalConfig(false); setModalCidade(false)
           }} />

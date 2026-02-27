@@ -13,7 +13,7 @@ function ModalAceiteTermos({ onAccept }) {
   const [checked, setChecked] = useState(false)
 
   return (
-    <div className="fixed inset-0 z-120 bg-black/55 flex items-end sm:items-center justify-center p-4">
+    <div className="fixed inset-0 z-[120] bg-black/55 flex items-end sm:items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-200">
           <h2 className="text-lg font-bold text-stone-900">Termo de Uso e Isenção</h2>
