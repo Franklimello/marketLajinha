@@ -173,9 +173,29 @@ async function cacheOuBuscar(key, fn, ttlOrOptions = 300) {
 async function invalidarCache(pattern) {
   if (!redis) return;
   try {
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) await redis.del(...keys);
-    console.log(`[CACHE] INVALIDATE pattern=${pattern} keys=${keys.length}`);
+    let cursor = '0';
+    let totalKeys = 0;
+    let totalDeleted = 0;
+
+    do {
+      const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+      cursor = nextCursor;
+      totalKeys += keys.length;
+
+      if (keys.length > 0) {
+        for (let i = 0; i < keys.length; i += 500) {
+          const chunk = keys.slice(i, i + 500);
+          if (chunk.length === 0) continue;
+          try {
+            totalDeleted += await redis.unlink(...chunk);
+          } catch {
+            totalDeleted += await redis.del(...chunk);
+          }
+        }
+      }
+    } while (cursor !== '0');
+
+    console.log(`[CACHE] INVALIDATE pattern=${pattern} keys=${totalKeys} deleted=${totalDeleted}`);
   } catch (err) {
     console.warn(`[CACHE] INVALIDATE_ERROR pattern=${pattern} erro=${err.message}`);
   }
