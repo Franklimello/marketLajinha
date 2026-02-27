@@ -43,6 +43,7 @@ async function listar(filtros = {}, pagina = 1, limite) {
 }
 
 async function listarPorLoja(lojaIdOuSlug, pagina = 1) {
+  const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
   const cacheKey = `produtos:loja:${lojaIdOuSlug}:pagina:${paginaNum}`;
 
   return cacheOuBuscar(cacheKey, async () => {

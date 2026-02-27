@@ -7,10 +7,7 @@ const API_LISTINGS_CACHE = `${CACHE_PREFIX}-api-listings-${CACHE_VERSION}`;
 const API_MENU_CACHE = `${CACHE_PREFIX}-api-menu-${CACHE_VERSION}`;
 
 const INJECTED_MANIFEST = self.__WB_MANIFEST || [];
-const API_BASE_URL =
-  typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
-    ? import.meta.env.VITE_API_URL
-    : '';
+const API_BASE_URL = '';
 const API_ORIGINS = new Set([self.location.origin]);
 
 try {
