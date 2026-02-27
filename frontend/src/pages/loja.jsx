@@ -2234,7 +2234,7 @@ export default function LojaPage() {
                       </div>
                       <div className="mt-3 flex items-center justify-between">
                         <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-1">
-                          Abrir
+                          Ver produtos
                         </div>
                         <FiChevronRight className="text-stone-300 group-hover:text-red-400 text-lg shrink-0 transition-colors" />
                       </div>
