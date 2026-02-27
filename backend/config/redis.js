@@ -34,16 +34,28 @@ async function cacheOuBuscar(key, fn, ttlSeconds = 60) {
   if (redis) {
     try {
       const cached = await redis.get(key);
-      if (cached) return JSON.parse(cached);
-    } catch {}
+      if (cached) {
+        console.log(`[Redis] Cache HIT: ${key}`);
+        return JSON.parse(cached);
+      }
+    } catch (err) {
+      console.warn(`[Redis] Erro ao buscar cache (${key}):`, err.message);
+    }
   }
 
+  const start = Date.now();
   const data = await fn();
+  const duration = Date.now() - start;
 
   if (redis) {
+    console.log(`[Redis] Cache MISS (DB FETCH): ${key} - Duração: ${duration}ms`);
     try {
       await redis.set(key, JSON.stringify(data), 'EX', ttlSeconds);
-    } catch {}
+    } catch (err) {
+      console.warn(`[Redis] Erro ao salvar cache (${key}):`, err.message);
+    }
+  } else {
+    console.log(`[DB] Fetch Sem Cache: ${key} - Duração: ${duration}ms`);
   }
 
   return data;
@@ -57,7 +69,7 @@ async function invalidarCache(pattern) {
   try {
     const keys = await redis.keys(pattern);
     if (keys.length > 0) await redis.del(...keys);
-  } catch {}
+  } catch { }
 }
 
 function getRedis() {

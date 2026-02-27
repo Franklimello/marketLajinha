@@ -292,7 +292,7 @@ export default function LojaPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { logado, cliente, carregando: authCarregando } = useAuth()
+  const { logado, cliente } = useAuth()
   const [loja, setLoja] = useState(() => getCachedData(`/lojas/slug/${slug}`) || null)
   const [produtos, setProdutos] = useState(() => {
     const cached = getCachedData(`/lojas/${slug}/produtos?pagina=1`)
@@ -361,10 +361,11 @@ export default function LojaPage() {
   const lojaQuery = useQuery({
     queryKey: ['loja', slug],
     enabled: Boolean(slug),
-    staleTime: 60_000,
     queryFn: () => api.lojas.buscarPorSlug(slug),
-    initialData: () => getCachedData(`/lojas/slug/${slug}`) || undefined,
-  })
+    staleTime: 60_000,
+    gcTime: 120_000,
+    placeholderData: (prev) => getCachedData('loja-slug', slug) || prev,
+  });
 
   function mostrarToast(msg) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -382,60 +383,98 @@ export default function LojaPage() {
   useEffect(() => {
     if (!slug) return
 
-    function dispararSecundarios(lojaId) {
-      const produtosPromise = (async () => {
-        try {
-          const primeira = await queryClient.fetchQuery({
-            queryKey: ['loja-produtos', slug, 1],
-            queryFn: () => api.lojas.produtos(slug, 1),
-            staleTime: 60_000,
-          })
-          const base = Array.isArray(primeira?.dados) ? primeira.dados : []
-          const total = Number(primeira?.total || base.length || 0)
-          let acumulado = [...base]
-          let pagina = 2
+    const abortController = new AbortController();
 
-          while (acumulado.length < total) {
-            const prox = await queryClient.fetchQuery({
-              queryKey: ['loja-produtos', slug, pagina],
-              queryFn: () => api.lojas.produtos(slug, pagina),
-              staleTime: 60_000,
-            })
-            const dadosProx = Array.isArray(prox?.dados) ? prox.dados : []
-            if (!dadosProx.length) break
-            acumulado = [...acumulado, ...dadosProx]
-            pagina += 1
+    async function dispararSecundarios(lojaId) {
+      try {
+        setProdutosCarregando(true);
+        // 1. Busca primeira página
+        const primeira = await queryClient.fetchQuery({
+          queryKey: ['loja-produtos', slug, 1],
+          queryFn: () => api.lojas.produtos(slug, 1),
+          staleTime: 60_000,
+          signal: abortController.signal,
+        });
+
+        if (abortController.signal.aborted) return;
+
+        const base = Array.isArray(primeira?.dados) ? primeira.dados : [];
+        const total = Number(primeira?.total || base.length || 0);
+        const totalPaginas = Number(primeira?.total_paginas || 1);
+
+        // 2. Renderiza logo a primeira página
+        setProdutos({ dados: base, total });
+        setProdutosCarregando(false);
+
+        if (totalPaginas > 1) {
+          // 3. Busca demais páginas em paralelo (limite de 4 por vez)
+          let acumulado = [...base];
+          const paginasRestantes = Array.from({ length: totalPaginas - 1 }, (_, i) => i + 2);
+
+          // Função para buscar páginas em chunks para não sobrecarregar
+          const chunk = 4;
+          for (let i = 0; i < paginasRestantes.length; i += chunk) {
+            const batch = paginasRestantes.slice(i, i + chunk);
+            const resultados = await Promise.all(
+              batch.map(p => queryClient.fetchQuery({
+                queryKey: ['loja-produtos', slug, p],
+                queryFn: () => api.lojas.produtos(slug, p),
+                staleTime: 60_000,
+                signal: abortController.signal,
+              }))
+            );
+
+            if (abortController.signal.aborted) return;
+
+            resultados.forEach(res => {
+              const novosDados = Array.isArray(res?.dados) ? res.dados : [];
+              // Evita duplicados por garantia
+              const IDsExistentes = new Set(acumulado.map(d => d.id));
+              const filtrados = novosDados.filter(d => !IDsExistentes.has(d.id));
+              acumulado = [...acumulado, ...filtrados];
+            });
+
+            setProdutos({ dados: acumulado, total: acumulado.length > total ? acumulado.length : total });
           }
-
-          setProdutos({ dados: acumulado, total: acumulado.length || total })
-        } catch {
-          setProdutos({ dados: [], total: 0 })
-        } finally {
-          setProdutosCarregando(false)
         }
-      })()
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('[LojaPage] Erro ao carregar produtos:', err);
+        setProdutos({ dados: [], total: 0 });
+      } finally {
+        if (!abortController.signal.aborted) {
+          setProdutosCarregando(false);
+        }
+      }
 
-      const secundariosPromise = Promise.allSettled([
+      // Outros dados secundários em paralelo
+      Promise.allSettled([
         api.lojas.bairros(lojaId),
         api.combos.listarPorLoja(lojaId),
         api.promocoes.listarPorLoja(lojaId),
         api.avaliacoes.mediaPorLoja(lojaId),
         api.avaliacoes.listarPorLoja(lojaId),
       ]).then(([bairrosRes, combosRes, promocoesRes, notaRes, avaliacoesRes]) => {
-        if (bairrosRes.status === 'fulfilled') setBairros(bairrosRes.value)
-        if (combosRes.status === 'fulfilled') setCombos(combosRes.value)
-        if (promocoesRes.status === 'fulfilled') setPromocoes(Array.isArray(promocoesRes.value) ? promocoesRes.value : [])
-        if (notaRes.status === 'fulfilled') setNotaMedia(notaRes.value)
-        if (avaliacoesRes.status === 'fulfilled') setAvaliacoes(avaliacoesRes.value?.dados || [])
-      })
+        if (abortController.signal.aborted) return;
+        if (bairrosRes.status === 'fulfilled') setBairros(bairrosRes.value);
+        if (combosRes.status === 'fulfilled') setCombos(combosRes.value);
+        if (promocoesRes.status === 'fulfilled') setPromocoes(Array.isArray(promocoesRes.value) ? promocoesRes.value : []);
+        if (notaRes.status === 'fulfilled') setNotaMedia(notaRes.value);
+        if (avaliacoesRes.status === 'fulfilled') setAvaliacoes(avaliacoesRes.value?.dados || []);
+      });
 
-      setCuponsDisponiveisCarregando(true)
+      setCuponsDisponiveisCarregando(true);
       api.cupons.listarDisponiveis(lojaId)
-        .then((r) => setCuponsDisponiveis(Array.isArray(r) ? r : []))
-        .catch(() => setCuponsDisponiveis([]))
-        .finally(() => setCuponsDisponiveisCarregando(false))
-
-      Promise.all([produtosPromise, secundariosPromise]).catch(() => { })
+        .then((r) => {
+          if (abortController.signal.aborted) return;
+          setCuponsDisponiveis(Array.isArray(r) ? r : []);
+        })
+        .catch(() => {
+          if (!abortController.signal.aborted) setCuponsDisponiveis([]);
+        })
+        .finally(() => {
+          if (!abortController.signal.aborted) setCuponsDisponiveisCarregando(false);
+        });
     }
 
     // Se a loja já está em cache (prefetch rodou), dispara secundários imediatamente
@@ -482,25 +521,25 @@ export default function LojaPage() {
     if (produtosCarregando) return
     let cancelled = false
 
-    ;(async () => {
-      const snapshot = await getCartSnapshot(slug)
-      if (cancelled) return
+      ; (async () => {
+        const snapshot = await getCartSnapshot(slug)
+        if (cancelled) return
 
-      const restored = restaurarCarrinho(snapshot, produtos.dados, combos)
-      if (Object.keys(restored).length > 0) setCarrinho(restored)
+        const restored = restaurarCarrinho(snapshot, produtos.dados, combos)
+        if (Object.keys(restored).length > 0) setCarrinho(restored)
 
-      const checkout = getLocalItem(
-        checkoutPersistentKey,
-        getSessionItem(checkoutStorageKey, null)
-      )
-      if (checkout && typeof checkout === 'object') {
-        if (checkout.etapa) setEtapa(checkout.etapa)
-        if (checkout.tipoEntrega) setTipoEntrega(checkout.tipoEntrega)
-        if (checkout.formPedido) setFormPedido((prev) => ({ ...prev, ...checkout.formPedido }))
-        if (checkout.enderecoSel) setEnderecoSel(checkout.enderecoSel)
-      }
-      restoredCartRef.current = true
-    })()
+        const checkout = getLocalItem(
+          checkoutPersistentKey,
+          getSessionItem(checkoutStorageKey, null)
+        )
+        if (checkout && typeof checkout === 'object') {
+          if (checkout.etapa) setEtapa(checkout.etapa)
+          if (checkout.tipoEntrega) setTipoEntrega(checkout.tipoEntrega)
+          if (checkout.formPedido) setFormPedido((prev) => ({ ...prev, ...checkout.formPedido }))
+          if (checkout.enderecoSel) setEnderecoSel(checkout.enderecoSel)
+        }
+        restoredCartRef.current = true
+      })()
 
     return () => {
       cancelled = true

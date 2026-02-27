@@ -43,8 +43,7 @@ async function listar(filtros = {}, pagina = 1, limite) {
 }
 
 async function listarPorLoja(lojaIdOuSlug, pagina = 1) {
-  const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
-  const cacheKey = `produtos:loja:${lojaIdOuSlug}:p${paginaNum}`;
+  const cacheKey = `produtos:loja:${lojaIdOuSlug}:pagina:${paginaNum}`;
 
   return cacheOuBuscar(cacheKey, async () => {
     const loja = await prisma.lojas.findFirst({
@@ -83,7 +82,7 @@ async function listarPorLoja(lojaIdOuSlug, pagina = 1) {
       loja: { id: loja.id, nome: loja.nome, slug: loja.slug },
       dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / ITENS_POR_PAGINA),
     };
-  }, 45);
+  }, 180);
 }
 
 async function buscarPorId(id) {

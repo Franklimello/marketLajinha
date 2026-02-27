@@ -97,7 +97,7 @@ function isStoreListingRequest(url) {
 
 function isMenuCategoryRequest(url) {
   return (
-    (url.pathname.startsWith('/lojas/') && url.pathname.includes('/produtos')) ||
+    (url.pathname.startsWith('/lojas/') && (url.pathname.includes('/produtos') || url.pathname.startsWith('/lojas/slug/'))) ||
     url.pathname.startsWith('/categorias') ||
     url.pathname.startsWith('/combos/loja/') ||
     url.pathname.startsWith('/promocoes/loja/')
@@ -263,7 +263,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || '/pedidos';
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         const currentUrl = new URL(client.url);
         const targetUrl = new URL(url, self.location.origin);
@@ -271,7 +271,7 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      return clients.openWindow(url);
+      return self.clients.openWindow(url);
     })
   );
 });

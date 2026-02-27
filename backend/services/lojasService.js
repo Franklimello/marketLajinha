@@ -151,7 +151,7 @@ async function listarAtivas() {
       const { avaliacoes, ...rest } = loja;
       return { ...rest, nota_media: media, total_avaliacoes: notas.length };
     });
-  }, 30);
+  }, 180);
 }
 
 async function listarAtivasHome() {
@@ -212,7 +212,7 @@ async function listarAtivasHome() {
         total_avaliacoes: notas.length,
       };
     });
-  }, 60);
+  }, 180);
 }
 
 async function buscarPorId(id) {
@@ -230,14 +230,20 @@ async function buscarPorUsuario(lojaId) {
 }
 
 async function buscarPorSlug(slug) {
-  const loja = await prisma.lojas.findFirst({
-    where: { slug, ativa: true },
-    include: { _count: { select: { produtos: true } } },
-  });
-  if (loja) {
-    try { loja.horarios_semana_parsed = JSON.parse(loja.horarios_semana || '[]'); } catch { loja.horarios_semana_parsed = []; }
-  }
-  return loja;
+  return cacheOuBuscar(`loja:slug:${slug}`, async () => {
+    const loja = await prisma.lojas.findFirst({
+      where: { slug, ativa: true },
+      include: { _count: { select: { produtos: true } } },
+    });
+    if (loja) {
+      try {
+        loja.horarios_semana_parsed = JSON.parse(loja.horarios_semana || '[]');
+      } catch {
+        loja.horarios_semana_parsed = [];
+      }
+    }
+    return loja;
+  }, 180);
 }
 
 async function criar(data, firebaseDecoded, bodyAdmin = {}) {
