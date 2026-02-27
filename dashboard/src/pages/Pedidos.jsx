@@ -236,6 +236,7 @@ export default function Pedidos() {
           {filtrados.map((p) => {
             const st = STATUS_MAP[p.status] || STATUS_MAP.PENDING
             const pixOnline = isPixOnline(p)
+            const pedidoColapsado = p.status === 'DELIVERED' || p.status === 'CANCELLED'
             return (
               <div
                 key={p.id}
@@ -262,13 +263,20 @@ export default function Pedidos() {
                           PIX online - conferir comprovante
                         </span>
                       )}
+                      {pedidoColapsado && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-600">
+                          Recolhido
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-stone-400 mt-1">{formatDate(p.created_at)}</p>
-                    <p className="text-sm text-stone-500 mt-1 truncate">
-                      {p.tipo_entrega === 'RETIRADA'
-                        ? <span className="text-purple-600 font-medium">Retirada no balcão</span>
-                        : <>{p.endereco || '—'}{p.bairro ? ` · ${p.bairro}` : ''}</>}
-                    </p>
+                    {!pedidoColapsado && (
+                      <p className="text-sm text-stone-500 mt-1 truncate">
+                        {p.tipo_entrega === 'RETIRADA'
+                          ? <span className="text-purple-600 font-medium">Retirada no balcão</span>
+                          : <>{p.endereco || '—'}{p.bairro ? ` · ${p.bairro}` : ''}</>}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-bold text-stone-900">{formatCurrency(p.total)}</p>
@@ -276,7 +284,7 @@ export default function Pedidos() {
                   </div>
                 </div>
 
-                {p.itens && p.itens.length > 0 && (
+                {!pedidoColapsado && p.itens && p.itens.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-stone-100">
                     <p className="text-xs text-stone-400 mb-1">{p.itens.length} item(ns)</p>
                     <div className="flex flex-wrap gap-1">
