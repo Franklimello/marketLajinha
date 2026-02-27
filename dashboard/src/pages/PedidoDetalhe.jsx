@@ -38,6 +38,7 @@ export default function PedidoDetalhe() {
   const [pedido, setPedido] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [feedbackErro, setFeedbackErro] = useState('')
 
   useEffect(() => {
     api.pedidos.buscar(id)
@@ -51,7 +52,7 @@ export default function PedidoDetalhe() {
       await api.pedidos.atualizarStatus(id, novoStatus)
       setPedido((prev) => ({ ...prev, status: novoStatus }))
     } catch (err) {
-      alert(err.message)
+      setFeedbackErro(err.message || 'Não foi possível alterar o status do pedido.')
     }
   }
 
@@ -90,6 +91,11 @@ export default function PedidoDetalhe() {
           <p className="text-xs text-stone-400 font-mono">{pedido.id}</p>
         </div>
       </div>
+      {feedbackErro && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <p className="text-sm font-medium text-red-700">{feedbackErro}</p>
+        </div>
+      )}
 
       {/* Timeline de status */}
       {pedido.status !== 'CANCELLED' && (

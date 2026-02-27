@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useMemo, memo } from 'react'
 import { Link } from 'react-router-dom'
-import { FiStar, FiSearch, FiX, FiMessageCircle, FiInstagram, FiChevronLeft, FiChevronRight, FiGrid, FiList } from 'react-icons/fi'
-import { FaWhatsapp } from 'react-icons/fa'
+import { FiStar, FiChevronLeft, FiChevronRight, FiGrid, FiList } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -27,6 +26,13 @@ import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
 import { usePrefetchLoja } from '../hooks/usePrefetch'
 import SEO from '../componentes/SEO'
+import HomeGreeting from '../componentes/home/HomeGreeting'
+import HomeSearchBar from '../componentes/home/HomeSearchBar'
+import HomeBottomSupport from '../componentes/home/HomeBottomSupport'
+import HomeStoriesSection from '../componentes/home/HomeStoriesSection'
+import HomeCategoriesSection from '../componentes/home/HomeCategoriesSection'
+import HomeLoadingState from '../componentes/home/HomeLoadingState'
+import HomeEmptyState from '../componentes/home/HomeEmptyState'
 import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
 
 const SUPORTE_WHATSAPP = '5533999394706'
@@ -1019,32 +1025,7 @@ export default function HomePage() {
   }
 
   if (carregando) {
-    return (
-      <div className="max-w-lg mx-auto px-4">
-        <h2 className="text-xl font-bold text-stone-900 mb-1">Carregando lojas</h2>
-        <p className="text-sm text-stone-400 mb-4">Buscando os melhores estabelecimentos da sua cidade...</p>
-        <div className="skeleton h-6 rounded w-40 mb-1" />
-        <div className="skeleton h-4 rounded w-56 mb-5" />
-        <div className="h-12 skeleton rounded-xl mb-5" />
-        <div className="flex gap-4 overflow-hidden mb-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5 shrink-0">
-              <div className="w-14 h-14 rounded-full skeleton" />
-              <div className="w-10 h-2 skeleton rounded" />
-            </div>
-          ))}
-        </div>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-2 py-3.5">
-            <div className="w-16 h-16 rounded-xl skeleton shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 skeleton rounded w-3/4" />
-              <div className="h-3 skeleton rounded w-1/2" />
-            </div>
-          </div>
-        ))}
-      </div>
-    )
+    return <HomeLoadingState />
   }
 
   if (erro) {
@@ -1108,117 +1089,43 @@ export default function HomePage() {
         jsonLd={jsonLd}
       />
 
-      {/* Greeting */}
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-stone-900">
-          {saudacao()}{cliente?.nome ? <>, <span className="text-red-500">{cliente.nome.split(' ')[0]}</span></> : ''}!
-        </h2>
-        <p className="text-sm text-stone-400 mt-0.5">
-          {lojasAbertas.length > 0
-            ? `${lojasAbertas.length} loja${lojasAbertas.length !== 1 ? 's' : ''} aberta${lojasAbertas.length !== 1 ? 's' : ''} agora`
-            : 'Nenhuma loja aberta no momento'}
-        </p>
-        {(cidadeSelecionada || cidadeGeo || cidadePadrao) && (
-          <p className="text-xs text-stone-500 mt-1">
-            Mostrando lojas em <span className="font-semibold text-stone-700">{cidadeSelecionada || cidadeGeo || cidadePadrao}</span>.{' '}
-            Para ver outra cidade, pesquise o nome dela.
-          </p>
-        )}
-      </div>
+      <HomeGreeting
+        saudacaoTexto={saudacao()}
+        cliente={cliente}
+        lojasAbertasCount={lojasAbertas.length}
+        cidadeSelecionada={cidadeSelecionada}
+        cidadeGeo={cidadeGeo}
+        cidadePadrao={cidadePadrao}
+      />
 
-      {/* Search */}
-      <div className="relative mb-5">
-        <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-        <input
-          type="text"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar lojas e restaurantes"
-          className="w-full pl-10 pr-10 py-3 bg-stone-100 rounded-xl text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-500/40"
-        />
-        {busca && (
-          <button onClick={() => setBusca('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5">
-            <FiX size={16} />
-          </button>
-        )}
-      </div>
+      <HomeSearchBar
+        busca={busca}
+        onChangeBusca={setBusca}
+        onClearBusca={() => setBusca('')}
+      />
 
-      {storiesCarregando ? (
-        <section className="mb-5" aria-hidden="true">
-          <div className="flex items-center justify-between mb-2">
-            <div className="skeleton h-4 rounded w-28" />
-          </div>
-          <div className="flex gap-3 overflow-hidden pb-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-[84px] text-center">
-                <div className="skeleton w-[76px] h-[76px] rounded-full mx-auto" />
-                <div className="skeleton h-2.5 rounded w-12 mx-auto mt-2" />
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : (
-        <StoriesRail grupos={storiesGroups} seenMap={storiesSeenMap} onOpen={openStories} />
-      )}
+      <HomeStoriesSection
+        storiesCarregando={storiesCarregando}
+        storiesGroups={storiesGroups}
+        storiesSeenMap={storiesSeenMap}
+        onOpenStories={openStories}
+        StoriesRailComponent={StoriesRail}
+      />
 
       <HomeCarousel />
 
-      {/* Categorias */}
-      <div ref={catRef} className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
-        {categoriasDinamicas.map((cat) => {
-          const ativo = categoriaSel === cat.nome
-          return (
-            <CategoriaCard
-              key={cat.nome}
-              categoria={cat}
-              isActive={ativo}
-              onToggle={() => setCategoriaSel(ativo ? null : cat.nome)}
-            />
-          )
-        })}
-      </div>
-
-      {/* Active filter chip */}
-      <AnimatePresence mode="wait">
-        {categoriaSel && (
-          <motion.div
-            key="filtro-ativo"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="flex items-center gap-2 mb-3"
-          >
-            <span className="text-sm text-stone-600">Filtrando por:</span>
-            <button
-              onClick={() => setCategoriaSel(null)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm font-medium hover:bg-red-100 transition-colors"
-            >
-              <span>{categoriaSel}</span>
-              <motion.span
-                initial={{ rotate: -45, opacity: 0.8 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.94 }}
-                transition={{ duration: 0.2 }}
-                className="inline-flex"
-              >
-                <FiX size={14} />
-              </motion.span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <HomeCategoriesSection
+        catRef={catRef}
+        categoriasDinamicas={categoriasDinamicas}
+        categoriaSel={categoriaSel}
+        onToggleCategoria={setCategoriaSel}
+        onClearCategoria={() => setCategoriaSel(null)}
+        CategoriaCardComponent={CategoriaCard}
+      />
 
       {/* Stores */}
       {lojasFiltradas.length === 0 ? (
-        <div className="text-center py-16 animate-fade-in-up">
-          <div className="text-5xl mb-3">🔍</div>
-          <p className="text-stone-700 font-medium text-sm mb-1">Nenhuma loja encontrada</p>
-          <p className="text-stone-400 text-xs">
-            {busca ? 'Tente buscar por outro nome ou categoria' : 'Não há lojas nesta categoria'}
-          </p>
-        </div>
+        <HomeEmptyState busca={busca} />
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -1291,57 +1198,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* CTA Cadastrar loja */}
-      <div className="mt-8 mb-4 bg-stone-950 rounded-2xl p-5 text-white animate-fade-in-up">
-        <h3 className="text-lg font-bold">Tem um negócio?</h3>
-        <p className="text-sm text-stone-400 mt-1 leading-relaxed">
-          Cadastre sua loja no UaiFood e comece a vender online para toda a cidade!
-        </p>
-        <div className="flex flex-wrap gap-2 mt-3">
-          <a
-            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no UaiFood.')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white font-semibold text-sm rounded-xl hover:bg-red-700 transition-colors"
-          >
-            <FaWhatsapp className="text-lg" />
-            WhatsApp
-          </a>
-          <a
-            href={SUPORTE_INSTAGRAM}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white font-semibold text-sm rounded-xl hover:bg-white/20 transition-colors"
-          >
-            <FiInstagram className="text-lg" />
-            Instagram
-          </a>
-        </div>
-      </div>
-
-      {/* Suporte */}
-      <div className="text-center pb-4 space-y-1">
-        <p className="text-[10px] text-stone-300">Precisa de ajuda?</p>
-        <div className="flex items-center justify-center gap-3">
-          <a
-            href={`https://wa.me/${SUPORTE_WHATSAPP}?text=${encodeURIComponent('Olá! Preciso de ajuda com o UaiFood.')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-green-600 transition-colors"
-          >
-            <FaWhatsapp size={11} /> WhatsApp
-          </a>
-          <span className="text-stone-200">·</span>
-          <a
-            href={SUPORTE_INSTAGRAM}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-pink-600 transition-colors"
-          >
-            <FiInstagram size={11} /> Instagram
-          </a>
-        </div>
-      </div>
+      <HomeBottomSupport
+        suporteWhatsapp={SUPORTE_WHATSAPP}
+        suporteInstagram={SUPORTE_INSTAGRAM}
+      />
 
       <AnimatePresence>
         {storyModalOpen && (

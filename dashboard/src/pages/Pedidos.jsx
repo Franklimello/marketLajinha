@@ -52,9 +52,11 @@ export default function Pedidos() {
   const [naoLidasMap, setNaoLidasMap] = useState({})
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
   const [wsConectado, setWsConectado] = useState(false)
+  const [feedback, setFeedback] = useState(null)
   const audioRef = useRef(null)
   const socketRef = useRef(null)
   const intervaloRef = useRef(null)
+  const feedbackTimerRef = useRef(null)
   const pedidosCountRef = useRef(0)
   const pedidoIdsRef = useRef(new Set())
   const primeiraCargaRef = useRef(true)
@@ -68,6 +70,18 @@ export default function Pedidos() {
   useEffect(() => {
     buscaRef.current = busca
   }, [busca])
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
+    }
+  }, [])
+
+  function mostrarFeedback(texto, tipo = 'erro') {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
+    setFeedback({ texto, tipo })
+    feedbackTimerRef.current = setTimeout(() => setFeedback(null), 2600)
+  }
 
   function montarParamsConsulta() {
     const filtro = filtroStatusRef.current
@@ -184,7 +198,7 @@ export default function Pedidos() {
         setPedidoAberto((prev) => ({ ...prev, status: novoStatus }))
       }
     } catch (err) {
-      alert(err.message)
+      mostrarFeedback(err.message || 'Não foi possível alterar o status do pedido.')
     }
   }
 
@@ -362,13 +376,28 @@ export default function Pedidos() {
           onFechar={() => setPedidoAberto(null)}
           onMudarStatus={mudarStatus}
           socketRef={socketRef}
+          onAviso={mostrarFeedback}
         />
+      )}
+
+      {feedback && (
+        <div className="fixed inset-0 z-70 pointer-events-none flex items-center justify-center p-4">
+          <p
+            className={`text-sm rounded-lg px-4 py-2.5 shadow-lg border ${
+              feedback.tipo === 'sucesso'
+                ? 'text-green-700 bg-green-50 border-green-200'
+                : 'text-red-700 bg-red-50 border-red-200'
+            }`}
+          >
+            {feedback.texto}
+          </p>
+        </div>
       )}
     </div>
   )
 }
 
-function ChatLoja({ pedidoId, socketRef }) {
+function ChatLoja({ pedidoId, socketRef, onAviso }) {
   const [mensagens, setMensagens] = useState([])
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -400,12 +429,12 @@ function ChatLoja({ pedidoId, socketRef }) {
     if (!file) return
     const permitidos = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
     if (!permitidos.includes(file.type)) {
-      alert('Formato inválido. Envie JPG, PNG, WEBP ou PDF.')
+      onAviso?.('Formato inválido. Envie JPG, PNG, WEBP ou PDF.', 'erro')
       e.target.value = ''
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo deve ter no máximo 5 MB.')
+      onAviso?.('Arquivo deve ter no máximo 5 MB.', 'erro')
       e.target.value = ''
       return
     }
@@ -522,7 +551,7 @@ function ChatLoja({ pedidoId, socketRef }) {
   )
 }
 
-function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
+function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAviso }) {
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const pixOnline = isPixOnline(pedido)
   const [imprimindo, setImprimindo] = useState(false)
@@ -543,13 +572,13 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
       const setores = res.setores || []
       const erros = setores.filter((s) => s.status === 'erro' || s.status === 'sem_impressora')
       if (erros.length === 0) {
-        alert('Impressão enviada com sucesso!')
+        onAviso?.('Impressão enviada com sucesso!', 'sucesso')
       } else {
         const msgs = erros.map((s) => `${s.setor}: ${s.erro || 'sem impressora cadastrada'}`).join('\n')
-        alert(`Alguns setores não foram impressos:\n${msgs}`)
+        onAviso?.(`Alguns setores não foram impressos: ${msgs}`, 'erro')
       }
     } catch (err) {
-      alert(`Erro: ${err.message}`)
+      onAviso?.(`Erro: ${err.message}`, 'erro')
     } finally { setImprimindo(false) }
   }
 
@@ -719,7 +748,7 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
           </div>
 
           {/* Chat */}
-          <ChatLoja pedidoId={pedido.id} socketRef={socketRef} />
+          <ChatLoja pedidoId={pedido.id} socketRef={socketRef} onAviso={onAviso} />
 
           {/* Alterar status */}
           <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3">
