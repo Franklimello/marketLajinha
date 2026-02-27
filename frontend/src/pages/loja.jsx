@@ -2215,31 +2215,34 @@ export default function LojaPage() {
                 {categorias.length} categoria{categorias.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-3">
               {categorias.map((cat) => {
                 const qtdCat = produtosPorCategoria[cat].length
                 return (
                   <button
                     key={cat}
                     onClick={() => setCategoriaSel(cat)}
-                    className="group w-full flex items-center gap-3 bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                    className="group w-full h-full bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
                   >
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base leading-tight font-serif font-bold text-stone-900 flex items-center gap-1.5">
-                        <span aria-hidden="true">🔹</span>
-                        <span className="truncate">{cat}</span>
-                      </h3>
-                      <p className="text-xs text-stone-500 mt-0.5">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
+                    <div className="h-full flex flex-col">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[15px] leading-tight font-serif font-bold text-stone-900 flex items-center gap-1.5">
+                          <span aria-hidden="true">🔹</span>
+                          <span className="line-clamp-2">{cat}</span>
+                        </h3>
+                        <p className="text-xs text-stone-500 mt-1">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-1">
+                          Abrir
+                        </div>
+                        <FiChevronRight className="text-stone-300 group-hover:text-red-400 text-lg shrink-0 transition-colors" />
+                      </div>
                     </div>
-                    <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-1">
-                      Abrir
-                    </div>
-                    <FiChevronRight className="text-stone-300 group-hover:text-red-400 text-lg shrink-0 transition-colors" />
                   </button>
                 )
               })}
             </div>
-
           </>
         ) : (
           <>
