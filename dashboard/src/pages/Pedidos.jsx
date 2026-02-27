@@ -38,11 +38,15 @@ function isPixOnline(pedido) {
   return pedido?.forma_pagamento === 'PIX' && String(pedido?.observacao || '').includes(PIX_ONLINE_TAG)
 }
 
+function isStatusFinalizado(status) {
+  return status === 'DELIVERED' || status === 'CANCELLED'
+}
+
 export default function Pedidos() {
   const { loja } = useAuth()
   const [pedidos, setPedidos] = useState([])
   const [carregando, setCarregando] = useState(true)
-  const [filtroStatus, setFiltroStatus] = useState('TODOS')
+  const [filtroStatus, setFiltroStatus] = useState('ATIVOS')
   const [busca, setBusca] = useState('')
   const [pedidoAberto, setPedidoAberto] = useState(null)
   const [naoLidasMap, setNaoLidasMap] = useState({})
@@ -54,11 +58,33 @@ export default function Pedidos() {
   const pedidosCountRef = useRef(0)
   const pedidoIdsRef = useRef(new Set())
   const primeiraCargaRef = useRef(true)
+  const filtroStatusRef = useRef('ATIVOS')
+  const buscaRef = useRef('')
+
+  useEffect(() => {
+    filtroStatusRef.current = filtroStatus
+  }, [filtroStatus])
+
+  useEffect(() => {
+    buscaRef.current = busca
+  }, [busca])
+
+  function montarParamsConsulta() {
+    const filtro = filtroStatusRef.current
+    const buscaAtual = String(buscaRef.current || '').trim()
+    const includeFinalizados =
+      filtro === 'TODOS' || isStatusFinalizado(filtro) || buscaAtual.length > 0
+    const params = { include_finalizados: includeFinalizados }
+    if (['PENDING', 'APPROVED', 'IN_ROUTE', 'DELIVERED', 'CANCELLED'].includes(filtro)) {
+      params.status = filtro
+    }
+    return params
+  }
 
   const carregarPedidos = useCallback(async (silencioso = false) => {
     if (!silencioso) setCarregando(true)
     try {
-      const res = await api.pedidos.listar()
+      const res = await api.pedidos.listar(montarParamsConsulta())
       const lista = Array.isArray(res) ? res : (Array.isArray(res?.dados) ? res.dados : [])
 
       if (silencioso && lista.length > pedidosCountRef.current && pedidosCountRef.current > 0) {
@@ -107,6 +133,10 @@ export default function Pedidos() {
 
     socket.on('pedido:atualizado', (pedidoAtualizado) => {
       setPedidos((prev) => {
+        const ocultarFinalizados = filtroStatusRef.current === 'ATIVOS' && !String(buscaRef.current || '').trim()
+        if (ocultarFinalizados && isStatusFinalizado(pedidoAtualizado.status)) {
+          return prev.filter((p) => p.id !== pedidoAtualizado.id)
+        }
         return prev.map((p) => p.id === pedidoAtualizado.id ? pedidoAtualizado : p)
       })
       setUltimaAtualizacao(new Date())
@@ -131,10 +161,25 @@ export default function Pedidos() {
     }
   }, [loja, carregarPedidos])
 
+  useEffect(() => {
+    if (!loja) return
+    const t = setTimeout(() => {
+      carregarPedidos(true)
+    }, busca.trim() ? 280 : 0)
+    return () => clearTimeout(t)
+  }, [filtroStatus, busca, loja, carregarPedidos])
+
   async function mudarStatus(id, novoStatus) {
     try {
       await api.pedidos.atualizarStatus(id, novoStatus)
-      setPedidos((prev) => prev.map((p) => (p.id === id ? { ...p, status: novoStatus } : p)))
+      setPedidos((prev) => {
+        const atualizados = prev.map((p) => (p.id === id ? { ...p, status: novoStatus } : p))
+        const ocultarFinalizados = filtroStatusRef.current === 'ATIVOS' && !String(buscaRef.current || '').trim()
+        if (ocultarFinalizados && isStatusFinalizado(novoStatus)) {
+          return atualizados.filter((p) => p.id !== id)
+        }
+        return atualizados
+      })
       if (pedidoAberto?.id === id) {
         setPedidoAberto((prev) => ({ ...prev, status: novoStatus }))
       }
@@ -144,7 +189,11 @@ export default function Pedidos() {
   }
 
   const filtrados = pedidos
-    .filter((p) => filtroStatus === 'TODOS' || p.status === filtroStatus)
+    .filter((p) => {
+      if (filtroStatus === 'ATIVOS') return !isStatusFinalizado(p.status)
+      if (filtroStatus === 'TODOS') return true
+      return p.status === filtroStatus
+    })
     .filter((p) => {
       if (!busca) return true
       const q = busca.toLowerCase()
@@ -157,6 +206,7 @@ export default function Pedidos() {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
   const contadores = {
+    ATIVOS: pedidos.filter((p) => !isStatusFinalizado(p.status)).length,
     TODOS: pedidos.length,
     PENDING: pedidos.filter((p) => p.status === 'PENDING').length,
     APPROVED: pedidos.filter((p) => p.status === 'APPROVED').length,
@@ -196,7 +246,7 @@ export default function Pedidos() {
 
       {/* Filtros por status */}
       <div className="flex flex-wrap gap-2">
-        {Object.entries({ TODOS: 'Todos', ...Object.fromEntries(Object.entries(STATUS_MAP).map(([k, v]) => [k, v.label])) }).map(
+        {Object.entries({ ATIVOS: 'Ativos', TODOS: 'Todos', ...Object.fromEntries(Object.entries(STATUS_MAP).map(([k, v]) => [k, v.label])) }).map(
           ([key, label]) => (
             <button
               key={key}

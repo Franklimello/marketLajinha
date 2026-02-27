@@ -8,19 +8,29 @@ const INCLUDE_ITENS = {
   },
 };
 
-async function listarPorLoja(lojaId, pagina = 1, limite = 50) {
+async function listarPorLoja(lojaId, pagina = 1, limite = 50, filtros = {}) {
   const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
   const limiteNum = Math.min(100, Math.max(1, parseInt(limite, 10) || 50));
+  const includeFinalizados = String(filtros?.include_finalizados || '').toLowerCase() === 'true';
+  const status = String(filtros?.status || '').toUpperCase();
+  const statusValidos = ['PENDING', 'APPROVED', 'IN_ROUTE', 'DELIVERED', 'CANCELLED'];
+
+  const where = { loja_id: lojaId };
+  if (statusValidos.includes(status)) {
+    where.status = status;
+  } else if (!includeFinalizados) {
+    where.status = { notIn: ['DELIVERED', 'CANCELLED'] };
+  }
 
   const [dados, total] = await Promise.all([
     prisma.pedidos.findMany({
-      where: { loja_id: lojaId },
+      where,
       orderBy: { created_at: 'desc' },
       skip: (paginaNum - 1) * limiteNum,
       take: limiteNum,
       include: INCLUDE_ITENS,
     }),
-    prisma.pedidos.count({ where: { loja_id: lojaId } }),
+    prisma.pedidos.count({ where }),
   ]);
 
   return { dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / limiteNum) };

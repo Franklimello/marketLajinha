@@ -7,8 +7,11 @@ const { emitNovoPedido, emitStatusPedido } = require('../config/socket');
 
 async function listar(req, res, next) {
   try {
-    const { pagina, limite } = req.query;
-    const resultado = await pedidosService.listarPorLoja(req.user.loja_id, pagina, limite);
+    const { pagina, limite, include_finalizados, status } = req.query;
+    const resultado = await pedidosService.listarPorLoja(req.user.loja_id, pagina, limite, {
+      include_finalizados,
+      status,
+    });
     res.json(resultado);
   } catch (e) {
     next(e);

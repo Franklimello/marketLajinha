@@ -60,6 +60,8 @@ export const api = {
       const qs = new URLSearchParams()
       if (params.pagina !== undefined) qs.set('pagina', String(params.pagina))
       if (params.limite !== undefined) qs.set('limite', String(params.limite))
+      if (params.include_finalizados !== undefined) qs.set('include_finalizados', String(params.include_finalizados))
+      if (params.status !== undefined) qs.set('status', String(params.status))
       const sufixo = qs.toString() ? `?${qs.toString()}` : ''
       return request(`/pedidos${sufixo}`)
     },
