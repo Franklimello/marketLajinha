@@ -3,7 +3,7 @@ import { FiCamera, FiClock, FiImage, FiTrash2, FiUpload } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 
-const MAX_STORIES = 3
+const MAX_STORIES = 5
 
 function formatarTempoRestante(expiresAt) {
   const fim = new Date(expiresAt).getTime()
@@ -67,7 +67,7 @@ export default function Stories() {
       return
     }
     if (stories.length >= MAX_STORIES) {
-      setErro('Você já atingiu o limite de 3 stories ativos.')
+      setErro('Você já atingiu o limite de 5 stories ativos.')
       return
     }
 

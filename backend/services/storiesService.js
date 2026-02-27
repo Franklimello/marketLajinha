@@ -1,7 +1,7 @@
 const { prisma } = require('../config/database');
 
 const STORY_TTL_HOURS = 24;
-const MAX_STORIES_ATIVAS = 3;
+const MAX_STORIES_ATIVAS = 5;
 
 function getExpiresAt(baseDate = new Date()) {
   return new Date(baseDate.getTime() + STORY_TTL_HOURS * 60 * 60 * 1000);
@@ -20,7 +20,7 @@ async function contarAtivasPorLoja(lojaId) {
 async function criarStory(lojaId, data) {
   const ativas = await contarAtivasPorLoja(lojaId);
   if (ativas >= MAX_STORIES_ATIVAS) {
-    const err = new Error('Limite de 3 stories ativos atingido para esta loja.');
+    const err = new Error('Limite de 5 stories ativos atingido para esta loja.');
     err.status = 400;
     throw err;
   }
