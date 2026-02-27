@@ -45,13 +45,15 @@ export const api = {
     excluir: (id) => request(`/produtos/${id}`, { method: 'DELETE' }),
   },
   bairros: {
-    listar: (lojaId) => request(`/lojas/${lojaId}/bairros`),
+    listar: (lojaId) => request(`/lojas/${lojaId}/bairros?incluir_inativos=true`),
     criar: (lojaId, nome, taxa) =>
       request(`/lojas/${lojaId}/bairros`, { method: 'POST', body: JSON.stringify({ nome, taxa }) }),
     criarLote: (lojaId, bairros) =>
       request(`/lojas/${lojaId}/bairros/lote`, { method: 'POST', body: JSON.stringify({ bairros }) }),
     atualizar: (lojaId, id, data) =>
       request(`/lojas/${lojaId}/bairros/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    alterarAtivo: (lojaId, id, ativo) =>
+      request(`/lojas/${lojaId}/bairros/${id}/ativo`, { method: 'PATCH', body: JSON.stringify({ ativo }) }),
     excluir: (lojaId, id) =>
       request(`/lojas/${lojaId}/bairros/${id}`, { method: 'DELETE' }),
   },

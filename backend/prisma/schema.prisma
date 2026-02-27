@@ -88,6 +88,7 @@ model Usuarios {
 
   loja      Lojas          @relation(fields: [loja_id], references: [id], onDelete: Cascade)
   fcmTokens FcmTokenLoja[]
+  bairrosCriados Bairros[]
 
   @@index([loja_id])
 }
@@ -193,6 +194,7 @@ model FcmToken {
 model EnderecoCliente {
   id         String  @id @default(cuid())
   cliente_id String
+  bairro_id  String?
   apelido    String  @default("")
   cidade     String  @default("")
   bairro     String
@@ -203,8 +205,10 @@ model EnderecoCliente {
   padrao     Boolean @default(false)
 
   cliente Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+  bairroRef Bairros? @relation(fields: [bairro_id], references: [id], onDelete: SetNull)
 
   @@index([cliente_id])
+  @@index([bairro_id])
 }
 
 model Cidades {
@@ -212,9 +216,39 @@ model Cidades {
   id_ibge  Int    @unique
   nome     String
   estado   String
+  estado_id String?
+
+  estadoRef Estados? @relation(fields: [estado_id], references: [id], onDelete: SetNull)
+  bairros Bairros[]
 
   @@unique([estado, nome])
   @@index([estado, nome])
+  @@index([estado_id])
+}
+
+model Estados {
+  id    String @id @default(cuid())
+  nome  String
+  sigla String @unique
+
+  cidades Cidades[]
+}
+
+model Bairros {
+  id               String  @id @default(cuid())
+  nome             String
+  nome_normalizado String
+  cidade_id        String
+  criado_por       String?
+  ativo            Boolean @default(true)
+
+  cidade     Cidades          @relation(fields: [cidade_id], references: [id], onDelete: Cascade)
+  criadoPor  Usuarios?        @relation(fields: [criado_por], references: [id], onDelete: SetNull)
+  enderecos  EnderecoCliente[]
+  bairroTaxas BairroTaxa[]
+
+  @@index([cidade_id])
+  @@unique([cidade_id, nome_normalizado])
 }
 
 model Pedidos {
@@ -289,12 +323,16 @@ model ItensPedido {
 model BairroTaxa {
   id      String  @id @default(cuid())
   loja_id String
+  bairro_id String?
   nome    String
   taxa    Decimal
+  ativo   Boolean @default(true)
 
   loja Lojas @relation(fields: [loja_id], references: [id], onDelete: Cascade)
+  bairroRef Bairros? @relation(fields: [bairro_id], references: [id], onDelete: SetNull)
 
   @@unique([loja_id, nome])
+  @@index([bairro_id])
 }
 
 model Impressora {

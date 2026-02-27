@@ -121,6 +121,15 @@ export default function Bairros() {
     }
   }
 
+  async function alternarAtivo(bairro) {
+    try {
+      const atualizado = await api.bairros.alterarAtivo(loja.id, bairro.id, !bairro.ativo)
+      setBairros((prev) => prev.map((b) => (b.id === bairro.id ? atualizado : b)))
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
   async function aplicarTaxaEmLote() {
     if (!taxaEmLote && taxaEmLote !== '0') return
     setAplicandoLote(true)
@@ -374,15 +383,25 @@ export default function Bairros() {
               }
 
               return (
-                <div key={b.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-4 py-3 hover:bg-stone-50/50 transition-colors group">
+                <div key={b.id} className={`grid grid-cols-[1fr_auto_auto] items-center gap-2 px-4 py-3 transition-colors group ${b.ativo ? 'hover:bg-stone-50/50' : 'bg-stone-50/60'}`}>
                   <div className="flex items-center gap-2">
-                    <FiCheck className="text-green-500 text-xs shrink-0" />
-                    <span className="text-sm text-stone-900">{b.nome}</span>
+                    <FiCheck className={`text-xs shrink-0 ${b.ativo ? 'text-green-500' : 'text-stone-300'}`} />
+                    <span className={`text-sm ${b.ativo ? 'text-stone-900' : 'text-stone-500'}`}>{b.nome}</span>
+                    {!b.ativo && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-200 text-stone-600 font-medium">Inativo</span>
+                    )}
                   </div>
-                  <span className="w-28 text-right text-sm font-semibold text-stone-900">
+                  <span className={`w-28 text-right text-sm font-semibold ${b.ativo ? 'text-stone-900' : 'text-stone-500'}`}>
                     {formatCurrency(b.taxa)}
                   </span>
                   <div className="w-20 flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => alternarAtivo(b)}
+                      className={`p-1.5 rounded-lg ${b.ativo ? 'text-stone-400 hover:text-amber-600 hover:bg-amber-50' : 'text-amber-600 hover:text-amber-700 hover:bg-amber-100'}`}
+                      title={b.ativo ? 'Desativar bairro' : 'Ativar bairro'}
+                    >
+                      {b.ativo ? 'Off' : 'On'}
+                    </button>
                     <button onClick={() => iniciarEdicao(b)} className="p-1.5 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg" title="Editar taxa">
                       <FiEdit2 className="text-sm" />
                     </button>
