@@ -38,6 +38,7 @@ const GEO_CITY_CACHE_KEY = 'geoCityCache'
 const GEO_CITY_CACHE_TTL = 1000 * 60 * 60 * 6
 const STORIES_SEEN_KEY = 'storiesSeenById'
 const STORY_DURATION_MS = 6000
+const SELECTED_CITY_KEY = 'selectedCity'
 
 const HOME_BANNERS = [
   {
@@ -700,6 +701,7 @@ export default function HomePage() {
   const buscaDebounced = useDebounce(busca, 250)
   const [categoriaSel, setCategoriaSel] = useState(null)
   const [cidadePadrao, setCidadePadrao] = useState('')
+  const [cidadeSelecionada] = useState(() => String(getLocalItem(SELECTED_CITY_KEY, '') || ''))
   const [bairroPadrao, setBairroPadrao] = useState('')
   const [cidadeGeo, setCidadeGeo] = useState('')
   const [storiesGroups, setStoriesGroups] = useState([])
@@ -813,7 +815,7 @@ export default function HomePage() {
   const lojasFiltradas = useMemo(() => {
     let lista = [...lojasAbertas, ...lojasFechadas]
     const buscaAtiva = Boolean(buscaDebounced.trim())
-    const cidadeBase = (cidadeGeo || cidadePadrao || '').trim()
+    const cidadeBase = (cidadeSelecionada || cidadeGeo || cidadePadrao || '').trim()
 
     if (cidadeBase && !buscaAtiva) {
       const c = cidadeBase.toLowerCase()
@@ -834,7 +836,7 @@ export default function HomePage() {
       lista = lista.filter((l) => normalizeText(l.categoria_negocio).includes(c))
     }
     return lista
-  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel, cidadePadrao, cidadeGeo])
+  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel, cidadePadrao, cidadeGeo, cidadeSelecionada])
 
   const filtradasAbertas = useMemo(() => lojasFiltradas.filter((l) => l.aberta_agora ?? l.aberta), [lojasFiltradas])
   const filtradasFechadas = useMemo(() => lojasFiltradas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasFiltradas])
@@ -1116,9 +1118,9 @@ export default function HomePage() {
             ? `${lojasAbertas.length} loja${lojasAbertas.length !== 1 ? 's' : ''} aberta${lojasAbertas.length !== 1 ? 's' : ''} agora`
             : 'Nenhuma loja aberta no momento'}
         </p>
-        {(cidadeGeo || cidadePadrao) && (
+        {(cidadeSelecionada || cidadeGeo || cidadePadrao) && (
           <p className="text-xs text-stone-500 mt-1">
-            Mostrando lojas em <span className="font-semibold text-stone-700">{cidadeGeo || cidadePadrao}</span>.{' '}
+            Mostrando lojas em <span className="font-semibold text-stone-700">{cidadeSelecionada || cidadeGeo || cidadePadrao}</span>.{' '}
             Para ver outra cidade, pesquise o nome dela.
           </p>
         )}
