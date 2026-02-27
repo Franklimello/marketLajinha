@@ -2090,33 +2090,41 @@ export default function LojaPage() {
             </div>
             <HorizontalCards
               items={promocoes}
+              cardStep={132}
               renderItem={(promo) => (
                 <button
                   key={promo.id}
                   type="button"
                   onClick={() => abrirProdutoDaPromocao(promo)}
-                  className="snap-start shrink-0 w-64 bg-linear-to-br from-amber-50 to-red-50 rounded-2xl border border-amber-200 overflow-hidden text-left"
+                  className="snap-start shrink-0 w-[120px] text-left"
                 >
                   {(promo.imagem_url || promo.produto?.imagem_url) ? (
-                    <img src={promo.imagem_url || promo.produto?.imagem_url} alt={promo.titulo} loading="lazy" className="w-full h-28 object-cover" />
+                    <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
+                      <img
+                        src={promo.imagem_url || promo.produto?.imagem_url}
+                        alt={promo.titulo}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   ) : (
-                    <div className="w-full h-28 bg-amber-100 flex items-center justify-center">
-                      <FiTag className="text-amber-600 text-2xl" />
+                    <div className="w-full aspect-square rounded-xl bg-amber-100 flex items-center justify-center">
+                      <FiTag className="text-amber-600 text-xl" />
                     </div>
                   )}
-                  <div className="p-3">
-                    <h3 className="text-sm font-bold text-stone-900 line-clamp-1">{promo.produto?.nome || promo.titulo}</h3>
+                  <div className="mt-1.5">
+                    <h3 className="text-xs font-semibold text-stone-900 line-clamp-1">{promo.produto?.nome || promo.titulo}</h3>
                     {Number(promo.preco_promocional || 0) > 0 && (
-                      <div className="mt-2">
+                      <div className="mt-1">
                         {Number(promo.produto?.preco || 0) > 0 && (
                           <p className="text-xs text-stone-400 line-through font-numeric">
                             R$ {Number(promo.produto.preco).toFixed(2).replace('.', ',')}
                           </p>
                         )}
-                        <p className="text-lg font-extrabold text-red-700 font-numeric">
+                        <p className="text-[13px] font-extrabold text-red-700 font-numeric leading-tight">
                           R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
                         </p>
-                        <p className="text-[11px] text-stone-500 mt-1">Toque para abrir o produto</p>
+                        <p className="text-[10px] text-stone-500 mt-0.5">Toque para abrir o produto</p>
                       </div>
                     )}
                   </div>
