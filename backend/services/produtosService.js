@@ -2,6 +2,7 @@ const { prisma } = require('../config/database');
 const { cacheOuBuscar, invalidarCache } = require('../config/redis');
 
 const ITENS_POR_PAGINA = 12;
+const CACHE_TTL_SECONDS = 300;
 
 const INCLUDE_COMPLETO = {
   variacoes: { orderBy: { preco: 'asc' } },
@@ -46,44 +47,11 @@ async function listarPorLoja(lojaIdOuSlug, pagina = 1) {
   const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
   const cacheKey = `produtos:loja:${lojaIdOuSlug}:pagina:${paginaNum}`;
 
-  return cacheOuBuscar(cacheKey, async () => {
-    const loja = await prisma.lojas.findFirst({
-      where: { OR: [{ id: lojaIdOuSlug }, { slug: lojaIdOuSlug }], ativa: true },
-    });
-    if (!loja) return { loja: null, dados: [], total: 0, pagina: 1, total_paginas: 0 };
-
-    // Parse categorias desativadas com fallback seguro
-    let catsDesativadas = [];
-    try {
-      const parsed = JSON.parse(loja.categorias_desativadas || '[]');
-      catsDesativadas = Array.isArray(parsed) ? parsed.filter((c) => typeof c === 'string' && c.trim()) : [];
-    } catch {
-      catsDesativadas = [];
-    }
-
-    // Filtro base: apenas produtos ativos
-    const whereBase = { loja_id: loja.id, ativo: true };
-
-    // Só aplica notIn se houver categorias para excluir (array vazio não quebra a query)
-    if (catsDesativadas.length > 0) {
-      whereBase.categoria = { notIn: catsDesativadas };
-    }
-
-    const [dados, total] = await Promise.all([
-      prisma.produtos.findMany({
-        where: whereBase,
-        skip: (paginaNum - 1) * ITENS_POR_PAGINA,
-        take: ITENS_POR_PAGINA,
-        orderBy: { nome: 'asc' },
-        include: INCLUDE_COMPLETO,
-      }),
-      prisma.produtos.count({ where: whereBase }),
-    ]);
-    return {
-      loja: { id: loja.id, nome: loja.nome, slug: loja.slug },
-      dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / ITENS_POR_PAGINA),
-    };
-  }, 180);
+  return cacheOuBuscar(cacheKey, async () => buscarPaginaProdutosPorLojaRef(lojaIdOuSlug, paginaNum), {
+    ttlSeconds: CACHE_TTL_SECONDS,
+    swrThresholdRatio: 0.3,
+    meta: { storeSlug: lojaIdOuSlug, storeId: lojaIdOuSlug },
+  });
 }
 
 async function buscarPorId(id) {
@@ -140,6 +108,14 @@ async function criar(data) {
 
   const resultado = await prisma.produtos.findUnique({ where: { id: produto.id }, include: INCLUDE_COMPLETO });
   await invalidarCache(`produtos:loja:${rest.loja_id}:*`);
+  const loja = await prisma.lojas.findUnique({ where: { id: rest.loja_id }, select: { slug: true } });
+  if (loja?.slug) {
+    await invalidarCache(`produtos:loja:${loja.slug}:*`);
+    await invalidarCache(`loja:slug:${loja.slug}`);
+  }
+  preaquecerCachesProduto(rest.loja_id).catch((err) => {
+    console.warn(`[CACHE] PREWARM_ERROR loja=${rest.loja_id} erro=${err.message}`);
+  });
   return resultado;
 }
 
@@ -180,14 +156,110 @@ async function atualizar(id, data) {
       include: INCLUDE_COMPLETO,
     });
   });
-  await invalidarCache('produtos:loja:*');
+  const loja = await prisma.lojas.findUnique({
+    where: { id: resultado.loja_id },
+    select: { id: true, slug: true },
+  });
+  if (loja) {
+    await invalidarCache(`produtos:loja:${loja.id}:*`);
+    if (loja.slug) await invalidarCache(`produtos:loja:${loja.slug}:*`);
+    if (loja.slug) await invalidarCache(`loja:slug:${loja.slug}`);
+    preaquecerCachesProduto(loja.id).catch((err) => {
+      console.warn(`[CACHE] PREWARM_ERROR loja=${loja.id} erro=${err.message}`);
+    });
+  } else {
+    await invalidarCache('produtos:loja:*');
+  }
   return resultado;
 }
 
 async function excluir(id) {
-  const produto = await prisma.produtos.delete({ where: { id } });
-  await invalidarCache('produtos:loja:*');
-  return produto;
+  const produto = await prisma.produtos.findUnique({
+    where: { id },
+    select: { loja_id: true },
+  });
+  const excluido = await prisma.produtos.delete({ where: { id } });
+  if (produto?.loja_id) {
+    const loja = await prisma.lojas.findUnique({ where: { id: produto.loja_id }, select: { slug: true } });
+    await invalidarCache(`produtos:loja:${produto.loja_id}:*`);
+    if (loja?.slug) await invalidarCache(`produtos:loja:${loja.slug}:*`);
+    if (loja?.slug) await invalidarCache(`loja:slug:${loja.slug}`);
+    preaquecerCachesProduto(produto.loja_id).catch((err) => {
+      console.warn(`[CACHE] PREWARM_ERROR loja=${produto.loja_id} erro=${err.message}`);
+    });
+  } else {
+    await invalidarCache('produtos:loja:*');
+  }
+  return excluido;
 }
 
-module.exports = { listar, listarPorLoja, buscarPorId, criar, atualizar, excluir, ITENS_POR_PAGINA };
+async function preaquecerCachesProduto(lojaId, pagina = 1) {
+  const loja = await prisma.lojas.findUnique({
+    where: { id: lojaId },
+    select: { id: true, slug: true, ativa: true },
+  });
+  if (!loja || !loja.ativa) return;
+  const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
+  await Promise.all([
+    cacheOuBuscar(
+      `produtos:loja:${loja.id}:pagina:${paginaNum}`,
+      async () => buscarPaginaProdutosPorLojaRef(loja.id, paginaNum),
+      { ttlSeconds: CACHE_TTL_SECONDS, forceRefresh: true, disableSWR: true, meta: { storeId: loja.id, storeSlug: loja.slug } }
+    ),
+    loja.slug
+      ? cacheOuBuscar(
+        `produtos:loja:${loja.slug}:pagina:${paginaNum}`,
+        async () => buscarPaginaProdutosPorLojaRef(loja.slug, paginaNum),
+        { ttlSeconds: CACHE_TTL_SECONDS, forceRefresh: true, disableSWR: true, meta: { storeId: loja.id, storeSlug: loja.slug } }
+      )
+      : Promise.resolve(),
+  ]);
+}
+
+async function buscarPaginaProdutosPorLojaRef(lojaIdOuSlug, paginaNum) {
+  const loja = await prisma.lojas.findFirst({
+    where: { OR: [{ id: lojaIdOuSlug }, { slug: lojaIdOuSlug }], ativa: true },
+  });
+  if (!loja) return { loja: null, dados: [], total: 0, pagina: 1, total_paginas: 0 };
+
+  let catsDesativadas = [];
+  try {
+    const parsed = JSON.parse(loja.categorias_desativadas || '[]');
+    catsDesativadas = Array.isArray(parsed) ? parsed.filter((c) => typeof c === 'string' && c.trim()) : [];
+  } catch {
+    catsDesativadas = [];
+  }
+
+  const whereBase = { loja_id: loja.id, ativo: true };
+  if (catsDesativadas.length > 0) whereBase.categoria = { notIn: catsDesativadas };
+
+  const [dados, total] = await Promise.all([
+    prisma.produtos.findMany({
+      where: whereBase,
+      skip: (paginaNum - 1) * ITENS_POR_PAGINA,
+      take: ITENS_POR_PAGINA,
+      orderBy: { nome: 'asc' },
+      include: INCLUDE_COMPLETO,
+    }),
+    prisma.produtos.count({ where: whereBase }),
+  ]);
+
+  return {
+    loja: { id: loja.id, nome: loja.nome, slug: loja.slug },
+    dados,
+    total,
+    pagina: paginaNum,
+    total_paginas: Math.ceil(total / ITENS_POR_PAGINA),
+  };
+}
+
+module.exports = {
+  listar,
+  listarPorLoja,
+  buscarPorId,
+  criar,
+  atualizar,
+  excluir,
+  ITENS_POR_PAGINA,
+  preaquecerCachesProduto,
+};

@@ -1,5 +1,7 @@
 const { prisma } = require('../config/database');
 const { cacheOuBuscar, invalidarCache } = require('../config/redis');
+const { preaquecerCachesProduto } = require('./produtosService');
+const CACHE_TTL_SECONDS = 300;
 
 function parseHorariosSemana(loja) {
   try {
@@ -108,15 +110,24 @@ async function toggleAberta(id, forcar) {
     });
   }
   await invalidarCache('lojas:*');
+  if (loja.slug) {
+    await invalidarCache(`loja:slug:${loja.slug}`);
+    preaquecerCacheLojaSlug(loja.slug).catch(() => { });
+  }
   return atualizada;
 }
 
 async function desativarForcamento(id) {
+  const lojaAtual = await prisma.lojas.findUnique({ where: { id }, select: { slug: true } });
   const loja = await prisma.lojas.update({
     where: { id },
     data: { forcar_status: false },
   });
   await invalidarCache('lojas:*');
+  if (lojaAtual?.slug) {
+    await invalidarCache(`loja:slug:${lojaAtual.slug}`);
+    preaquecerCacheLojaSlug(lojaAtual.slug).catch(() => { });
+  }
   return loja;
 }
 
@@ -151,7 +162,10 @@ async function listarAtivas() {
       const { avaliacoes, ...rest } = loja;
       return { ...rest, nota_media: media, total_avaliacoes: notas.length };
     });
-  }, 180);
+  }, {
+    ttlSeconds: CACHE_TTL_SECONDS,
+    swrThresholdRatio: 0.3,
+  });
 }
 
 async function listarAtivasHome() {
@@ -212,7 +226,10 @@ async function listarAtivasHome() {
         total_avaliacoes: notas.length,
       };
     });
-  }, 180);
+  }, {
+    ttlSeconds: CACHE_TTL_SECONDS,
+    swrThresholdRatio: 0.3,
+  });
 }
 
 async function buscarPorId(id) {
@@ -243,7 +260,33 @@ async function buscarPorSlug(slug) {
       }
     }
     return loja;
-  }, 180);
+  }, {
+    ttlSeconds: CACHE_TTL_SECONDS,
+    swrThresholdRatio: 0.3,
+    meta: { storeSlug: slug },
+  });
+}
+
+async function preaquecerCacheLojaSlug(slug) {
+  return cacheOuBuscar(`loja:slug:${slug}`, async () => {
+    const loja = await prisma.lojas.findFirst({
+      where: { slug, ativa: true },
+      include: { _count: { select: { produtos: true } } },
+    });
+    if (loja) {
+      try {
+        loja.horarios_semana_parsed = JSON.parse(loja.horarios_semana || '[]');
+      } catch {
+        loja.horarios_semana_parsed = [];
+      }
+    }
+    return loja;
+  }, {
+    ttlSeconds: CACHE_TTL_SECONDS,
+    forceRefresh: true,
+    disableSWR: true,
+    meta: { storeSlug: slug },
+  });
 }
 
 async function criar(data, firebaseDecoded, bodyAdmin = {}) {
@@ -266,10 +309,15 @@ async function criar(data, firebaseDecoded, bodyAdmin = {}) {
     }
   }
   await invalidarCache('lojas:*');
+  if (loja.slug) {
+    await invalidarCache(`loja:slug:${loja.slug}`);
+    preaquecerCacheLojaSlug(loja.slug).catch(() => { });
+  }
   return loja;
 }
 
 async function atualizar(id, data) {
+  const lojaAntes = await prisma.lojas.findUnique({ where: { id }, select: { id: true, slug: true } });
   const payload = { ...data };
   // Camada extra de proteção para não apagar mídia por envio acidental de string vazia.
   if (Object.prototype.hasOwnProperty.call(payload, 'logo_url') && !String(payload.logo_url || '').trim()) {
@@ -286,12 +334,31 @@ async function atualizar(id, data) {
   }
   const loja = await prisma.lojas.update({ where: { id }, data: payload });
   await invalidarCache('lojas:*');
+  if (lojaAntes?.slug) await invalidarCache(`loja:slug:${lojaAntes.slug}`);
+  if (loja?.slug) await invalidarCache(`loja:slug:${loja.slug}`);
+  await invalidarCache(`produtos:loja:${id}:*`);
+  if (lojaAntes?.slug) await invalidarCache(`produtos:loja:${lojaAntes.slug}:*`);
+  if (loja?.slug) await invalidarCache(`produtos:loja:${loja.slug}:*`);
+  if (loja?.slug) {
+    preaquecerCacheLojaSlug(loja.slug).catch((err) => {
+      console.warn(`[CACHE] PREWARM_ERROR loja:slug:${loja.slug} erro=${err.message}`);
+    });
+  }
+  preaquecerCachesProduto(id).catch((err) => {
+    console.warn(`[CACHE] PREWARM_ERROR produtos loja=${id} erro=${err.message}`);
+  });
   return loja;
 }
 
 async function excluir(id) {
+  const lojaAntes = await prisma.lojas.findUnique({ where: { id }, select: { slug: true } });
   const loja = await prisma.lojas.delete({ where: { id } });
   await invalidarCache('lojas:*');
+  if (lojaAntes?.slug) {
+    await invalidarCache(`loja:slug:${lojaAntes.slug}`);
+    await invalidarCache(`produtos:loja:${lojaAntes.slug}:*`);
+  }
+  await invalidarCache(`produtos:loja:${id}:*`);
   return loja;
 }
 
@@ -301,6 +368,7 @@ module.exports = {
   listarAtivasHome,
   buscarPorId,
   buscarPorSlug,
+  preaquecerCacheLojaSlug,
   buscarPorUsuario,
   criar,
   atualizar,

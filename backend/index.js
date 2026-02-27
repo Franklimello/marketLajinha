@@ -27,6 +27,7 @@ const { initSocket } = require('./config/socket');
 const { getRedis } = require('./config/redis');
 const { startWeeklyReportJob } = require('./jobs/weeklyReportJob');
 const { startStoriesExpirationJob } = require('./jobs/storiesExpirationJob');
+const { startCachePrewarmJob } = require('./jobs/cachePrewarmJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -143,6 +144,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}] (WebSocket ativo)`);
   startWeeklyReportJob();
   startStoriesExpirationJob();
+  startCachePrewarmJob();
 });
 
 function gracefulShutdown(signal) {
