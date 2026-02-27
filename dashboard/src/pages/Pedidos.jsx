@@ -444,10 +444,10 @@ function ChatLoja({ pedidoId, socketRef }) {
   }
 
   return (
-    <div>
-      <p className="text-xs text-stone-400 uppercase tracking-wide mb-2">Chat com o cliente</p>
-      <div className="border border-stone-200 rounded-xl overflow-hidden">
-        <div ref={scrollRef} className="max-h-56 overflow-y-auto p-3 space-y-2 bg-stone-50">
+    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3">
+      <p className="text-xs text-amber-800 font-semibold uppercase tracking-wide mb-2">Chat com o cliente</p>
+      <div className="border border-amber-200 rounded-xl overflow-hidden bg-white">
+        <div ref={scrollRef} className="max-h-56 overflow-y-auto p-3 space-y-2 bg-amber-50/30">
           {mensagens.length === 0 && (
             <p className="text-xs text-stone-400 text-center py-4">Nenhuma mensagem neste pedido.</p>
           )}
@@ -490,12 +490,12 @@ function ChatLoja({ pedidoId, socketRef }) {
           ))}
         </div>
         {arquivo && (
-          <div className="px-3 py-1.5 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
+          <div className="px-3 py-1.5 bg-amber-50 border-t border-amber-200 flex items-center justify-between">
             <p className="text-[11px] text-stone-500 truncate max-w-[75%]">Anexo: {arquivo.name}</p>
             <button type="button" onClick={limparArquivo} className="text-[11px] text-red-500 hover:text-red-600">Remover</button>
           </div>
         )}
-        <form onSubmit={enviar} className="flex border-t border-stone-200 bg-white">
+        <form onSubmit={enviar} className="flex border-t border-amber-200 bg-white">
           <input
             ref={fileInputRef}
             type="file"
@@ -503,14 +503,14 @@ function ChatLoja({ pedidoId, socketRef }) {
             onChange={handleSelecionarArquivo}
             className="hidden"
           />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 text-stone-400 hover:text-amber-600">
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 text-amber-500 hover:text-amber-700">
             <FiPaperclip size={16} />
           </button>
           <input
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Responder cliente..."
-            className="flex-1 px-3 py-2.5 text-sm border-0 focus:ring-0 outline-none"
+            className="flex-1 px-3 py-2.5 text-sm border-0 focus:ring-0 outline-none placeholder:text-stone-400"
             maxLength={500}
           />
           <button type="submit" disabled={enviando || (!texto.trim() && !arquivo)} className="px-4 text-amber-600 hover:text-amber-700 disabled:text-stone-300">
@@ -722,23 +722,26 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef }) {
           <ChatLoja pedidoId={pedido.id} socketRef={socketRef} />
 
           {/* Alterar status */}
-          <div>
-            <p className="text-xs text-stone-400 uppercase tracking-wide mb-2">Alterar status</p>
+          <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3">
+            <p className="text-xs text-amber-800 font-semibold uppercase tracking-wide mb-2">Alterar status</p>
             <button
               type="button"
               onClick={() => setStatusModalAberto(true)}
-              className="w-full px-3 py-2.5 rounded-lg text-sm font-medium bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200 transition-colors"
+              className="w-full px-3 py-2.5 rounded-lg text-sm font-semibold bg-amber-600 text-white hover:bg-amber-700 border border-amber-600 transition-colors"
             >
               Mudar status do pedido do cliente
             </button>
-            {statusAviso && (
-              <p className="mt-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                {statusAviso}
-              </p>
-            )}
           </div>
         </div>
       </div>
+
+      {statusAviso && (
+        <div className="fixed inset-0 z-70 pointer-events-none flex items-center justify-center p-4">
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 shadow-lg">
+            {statusAviso}
+          </p>
+        </div>
+      )}
 
       {statusModalAberto && (
         <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
