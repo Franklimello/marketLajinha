@@ -62,6 +62,15 @@ function getRiscoAlerta(pedido) {
 export default function Pedidos() {
   const { loja } = useAuth()
   const [pedidos, setPedidos] = useState([])
+  const [contadores, setContadores] = useState({
+    ATIVOS: 0,
+    TODOS: 0,
+    PENDING: 0,
+    APPROVED: 0,
+    IN_ROUTE: 0,
+    DELIVERED: 0,
+    CANCELLED: 0,
+  })
   const [carregando, setCarregando] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('APPROVED')
   const [busca, setBusca] = useState('')
@@ -112,11 +121,30 @@ export default function Pedidos() {
     return params
   }
 
+  function calcularContadores(lista) {
+    const base = Array.isArray(lista) ? lista : []
+    return {
+      ATIVOS: base.filter((p) => !isStatusFinalizado(p.status)).length,
+      TODOS: base.length,
+      PENDING: base.filter((p) => p.status === 'PENDING').length,
+      APPROVED: base.filter((p) => p.status === 'APPROVED').length,
+      IN_ROUTE: base.filter((p) => p.status === 'IN_ROUTE').length,
+      DELIVERED: base.filter((p) => p.status === 'DELIVERED').length,
+      CANCELLED: base.filter((p) => p.status === 'CANCELLED').length,
+    }
+  }
+
   const carregarPedidos = useCallback(async (silencioso = false) => {
     if (!silencioso) setCarregando(true)
     try {
-      const res = await api.pedidos.listar(montarParamsConsulta())
+      const [res, resContagem] = await Promise.all([
+        api.pedidos.listar(montarParamsConsulta()),
+        api.pedidos.listar({ include_finalizados: true }),
+      ])
       const lista = Array.isArray(res) ? res : (Array.isArray(res?.dados) ? res.dados : [])
+      const listaContagem = Array.isArray(resContagem)
+        ? resContagem
+        : (Array.isArray(resContagem?.dados) ? resContagem.dados : [])
 
       if (silencioso && lista.length > pedidosCountRef.current && pedidosCountRef.current > 0) {
         audioRef.current?.play()?.catch(() => {})
@@ -127,6 +155,7 @@ export default function Pedidos() {
       if (primeiraCargaRef.current) primeiraCargaRef.current = false
 
       setPedidos(lista)
+      setContadores(calcularContadores(listaContagem))
       setUltimaAtualizacao(new Date())
     } catch {
       if (!silencioso) setPedidos([])
@@ -214,6 +243,7 @@ export default function Pedidos() {
       if (pedidoAberto?.id === id) {
         setPedidoAberto((prev) => ({ ...prev, status: novoStatus }))
       }
+      await carregarPedidos(true)
     } catch (err) {
       mostrarFeedback(err.message || 'Não foi possível alterar o status do pedido.')
     }
@@ -236,15 +266,6 @@ export default function Pedidos() {
     })
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
-  const contadores = {
-    ATIVOS: pedidos.filter((p) => !isStatusFinalizado(p.status)).length,
-    TODOS: pedidos.length,
-    PENDING: pedidos.filter((p) => p.status === 'PENDING').length,
-    APPROVED: pedidos.filter((p) => p.status === 'APPROVED').length,
-    IN_ROUTE: pedidos.filter((p) => p.status === 'IN_ROUTE').length,
-    DELIVERED: pedidos.filter((p) => p.status === 'DELIVERED').length,
-    CANCELLED: pedidos.filter((p) => p.status === 'CANCELLED').length,
-  }
   if (carregando) {
     return <div className="flex items-center justify-center py-20 text-stone-400">Carregando pedidos...</div>
   }
@@ -288,7 +309,18 @@ export default function Pedidos() {
                   : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
               }`}
             >
-              {label} ({contadores[key] || 0})
+              <span className="inline-flex items-center gap-1.5">
+                <span>{label}</span>
+                <span
+                  className={`inline-flex min-w-[1.4rem] h-5 px-1.5 rounded-full text-xs font-semibold items-center justify-center ${
+                    filtroStatus === key
+                      ? 'bg-white/20 text-white'
+                      : 'bg-stone-100 text-stone-700'
+                  }`}
+                >
+                  {String(Number(contadores[key] || 0))}
+                </span>
+              </span>
             </button>
           )
         )}
