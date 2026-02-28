@@ -985,31 +985,31 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="p-5 border-b border-stone-200 flex items-center justify-between">
-          <div>
+        <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-stone-900">Pedido</h2>
-            <p className="text-xs text-stone-400 mt-0.5 font-mono">{pedido.id}</p>
+            <p className="text-xs text-stone-400 mt-0.5 font-mono truncate">{pedido.id}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="w-full sm:w-auto flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={handleImprimirIp}
               disabled={imprimindoIp || imprimindoNavegador}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none min-w-0 inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[11px] sm:text-xs font-medium hover:bg-blue-100 transition-colors disabled:opacity-50"
               title="Imprimir automático via IP"
             >
               <FiPrinter className={imprimindoIp ? 'animate-pulse' : ''} />
-              {imprimindoIp ? 'Enviando IP...' : 'Imprimir (IP)'}
+              <span className="truncate">{imprimindoIp ? 'Enviando IP...' : 'Imprimir (IP)'}</span>
             </button>
             <button
               onClick={handleImprimirNavegador}
               disabled={imprimindoIp || imprimindoNavegador}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none min-w-0 inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[11px] sm:text-xs font-medium hover:bg-amber-100 transition-colors disabled:opacity-50"
               title="Imprimir no navegador (USB)"
             >
               <FiPrinter className={imprimindoNavegador ? 'animate-pulse' : ''} />
-              {imprimindoNavegador ? 'Abrindo...' : 'Imprimir (USB)'}
+              <span className="truncate">{imprimindoNavegador ? 'Abrindo...' : 'Imprimir (USB)'}</span>
             </button>
-            <button onClick={onFechar} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">
+            <button onClick={onFechar} className="shrink-0 text-stone-400 hover:text-stone-600 text-2xl leading-none px-1">
               &times;
             </button>
           </div>
