@@ -83,6 +83,13 @@ function intervaloMes(chave) {
   }
 }
 
+function mesAnterior(chave) {
+  const [ano, mes] = String(chave || '').split('-').map(Number)
+  if (!ano || !mes) return ''
+  const data = new Date(ano, mes - 2, 1)
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`
+}
+
 export default function DashboardUAIFOOD({
   pedidos = [],
   apiMetrics = null,
@@ -290,6 +297,16 @@ export default function DashboardUAIFOOD({
 
   const resumoMes = dados.faturamentoPorMes[mesSelecionado] || { total: 0, pedidos: 0 }
   const periodoMes = intervaloMes(mesSelecionado)
+  const chaveMesAnterior = mesAnterior(mesSelecionado)
+  const resumoMesAnterior = dados.faturamentoPorMes[chaveMesAnterior] || { total: 0, pedidos: 0 }
+  const diffMes = Number(resumoMes.total || 0) - Number(resumoMesAnterior.total || 0)
+  const pctMes = Number(resumoMesAnterior.total || 0) > 0
+    ? (diffMes / Number(resumoMesAnterior.total || 1)) * 100
+    : null
+  const comparacaoTipo = diffMes > 0 ? 'alta' : (diffMes < 0 ? 'queda' : 'estavel')
+  const comparacaoCor = comparacaoTipo === 'alta'
+    ? 'success.main'
+    : (comparacaoTipo === 'queda' ? 'error.main' : 'text.secondary')
 
   const metrics = apiMetrics || dados.kpis
 
@@ -428,6 +445,12 @@ export default function DashboardUAIFOOD({
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Período: {periodoMes.inicio} até {periodoMes.fim} • {resumoMes.pedidos} pedido(s)
+                </Typography>
+                <Typography variant="body2" sx={{ color: comparacaoCor, fontWeight: 700 }}>
+                  {comparacaoTipo === 'alta' ? '▲' : comparacaoTipo === 'queda' ? '▼' : '•'}{' '}
+                  {comparacaoTipo === 'alta' ? 'Alta' : comparacaoTipo === 'queda' ? 'Queda' : 'Estável'} vs {labelMesAno(chaveMesAnterior)}:{' '}
+                  {diffMes >= 0 ? '+' : '-'}{moeda(Math.abs(diffMes))}
+                  {pctMes !== null ? ` (${diffMes >= 0 ? '+' : ''}${pctMes.toFixed(1).replace('.', ',')}%)` : ' (sem base de comparação)'}
                 </Typography>
               </Stack>
             </Grid>

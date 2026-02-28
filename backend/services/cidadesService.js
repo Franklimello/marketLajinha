@@ -2,6 +2,34 @@ const { prisma } = require('../config/database');
 const { cacheOuBuscar, invalidarCache } = require('../config/redis');
 
 const ESTADOS_SUPORTADOS = new Set(['MG', 'ES']);
+const CIDADES_PERMITIDAS_POR_ESTADO = {
+  MG: new Set([
+    'Chale',
+    'Mutum',
+    'Durande',
+    'Sao Jose do Mantimento',
+    'Conceicao de Ipanema',
+    'Martins Soares',
+    'Santana do Manhuacu',
+    'Manhumirim',
+    'Manhuacu',
+  ]),
+  ES: new Set([
+    'Ibatiba',
+    'Iuna',
+    'Irupi',
+    'Brejetuba',
+    'Muniz Freire',
+    'Ibitirama',
+  ]),
+};
+
+function normalizarNomeCidade(nome) {
+  return String(nome || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
 
 function normalizarEstado(estado) {
   return String(estado || '').trim().toUpperCase();
@@ -16,13 +44,14 @@ async function listarPorEstado(estado) {
   const uf = validarEstado(estado);
   if (!uf) return null;
 
-  return cacheOuBuscar(`cidades:${uf}`, async () => {
+  return cacheOuBuscar(`cidades:v2:${uf}`, async () => {
     const cidades = await prisma.cidades.findMany({
       where: { estado: uf },
       select: { id_ibge: true, nome: true, estado: true },
       orderBy: { nome: 'asc' },
     });
-    return cidades;
+    const permitidas = CIDADES_PERMITIDAS_POR_ESTADO[uf] || new Set();
+    return cidades.filter((cidade) => permitidas.has(normalizarNomeCidade(cidade.nome)));
   }, 60 * 60 * 12);
 }
 
