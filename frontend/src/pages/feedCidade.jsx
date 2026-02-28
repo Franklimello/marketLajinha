@@ -35,7 +35,14 @@ function primeiroNome(nome) {
   return String(nome || '').trim().split(' ')[0] || 'Cliente'
 }
 
-function PostCard({ post, onCurtir, onVotar, onAbrirComentarios, comentariosAbertos }) {
+function mesclarPostsSemDuplicar(base, incoming) {
+  const map = new Map()
+  for (const p of Array.isArray(base) ? base : []) map.set(p.id, p)
+  for (const p of Array.isArray(incoming) ? incoming : []) map.set(p.id, p)
+  return [...map.values()]
+}
+
+function PostCard({ post, onCurtir, onVotar, onAbrirComentarios, comentariosAbertos, clienteNome }) {
   const [comentario, setComentario] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [carregandoComentarios, setCarregandoComentarios] = useState(false)
@@ -66,16 +73,29 @@ function PostCard({ post, onCurtir, onVotar, onAbrirComentarios, comentariosAber
     if (!comentario.trim() || enviando) return
     setEnviando(true)
     setErroComentario('')
+    const texto = comentario.trim()
+    const tempId = `temp-${Date.now()}`
+    const comentarioTemp = {
+      id: tempId,
+      comment: texto,
+      user: { nome: clienteNome || 'Você' },
+    }
+    const listaTemp = [...comentarios, comentarioTemp]
+    setComentarios(listaTemp)
+    onAbrirComentarios(post.id, true, listaTemp, Number(post.comment_count || 0) + 1)
+    setComentario('')
     try {
-      const res = await api.feed.comentar(post.id, comentario.trim())
+      const res = await api.feed.comentar(post.id, texto)
       const novo = res?.comment
       if (novo) {
-        const atualizados = [...comentarios, novo]
+        const atualizados = listaTemp.map((c) => (c.id === tempId ? novo : c))
         setComentarios(atualizados)
         onAbrirComentarios(post.id, true, atualizados, res?.comment_count)
       }
-      setComentario('')
     } catch (err) {
+      const rollback = listaTemp.filter((c) => c.id !== tempId)
+      setComentarios(rollback)
+      onAbrirComentarios(post.id, true, rollback, Number(post.comment_count || 0))
       setErroComentario(err.message || 'Não foi possível comentar.')
     } finally {
       setEnviando(false)
@@ -242,10 +262,20 @@ function PostCard({ post, onCurtir, onVotar, onAbrirComentarios, comentariosAber
 export default function FeedCidadePage() {
   const { cliente } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [erro, setErro] = useState('')
   const [posts, setPosts] = useState([])
+  const [nextCursor, setNextCursor] = useState(null)
   const [cityInfo, setCityInfo] = useState(null)
   const [comentariosAbertos, setComentariosAbertos] = useState({})
+
+  function atualizarPosts(updater) {
+    setPosts((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      if (cityInfo?.id) setFeedCache(cityInfo, next)
+      return next
+    })
+  }
 
   useEffect(() => {
     let cancelado = false
@@ -283,11 +313,13 @@ export default function FeedCidadePage() {
           throw new Error('Nenhuma cidade com lojas disponível para o feed.')
         }
 
-        const feed = await api.feed.listarPorCidade(alvo.id)
+        const feedRes = await api.feed.listarPorCidadePaginado(alvo.id, null, 10)
+        const feed = Array.isArray(feedRes?.items) ? feedRes.items : []
         if (cancelado) return
         setCityInfo(alvo)
-        setPosts(Array.isArray(feed) ? feed : [])
-        setFeedCache(alvo, Array.isArray(feed) ? feed : [])
+        setPosts(feed)
+        setNextCursor(feedRes?.next_cursor || null)
+        setFeedCache(alvo, feed)
       } catch (e) {
         if (!cancelado) setErro(e.message || 'Não foi possível carregar o feed.')
       } finally {
@@ -299,31 +331,36 @@ export default function FeedCidadePage() {
   }, [cliente])
 
   async function curtir(postId) {
+    let snapshot = null
+    atualizarPosts((prev) => {
+      snapshot = prev
+      return prev.map((p) => {
+        if (p.id !== postId) return p
+        const proximoLike = !p.has_liked
+        const countAtual = Number(p.like_count || 0)
+        const countProximo = Math.max(0, countAtual + (proximoLike ? 1 : -1))
+        const listaAtual = Array.isArray(p.likes_preview) ? p.likes_preview : []
+        const meuNome = String(cliente?.nome || '').trim()
+        const meuId = String(cliente?.id || '')
+        const semEu = listaAtual.filter((u) => String(u?.id || '') !== meuId && String(u?.nome || '').trim() !== meuNome)
+        const listaProxima = proximoLike && meuNome ? [{ id: meuId || meuNome, nome: meuNome }, ...semEu].slice(0, 8) : semEu
+        return { ...p, has_liked: proximoLike, like_count: countProximo, likes_preview: listaProxima }
+      })
+    })
     try {
       const res = await api.feed.curtirToggle(postId)
-      setPosts((prev) => prev.map((p) => (
+      atualizarPosts((prev) => prev.map((p) => (
         p.id === postId
-          ? {
-              ...p,
-              has_liked: !!res?.has_liked,
-              like_count: Number(res?.like_count || 0),
-              likes_preview: (() => {
-                const listaAtual = Array.isArray(p.likes_preview) ? p.likes_preview : []
-                const meuNome = String(cliente?.nome || '').trim()
-                const meuId = String(cliente?.id || '')
-                if (!meuNome) return listaAtual
-                const semEu = listaAtual.filter((u) => String(u?.id || '') !== meuId && String(u?.nome || '').trim() !== meuNome)
-                if (res?.has_liked) return [{ id: meuId || meuNome, nome: meuNome }, ...semEu].slice(0, 8)
-                return semEu
-              })(),
-            }
+          ? { ...p, has_liked: !!res?.has_liked, like_count: Number(res?.like_count || 0) }
           : p
       )))
-    } catch {}
+    } catch {
+      if (snapshot) atualizarPosts(snapshot)
+    }
   }
 
   function atualizarVoto(postId, voteResults) {
-    setPosts((prev) => prev.map((p) => {
+    atualizarPosts((prev) => prev.map((p) => {
       if (p.id !== postId) return p
       const total = Array.isArray(voteResults)
         ? voteResults.reduce((s, r) => s + Number(r.count || 0), 0)
@@ -340,11 +377,24 @@ export default function FeedCidadePage() {
   function atualizarComentarios(postId, aberto, lista, novoCount) {
     setComentariosAbertos((prev) => ({ ...prev, [postId]: aberto }))
     if (Array.isArray(lista)) {
-      setPosts((prev) => prev.map((p) => (
+      atualizarPosts((prev) => prev.map((p) => (
         p.id === postId
           ? { ...p, comment_count: typeof novoCount === 'number' ? novoCount : lista.length }
           : p
       )))
+    }
+  }
+
+  async function carregarMais() {
+    if (!nextCursor || !cityInfo?.id || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const feedRes = await api.feed.listarPorCidadePaginado(cityInfo.id, nextCursor, 10)
+      const novos = Array.isArray(feedRes?.items) ? feedRes.items : []
+      atualizarPosts((prev) => mesclarPostsSemDuplicar(prev, novos))
+      setNextCursor(feedRes?.next_cursor || null)
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -384,8 +434,19 @@ export default function FeedCidadePage() {
               onVotar={atualizarVoto}
               onAbrirComentarios={atualizarComentarios}
               comentariosAbertos={!!comentariosAbertos[post.id]}
+              clienteNome={cliente?.nome}
             />
           ))}
+          {nextCursor && (
+            <button
+              type="button"
+              onClick={carregarMais}
+              disabled={loadingMore}
+              className="w-full mt-2 rounded-xl border border-stone-200 bg-white py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+            >
+              {loadingMore ? 'Carregando...' : 'Carregar mais posts'}
+            </button>
+          )}
         </div>
       )}
     </div>

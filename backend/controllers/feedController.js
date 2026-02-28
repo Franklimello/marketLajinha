@@ -23,8 +23,14 @@ async function listarPosts(req, res, next) {
     if (!cityId) return res.status(400).json({ erro: 'city_id é obrigatório.' });
 
     const cliente = await obterClienteAutenticado(req);
-    const posts = await feedService.listarPostsAtivosPorCidade(cityId, cliente?.id || null);
-    res.json(posts);
+    const paginado = String(req.query.paginado || '') === '1';
+    const result = await feedService.listarPostsAtivosPorCidade(cityId, cliente?.id || null, {
+      limit: req.query.limit || (paginado ? 10 : 50),
+      before_created_at: req.query.before_created_at,
+      before_id: req.query.before_id,
+    });
+    if (paginado) return res.json(result);
+    res.json(result.items || []);
   } catch (e) {
     next(e);
   }

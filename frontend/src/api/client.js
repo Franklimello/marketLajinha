@@ -121,6 +121,15 @@ export const api = {
   },
   feed: {
     listarPorCidade: (cityId) => request(`/feed/posts?city_id=${encodeURIComponent(String(cityId || ''))}`),
+    listarPorCidadePaginado: (cityId, cursor = null, limit = 10) => {
+      const qs = new URLSearchParams()
+      qs.set('city_id', String(cityId || ''))
+      qs.set('paginado', '1')
+      qs.set('limit', String(limit))
+      if (cursor?.before_created_at) qs.set('before_created_at', String(cursor.before_created_at))
+      if (cursor?.before_id) qs.set('before_id', String(cursor.before_id))
+      return request(`/feed/posts?${qs.toString()}`)
+    },
     listarComentarios: (postId) => request(`/feed/posts/${postId}/comments`),
     curtirToggle: (postId) => request(`/feed/posts/${postId}/like-toggle`, { method: 'POST' }),
     comentar: (postId, comment) =>

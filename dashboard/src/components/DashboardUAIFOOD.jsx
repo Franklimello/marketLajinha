@@ -90,17 +90,36 @@ function mesAnterior(chave) {
   return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`
 }
 
+function inicioPeriodo(periodo, inicioHoje) {
+  if (periodo === '7d') {
+    const d = new Date(inicioHoje)
+    d.setDate(inicioHoje.getDate() - 6)
+    return d
+  }
+  if (periodo === '30d') {
+    const d = new Date(inicioHoje)
+    d.setDate(inicioHoje.getDate() - 29)
+    return d
+  }
+  if (periodo === 'mes') {
+    return new Date(inicioHoje.getFullYear(), inicioHoje.getMonth(), 1)
+  }
+  return null
+}
+
 export default function DashboardUAIFOOD({
   pedidos = [],
   apiMetrics = null,
   diasSerie = 7,
 }) {
+  const [periodoSelecionado, setPeriodoSelecionado] = useState('30d')
   const dados = useMemo(() => {
     const agora = new Date()
     const pedidosLista = safeArray(pedidos)
     const pedidosValidos = pedidosLista.filter((p) => String(p?.status || '').toUpperCase() !== 'CANCELLED')
 
     const inicioHoje = inicioDoDia(agora)
+    const inicioPeriodoSelecionado = inicioPeriodo(periodoSelecionado, inicioHoje)
     const inicio7 = new Date(inicioHoje)
     inicio7.setDate(inicioHoje.getDate() - 6)
     const inicio30 = new Date(inicioHoje)
@@ -113,12 +132,18 @@ export default function DashboardUAIFOOD({
     const pedidosHoje = pedidosValidos.filter((p) => inicioDoDia(p.created_at).getTime() === inicioHoje.getTime())
     const pedidos7 = pedidosValidos.filter((p) => new Date(p.created_at) >= inicio7)
     const pedidos30 = pedidosValidos.filter((p) => new Date(p.created_at) >= inicio30)
+    const pedidosPeriodo = inicioPeriodoSelecionado
+      ? pedidosValidos.filter((p) => new Date(p.created_at) >= inicioPeriodoSelecionado)
+      : pedidosValidos
+    const pedidosPeriodoTodosStatus = inicioPeriodoSelecionado
+      ? pedidosLista.filter((p) => new Date(p.created_at) >= inicioPeriodoSelecionado)
+      : pedidosLista
     const faturamentoPorMes = {}
 
-    const totalVendas = pedidosValidos.reduce((acc, p) => acc + Number(p?.total || 0), 0)
-    const totalPedidosHoje = pedidosHoje.length
-    const ticketMedio = pedidosValidos.length ? totalVendas / pedidosValidos.length : 0
-    const clientesAtivos = new Set(pedidos30.map((p) => idCliente(p))).size
+    const totalVendas = pedidosPeriodo.reduce((acc, p) => acc + Number(p?.total || 0), 0)
+    const totalPedidosHoje = periodoSelecionado === 'hoje' ? pedidosHoje.length : pedidosPeriodo.length
+    const ticketMedio = pedidosPeriodo.length ? totalVendas / pedidosPeriodo.length : 0
+    const clientesAtivos = new Set(pedidosPeriodo.map((p) => idCliente(p))).size
 
     const faturamento7 = pedidos7.reduce((acc, p) => acc + Number(p?.total || 0), 0)
     const faturamento30 = pedidos30.reduce((acc, p) => acc + Number(p?.total || 0), 0)
@@ -152,8 +177,15 @@ export default function DashboardUAIFOOD({
       }
     }
 
+    const diasGrafico = periodoSelecionado === '7d'
+      ? 7
+      : periodoSelecionado === '30d'
+        ? 30
+        : periodoSelecionado === 'mes'
+          ? Math.max(1, inicioHoje.getDate())
+          : diasSerie
     const dias = []
-    for (let i = diasSerie - 1; i >= 0; i -= 1) {
+    for (let i = diasGrafico - 1; i >= 0; i -= 1) {
       const d = new Date(inicioHoje)
       d.setDate(inicioHoje.getDate() - i)
       dias.push(d)
@@ -162,7 +194,7 @@ export default function DashboardUAIFOOD({
     for (const d of dias) {
       vendasPorDiaMap[chaveData(d)] = 0
     }
-    for (const p of pedidosValidos) {
+    for (const p of pedidosPeriodo) {
       const key = chaveData(p.created_at)
       if (Object.prototype.hasOwnProperty.call(vendasPorDiaMap, key)) {
         vendasPorDiaMap[key] += Number(p?.total || 0)
@@ -257,6 +289,12 @@ export default function DashboardUAIFOOD({
 
     const produtoDestaqueSemana = [...produtoStats.values()].sort((a, b) => b.qtd7Atual - a.qtd7Atual)[0] || null
     const clienteVipAlerta = clientesTabela.find((c) => c.insight === 'VIP em queda') || null
+    const funil = {
+      APPROVED: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'APPROVED').length,
+      IN_ROUTE: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'IN_ROUTE').length,
+      DELIVERED: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'DELIVERED').length,
+      CANCELLED: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'CANCELLED').length,
+    }
 
     return {
       kpis: {
@@ -277,8 +315,9 @@ export default function DashboardUAIFOOD({
       clientesTabela,
       produtoDestaqueSemana,
       clienteVipAlerta,
+      funil,
     }
-  }, [pedidos, diasSerie])
+  }, [pedidos, diasSerie, periodoSelecionado])
 
   const mesAtual = useMemo(() => chaveMes(new Date()), [])
   const mesesDisponiveis = useMemo(() => {
@@ -398,6 +437,26 @@ export default function DashboardUAIFOOD({
   return (
     <Stack spacing={2}>
       <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <Card variant="outlined">
+            <CardContent sx={{ pb: '16px !important' }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                <Typography variant="body2" color="text.secondary">Período dos indicadores</Typography>
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <Select
+                    value={periodoSelecionado}
+                    onChange={(e) => setPeriodoSelecionado(String(e.target.value))}
+                  >
+                    <MenuItem value="7d">Últimos 7 dias</MenuItem>
+                    <MenuItem value="30d">Últimos 30 dias</MenuItem>
+                    <MenuItem value="mes">Mês atual</MenuItem>
+                    <MenuItem value="all">Todo o histórico</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
         {kpiCards.map((card) => (
           <Grid key={card.label} item xs={12} sm={6} lg={3}>
             <Card variant="outlined">
@@ -479,6 +538,20 @@ export default function DashboardUAIFOOD({
             options={chartOptions}
             series={[{ name: 'Vendas', data: dados.chart.serieVendas }]}
           />
+        </CardContent>
+      </Card>
+
+      <Card variant="outlined">
+        <CardContent>
+          <Typography variant="h6" fontWeight={700} gutterBottom>
+            Funil operacional do período
+          </Typography>
+          <Grid container spacing={1}>
+            <Grid item xs={6} md={3}><Chip color="primary" label={`Recebidos: ${dados.funil.APPROVED}`} /></Grid>
+            <Grid item xs={6} md={3}><Chip color="secondary" label={`Em rota: ${dados.funil.IN_ROUTE}`} /></Grid>
+            <Grid item xs={6} md={3}><Chip color="success" label={`Entregues: ${dados.funil.DELIVERED}`} /></Grid>
+            <Grid item xs={6} md={3}><Chip color="error" label={`Cancelados: ${dados.funil.CANCELLED}`} /></Grid>
+          </Grid>
         </CardContent>
       </Card>
 

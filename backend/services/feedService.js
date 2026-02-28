@@ -112,14 +112,35 @@ async function criarPostDaLoja(lojaId, payload) {
   });
 }
 
-async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
+function normalizarLimite(limite) {
+  const n = Number(limite);
+  if (!Number.isFinite(n)) return 20;
+  return Math.min(50, Math.max(5, Math.floor(n)));
+}
+
+async function listarPostsAtivosPorCidade(cityId, clienteId = null, options = {}) {
   const now = new Date();
-  const posts = await prisma.storePost.findMany({
-    where: {
-      city_id: cityId,
-      expires_at: { gt: now },
-    },
-    orderBy: { created_at: 'desc' },
+  const take = normalizarLimite(options?.limit);
+  const beforeCreatedAt = options?.before_created_at ? new Date(options.before_created_at) : null;
+  const beforeId = options?.before_id ? String(options.before_id) : '';
+  const temCursor = beforeCreatedAt instanceof Date && !Number.isNaN(beforeCreatedAt.getTime()) && beforeId;
+
+  const where = {
+    city_id: cityId,
+    expires_at: { gt: now },
+  };
+
+  if (temCursor) {
+    where.OR = [
+      { created_at: { lt: beforeCreatedAt } },
+      { created_at: beforeCreatedAt, id: { lt: beforeId } },
+    ];
+  }
+
+  const postsRaw = await prisma.storePost.findMany({
+    where,
+    orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+    take: take + 1,
     select: {
       id: true,
       store_id: true,
@@ -134,7 +155,9 @@ async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
     },
   });
 
-  if (!posts.length) return [];
+  const hasNextPage = postsRaw.length > take;
+  const posts = hasNextPage ? postsRaw.slice(0, take) : postsRaw;
+  if (!posts.length) return { items: [], next_cursor: null };
   const postIds = posts.map((p) => p.id);
 
   const [likesAgg, commentsAgg, votesAgg, userLikes, userVotes, voteResults, likesPreviewRows] = await Promise.all([
@@ -209,7 +232,7 @@ async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
     });
   }
 
-  return posts.map((post) => ({
+  const items = posts.map((post) => ({
     ...post,
     like_count: likeCountMap.get(post.id) || 0,
     comment_count: commentCountMap.get(post.id) || 0,
@@ -219,6 +242,19 @@ async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
     vote_results: voteByOptionMap.get(post.id) || [],
     likes_preview: likesPreviewMap.get(post.id) || [],
   }));
+
+  const ultimo = items[items.length - 1] || null;
+  const nextCursor = hasNextPage && ultimo
+    ? {
+        before_created_at: ultimo.created_at,
+        before_id: ultimo.id,
+      }
+    : null;
+
+  return {
+    items,
+    next_cursor: nextCursor,
+  };
 }
 
 async function toggleLike(postId, clienteId) {
