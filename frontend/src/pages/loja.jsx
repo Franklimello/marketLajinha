@@ -2096,7 +2096,7 @@ export default function LojaPage() {
                   key={promo.id}
                   type="button"
                   onClick={() => abrirProdutoDaPromocao(promo)}
-                  className="snap-start shrink-0 w-[120px] text-left bg-white border border-stone-200 rounded-xl p-1.5 shadow-sm"
+                  className="snap-start shrink-0 w-[120px] text-left"
                 >
                   {(promo.imagem_url || promo.produto?.imagem_url) ? (
                     <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
@@ -2119,14 +2119,14 @@ export default function LojaPage() {
                     {Number(promo.preco_promocional || 0) > 0 && (
                       <div className="mt-1">
                         {Number(promo.produto?.preco || 0) > 0 && (
-                          <p className="text-xs text-stone-500 line-through font-numeric">
+                          <p className="text-xs text-stone-400 line-through font-numeric">
                             R$ {Number(promo.produto.preco).toFixed(2).replace('.', ',')}
                           </p>
                         )}
                         <p className="text-[13px] font-extrabold text-red-700 font-numeric leading-tight">
                           R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
                         </p>
-                        <p className="text-[10px] font-semibold text-orange-600 mt-1 uppercase tracking-wide leading-tight">
+                        <p className="text-[10px] font-semibold text-orange-600 mt-1 uppercase tracking-wide">
                           Só hoje! Corra que vai acabar
                         </p>
                       </div>
@@ -2179,9 +2179,6 @@ export default function LojaPage() {
                 const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
                 return (
                   <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50 to-yellow-50 rounded-2xl border-2 border-red-200 overflow-hidden">
-                    {getComboImages(c)[0] && (
-                      <img src={getComboImages(c)[0]} alt={c.nome} loading="lazy" className="w-full h-28 object-cover" />
-                    )}
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h3 className="text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
