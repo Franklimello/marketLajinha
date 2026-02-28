@@ -53,6 +53,16 @@ function escapeHtml(valor) {
     .replace(/'/g, '&#39;')
 }
 
+function limparObservacaoImpressao(observacao) {
+  const texto = String(observacao || '')
+    .replace(PIX_ONLINE_TAG, '')
+    // Remove links (incluindo links de comprovante)
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return texto || '-'
+}
+
 function abrirImpressaoNavegador(pedido) {
   const largura = window.screen?.availWidth || 1366
   const altura = window.screen?.availHeight || 768
@@ -80,7 +90,7 @@ function abrirImpressaoNavegador(pedido) {
   const endereco = escapeHtml(pedido?.endereco || '-')
   const bairro = escapeHtml(pedido?.bairro || '-')
   const referencia = escapeHtml(pedido?.referencia || '-')
-  const observacao = escapeHtml(pedido?.observacao || '-')
+  const observacao = escapeHtml(limparObservacaoImpressao(pedido?.observacao))
   const pagamento = escapeHtml(PAGAMENTO_MAP[pedido?.forma_pagamento] || pedido?.forma_pagamento || '-')
   const tipoEntrega = pedido?.tipo_entrega === 'RETIRADA' ? 'Retirada' : 'Entrega'
   const idCurto = escapeHtml(String(pedido?.id || '').slice(-8))
