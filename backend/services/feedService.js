@@ -137,7 +137,7 @@ async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
   if (!posts.length) return [];
   const postIds = posts.map((p) => p.id);
 
-  const [likesAgg, commentsAgg, votesAgg, userLikes, userVotes, voteResults] = await Promise.all([
+  const [likesAgg, commentsAgg, votesAgg, userLikes, userVotes, voteResults, likesPreviewRows] = await Promise.all([
     prisma.postLike.groupBy({
       by: ['post_id'],
       where: { post_id: { in: postIds } },
@@ -170,6 +170,14 @@ async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
       where: { post_id: { in: postIds } },
       _count: { _all: true },
     }),
+    prisma.postLike.findMany({
+      where: { post_id: { in: postIds } },
+      orderBy: { created_at: 'desc' },
+      select: {
+        post_id: true,
+        user: { select: { id: true, nome: true } },
+      },
+    }),
   ]);
 
   const likeCountMap = new Map(likesAgg.map((r) => [r.post_id, Number(r._count?._all || 0)]));
@@ -187,6 +195,20 @@ async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
     });
   }
 
+  const likesPreviewMap = new Map();
+  for (const row of likesPreviewRows) {
+    const postId = row.post_id;
+    if (!likesPreviewMap.has(postId)) likesPreviewMap.set(postId, []);
+    const lista = likesPreviewMap.get(postId);
+    if (lista.length >= 8) continue;
+    const nome = String(row?.user?.nome || '').trim();
+    if (!nome) continue;
+    lista.push({
+      id: row.user.id,
+      nome,
+    });
+  }
+
   return posts.map((post) => ({
     ...post,
     like_count: likeCountMap.get(post.id) || 0,
@@ -195,6 +217,7 @@ async function listarPostsAtivosPorCidade(cityId, clienteId = null) {
     has_liked: likedSet.has(post.id),
     has_voted: votedSet.has(post.id),
     vote_results: voteByOptionMap.get(post.id) || [],
+    likes_preview: likesPreviewMap.get(post.id) || [],
   }));
 }
 

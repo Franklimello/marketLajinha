@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FiArrowLeft, FiMessageCircle, FiSend, FiThumbsUp, FiBarChart2 } from 'react-icons/fi'
+import { FiArrowLeft, FiMessageCircle, FiSend, FiThumbsUp, FiBarChart2, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
@@ -31,6 +31,10 @@ function cidadeDoCliente(cliente) {
   return String(padrao?.cidade || '').trim()
 }
 
+function primeiroNome(nome) {
+  return String(nome || '').trim().split(' ')[0] || 'Cliente'
+}
+
 function PostCard({ post, onCurtir, onVotar, onAbrirComentarios, comentariosAbertos }) {
   const [comentario, setComentario] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -38,6 +42,7 @@ function PostCard({ post, onCurtir, onVotar, onAbrirComentarios, comentariosAber
   const [comentarios, setComentarios] = useState([])
   const [erroComentario, setErroComentario] = useState('')
   const [votando, setVotando] = useState(false)
+  const [likesAbertos, setLikesAbertos] = useState(false)
 
   async function toggleComentarios() {
     if (comentariosAbertos) {
@@ -168,7 +173,31 @@ function PostCard({ post, onCurtir, onVotar, onAbrirComentarios, comentariosAber
         >
           <FiMessageCircle size={13} /> {post.comment_count}
         </button>
+        {post.like_count > 0 && (
+          <button
+            type="button"
+            onClick={() => setLikesAbertos((prev) => !prev)}
+            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+            title="Ver quem curtiu"
+          >
+            {likesAbertos ? <FiChevronUp size={12} /> : <FiChevronDown size={12} />}
+          </button>
+        )}
       </div>
+
+      {likesAbertos && (
+        <div className="mt-2">
+          {Array.isArray(post.likes_preview) && post.likes_preview.length > 0 ? (
+            <p className="text-[11px] text-stone-500">
+              Curtiram:{' '}
+              {post.likes_preview.map((u) => primeiroNome(u?.nome)).join(', ')}
+              {post.like_count > post.likes_preview.length ? '...' : ''}
+            </p>
+          ) : (
+            <p className="text-[11px] text-stone-400">Sem nomes disponíveis.</p>
+          )}
+        </div>
+      )}
 
       {comentariosAbertos && (
         <div className="mt-3 pt-3 border-t border-stone-100">
@@ -274,7 +303,20 @@ export default function FeedCidadePage() {
       const res = await api.feed.curtirToggle(postId)
       setPosts((prev) => prev.map((p) => (
         p.id === postId
-          ? { ...p, has_liked: !!res?.has_liked, like_count: Number(res?.like_count || 0) }
+          ? {
+              ...p,
+              has_liked: !!res?.has_liked,
+              like_count: Number(res?.like_count || 0),
+              likes_preview: (() => {
+                const listaAtual = Array.isArray(p.likes_preview) ? p.likes_preview : []
+                const meuNome = String(cliente?.nome || '').trim()
+                const meuId = String(cliente?.id || '')
+                if (!meuNome) return listaAtual
+                const semEu = listaAtual.filter((u) => String(u?.id || '') !== meuId && String(u?.nome || '').trim() !== meuNome)
+                if (res?.has_liked) return [{ id: meuId || meuNome, nome: meuNome }, ...semEu].slice(0, 8)
+                return semEu
+              })(),
+            }
           : p
       )))
     } catch {}
