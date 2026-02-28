@@ -4,6 +4,7 @@ const { cacheOuBuscar, invalidarCache } = require('../config/redis');
 const ESTADOS_SUPORTADOS = new Set(['MG', 'ES']);
 const CIDADES_PERMITIDAS_POR_ESTADO = {
   MG: new Set([
+    'Lajinha',
     'Chale',
     'Mutum',
     'Durande',
