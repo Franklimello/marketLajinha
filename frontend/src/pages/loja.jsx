@@ -1250,13 +1250,20 @@ export default function LojaPage() {
                 </p>
               </div>
               <button onClick={copiarPayload} className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 text-sm">{copiado ? <><FiCheck /> Copiado!</> : <><FiCopy /> Copiar código PIX</>}</button>
-              <p className="mt-3 text-sm text-stone-700 font-medium">
-                Para enviar o pedido confirme o pagamento clicando em já paguei
-              </p>
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-sm text-red-700 font-semibold text-center">
+                  Para enviar o pedido confirme o pagamento clicando em já paguei
+                </p>
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-2 text-red-600 animate-pulse">
+                <span className="text-base font-bold animate-bounce">⬇</span>
+                <span className="text-xs font-semibold uppercase tracking-wide">Clique no botão abaixo</span>
+                <span className="text-base font-bold animate-bounce">⬇</span>
+              </div>
               <button
                 onClick={handleFinalizarPix}
                 disabled={confirmandoPix}
-                className="w-full mt-2 py-2.5 text-green-700 bg-green-50 font-medium rounded-xl hover:bg-green-100 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full mt-2 py-3 text-white bg-red-600 font-semibold rounded-xl hover:bg-red-700 text-sm shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {confirmandoPix ? 'Enviando pedido...' : 'Já paguei'}
               </button>
@@ -2327,7 +2334,7 @@ export default function LojaPage() {
       )}
 
       {showSubmitOverlay && (
-        <div className="fixed inset-0 z-[120] bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-120 bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-stone-200 p-4">
             <p className="text-sm font-bold text-stone-900 mb-3">Finalizando pedido</p>
             <div className="relative h-2 rounded-full bg-stone-200 overflow-hidden mb-4">
