@@ -740,7 +740,8 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const pixOnline = isPixOnline(pedido)
   const riscoAlerta = getRiscoAlerta(pedido)
-  const [imprimindo, setImprimindo] = useState(false)
+  const [imprimindoIp, setImprimindoIp] = useState(false)
+  const [imprimindoNavegador, setImprimindoNavegador] = useState(false)
   const [statusModalAberto, setStatusModalAberto] = useState(false)
   const [alterandoStatus, setAlterandoStatus] = useState(false)
   const [statusAviso, setStatusAviso] = useState('')
@@ -751,8 +752,27 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
     return () => clearTimeout(t)
   }, [statusAviso])
 
-  function handleImprimir() {
-    setImprimindo(true)
+  async function handleImprimirIp() {
+    setImprimindoIp(true)
+    try {
+      const res = await api.impressoras.imprimir(pedido.id)
+      const setores = res.setores || []
+      const erros = setores.filter((s) => s.status === 'erro' || s.status === 'sem_impressora')
+      if (erros.length === 0) {
+        onAviso?.('Impressão automática enviada com sucesso!', 'sucesso')
+      } else {
+        const msgs = erros.map((s) => `${s.setor}: ${s.erro || 'sem impressora cadastrada'}`).join('\n')
+        onAviso?.(`Alguns setores não foram impressos: ${msgs}`, 'erro')
+      }
+    } catch (err) {
+      onAviso?.(`Erro: ${err.message}`, 'erro')
+    } finally {
+      setImprimindoIp(false)
+    }
+  }
+
+  function handleImprimirNavegador() {
+    setImprimindoNavegador(true)
     try {
       const abriu = abrirImpressaoNavegador(pedido)
       if (!abriu) {
@@ -763,7 +783,7 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
     } catch (err) {
       onAviso?.(`Erro: ${err.message}`, 'erro')
     } finally {
-      setTimeout(() => setImprimindo(false), 150)
+      setTimeout(() => setImprimindoNavegador(false), 150)
     }
   }
 
@@ -790,13 +810,22 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleImprimir}
-              disabled={imprimindo}
+              onClick={handleImprimirIp}
+              disabled={imprimindoIp || imprimindoNavegador}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors disabled:opacity-50"
-              title="Imprimir pedido"
+              title="Imprimir automático via IP"
             >
-              <FiPrinter className={imprimindo ? 'animate-pulse' : ''} />
-              {imprimindo ? 'Enviando...' : 'Imprimir'}
+              <FiPrinter className={imprimindoIp ? 'animate-pulse' : ''} />
+              {imprimindoIp ? 'Enviando IP...' : 'Imprimir (IP)'}
+            </button>
+            <button
+              onClick={handleImprimirNavegador}
+              disabled={imprimindoIp || imprimindoNavegador}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 transition-colors disabled:opacity-50"
+              title="Imprimir no navegador (USB)"
+            >
+              <FiPrinter className={imprimindoNavegador ? 'animate-pulse' : ''} />
+              {imprimindoNavegador ? 'Abrindo...' : 'Imprimir (USB)'}
             </button>
             <button onClick={onFechar} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">
               &times;
