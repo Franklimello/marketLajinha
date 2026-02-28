@@ -117,6 +117,10 @@ export const api = {
     }),
     excluir: (id) => request(`/stories/${id}`, { method: 'DELETE' }),
   },
+  feed: {
+    listarPorCidade: (cityId) => request(`/feed/posts?city_id=${encodeURIComponent(String(cityId || ''))}`),
+    criarPost: (data) => request('/feed/posts', { method: 'POST', body: JSON.stringify(data) }),
+  },
   motoboys: {
     listar: () => request('/motoboys'),
     buscar: (id) => request(`/motoboys/${id}`),

@@ -1,6 +1,7 @@
 const { prisma } = require('../config/database');
 
 const POST_EXPIRATION_HOURS = 72;
+const MAX_POSTS_ATIVOS_POR_LOJA = 3;
 
 function dataExpiracaoPadrao() {
   return new Date(Date.now() + POST_EXPIRATION_HOURS * 60 * 60 * 1000);
@@ -75,15 +76,14 @@ async function criarPostDaLoja(lojaId, payload) {
     pollOptions = options;
   }
 
-  const postAtivoExistente = await prisma.storePost.findFirst({
+  const totalAtivos = await prisma.storePost.count({
     where: {
       store_id: lojaId,
       expires_at: { gt: new Date() },
     },
-    select: { id: true },
   });
-  if (postAtivoExistente) {
-    const err = new Error('A loja já possui um post ativo. Aguarde expirar para criar outro.');
+  if (totalAtivos >= MAX_POSTS_ATIVOS_POR_LOJA) {
+    const err = new Error('Limite de 3 posts ativos atingido. Aguarde expirar para criar outro.');
     err.status = 409;
     throw err;
   }
