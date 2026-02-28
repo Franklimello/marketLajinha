@@ -2082,7 +2082,7 @@ export default function LojaPage() {
       <div className="h-2 bg-stone-100" />
 
       <div className={`px-4 pt-4 ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
-        {!produtosCarregando && Array.isArray(promocoes) && promocoes.length > 0 && (
+        {!produtosCarregando && categoriaSel === null && Array.isArray(promocoes) && promocoes.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-3">
               <FiTag className="text-red-500" />
@@ -2099,13 +2099,17 @@ export default function LojaPage() {
                   className="snap-start shrink-0 w-[120px] text-left"
                 >
                   {(promo.imagem_url || promo.produto?.imagem_url) ? (
-                    <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
+                    <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
                       <img
                         src={promo.imagem_url || promo.produto?.imagem_url}
                         alt={promo.titulo}
                         loading="lazy"
                         className="w-full h-full object-cover"
                       />
+                      <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 bg-red-600/95 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                        <FiTag className="text-[10px]" />
+                        Promoção
+                      </span>
                     </div>
                   ) : (
                     <div className="w-full aspect-square rounded-xl bg-amber-100 flex items-center justify-center">
