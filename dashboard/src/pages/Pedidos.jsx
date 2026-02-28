@@ -54,8 +54,17 @@ function escapeHtml(valor) {
 }
 
 function abrirImpressaoNavegador(pedido) {
-  const popup = window.open('', '_blank', 'width=420,height=740')
+  const largura = window.screen?.availWidth || 1366
+  const altura = window.screen?.availHeight || 768
+  const popup = window.open('', '_blank', `popup=yes,left=0,top=0,width=${largura},height=${altura}`)
   if (!popup) return false
+
+  try {
+    popup.moveTo(0, 0)
+    popup.resizeTo(largura, altura)
+  } catch {
+    // Alguns navegadores bloqueiam controlar tamanho/posição da janela.
+  }
 
   const itensHtml = (pedido.itens || []).map((item) => {
     const nome = escapeHtml(item?.produto?.nome || 'Produto')
