@@ -181,6 +181,7 @@ async function listarAtivasHome() {
         cor_primaria: true,
         categoria_negocio: true,
         cidade: true,
+        cidade_id: true,
         aberta: true,
         forcar_status: true,
         horarios_semana: true,

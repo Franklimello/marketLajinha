@@ -16,6 +16,7 @@ model Lojas {
   slug                  String    @unique
   categoria_negocio     String
   cidade                String
+  cidade_id             String?
   endereco              String    @default("")
   telefone              String    @default("")
   horario_funcionamento String    @default("")
@@ -53,10 +54,13 @@ model Lojas {
   cobrancas       CobrancaLojista[]
   promocoes       Promocao[]
   stories         LojaStory[]
+  posts           StorePost[]
+  cidadeRef       Cidades?   @relation(fields: [cidade_id], references: [id], onDelete: SetNull)
   token_impressao          String    @default("")
   categorias_desativadas   String    @default("[]")
 
   @@index([ativa, cidade])
+  @@index([cidade_id])
   @@index([categoria_negocio])
 }
 
@@ -178,6 +182,9 @@ model Clientes {
   fcmTokens  FcmToken[]
   cupomUsos  CupomUso[]
   avaliacoes Avaliacao[]
+  postLikes     PostLike[]
+  postComments  PostComment[]
+  postVotes     PostVote[]
 }
 
 model FcmToken {
@@ -220,10 +227,80 @@ model Cidades {
 
   estadoRef Estados? @relation(fields: [estado_id], references: [id], onDelete: SetNull)
   bairros Bairros[]
+  posts   StorePost[]
+  lojas   Lojas[]
 
   @@unique([estado, nome])
   @@index([estado, nome])
   @@index([estado_id])
+}
+
+model StorePost {
+  id           String   @id @default(cuid())
+  store_id     String
+  city_id      String
+  content      String
+  image_url    String?
+  post_type    String   @default("normal")
+  poll_options Json?
+  created_at   DateTime @default(now())
+  expires_at   DateTime
+
+  store    Lojas    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  city     Cidades  @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  likes    PostLike[]
+  comments PostComment[]
+  votes    PostVote[]
+
+  @@index([city_id, expires_at])
+  @@index([store_id, expires_at])
+  @@map("store_posts")
+}
+
+model PostLike {
+  id         String   @id @default(cuid())
+  post_id    String
+  user_id    String
+  created_at DateTime @default(now())
+
+  post StorePost @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user Clientes  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, user_id])
+  @@index([post_id])
+  @@index([user_id])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id         String   @id @default(cuid())
+  post_id    String
+  user_id    String
+  comment    String
+  created_at DateTime @default(now())
+
+  post StorePost @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user Clientes  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id, created_at])
+  @@index([user_id])
+  @@map("post_comments")
+}
+
+model PostVote {
+  id              String   @id @default(cuid())
+  post_id         String
+  user_id         String
+  option_selected String
+  created_at      DateTime @default(now())
+
+  post StorePost @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user Clientes  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, user_id])
+  @@index([post_id])
+  @@index([user_id])
+  @@map("post_votes")
 }
 
 model Estados {

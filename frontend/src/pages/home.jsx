@@ -1118,6 +1118,17 @@ export default function HomePage() {
         onClearBusca={() => setBusca('')}
       />
 
+      <Link
+        to="/feed-cidade"
+        className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 flex items-center justify-between hover:bg-red-100 transition-colors"
+      >
+        <div>
+          <p className="text-sm font-extrabold text-red-700">📢 Feed da Cidade</p>
+          <p className="text-xs text-red-600 mt-0.5">Novidades das lojas da sua cidade</p>
+        </div>
+        <span className="text-red-600 text-lg">→</span>
+      </Link>
+
       <HomeStoriesSection
         storiesCarregando={storiesCarregando}
         storiesGroups={storiesGroups}

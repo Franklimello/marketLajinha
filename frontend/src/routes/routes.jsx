@@ -10,6 +10,7 @@ const PerfilPage = lazy(() => import('../pages/perfil.jsx'))
 const LoginPage = lazy(() => import('../pages/login.jsx'))
 const CadastroPage = lazy(() => import('../pages/cadastro.jsx'))
 const SobrePage = lazy(() => import('../pages/sobre.jsx'))
+const FeedCidadePage = lazy(() => import('../pages/feedCidade.jsx'))
 const MotoboyLogin = lazy(() => import('../pages/motoboy/MotoboyLogin.jsx'))
 const MotoboyPedidos = lazy(() => import('../pages/motoboy/MotoboyPedidos.jsx'))
 
@@ -72,6 +73,7 @@ const router = createBrowserRouter([
       { path: '/login', element: <Lazy><LoginPage /></Lazy> },
       { path: '/cadastro', element: <Lazy><CadastroPage /></Lazy> },
       { path: '/sobre', element: <Lazy><SobrePage /></Lazy> },
+      { path: '/feed-cidade', element: <Lazy><FeedCidadePage /></Lazy> },
     ],
   },
   { path: '/motoboy', element: <Lazy><MotoboyLogin /></Lazy> },

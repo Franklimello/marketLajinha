@@ -119,6 +119,15 @@ export const api = {
   promocoes: {
     listarPorLoja: (lojaId) => cachedRequest(`/promocoes/loja/${lojaId}`),
   },
+  feed: {
+    listarPorCidade: (cityId) => request(`/feed/posts?city_id=${encodeURIComponent(String(cityId || ''))}`),
+    listarComentarios: (postId) => request(`/feed/posts/${postId}/comments`),
+    curtirToggle: (postId) => request(`/feed/posts/${postId}/like-toggle`, { method: 'POST' }),
+    comentar: (postId, comment) =>
+      request(`/feed/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ comment }) }),
+    votar: (postId, optionSelected) =>
+      request(`/feed/posts/${postId}/vote`, { method: 'POST', body: JSON.stringify({ option_selected: optionSelected }) }),
+  },
   stories: {
     listarAtivas: () => request('/stories/active'),
   },
