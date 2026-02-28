@@ -18,7 +18,7 @@ const NAV = [
   { to: '/produtos', icon: FiPackage, label: 'Cardápio' },
   { to: '/bairros', icon: FiMapPin, label: 'Bairros e Taxas' },
   { to: '/cupons', icon: FiTag, label: 'Cupons' },
-  { to: '/promocoes', icon: FiTrendingUp, label: 'Promoções' },
+  { to: '/promocoes', icon: FiTrendingUp, label: 'Promoções do dia' },
   { to: '/stories', icon: FiCamera, label: 'Stories' },
   { to: '/impressoras', icon: FiPrinter, label: 'Impressoras' },
   { to: '/combos', icon: FiGift, label: 'Combos' },

@@ -410,18 +410,18 @@ export default function Produtos() {
         </div>
       )}
 
-      {/* Sessão de destaques para desmarcar rápido */}
+      {/* Sessão de ofertas para desmarcar rápido */}
       {produtosDestaque.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <FiStar className="text-amber-600" />
-            <h2 className="text-sm font-bold text-stone-900">Produtos em destaque</h2>
+            <h2 className="text-sm font-bold text-stone-900">Produtos em oferta</h2>
             <span className="text-xs bg-white border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
               {produtosDestaque.length}
             </span>
           </div>
           <p className="text-xs text-stone-500 mb-3">
-            Use esta área para remover rapidamente produtos marcados como destaque.
+            Use esta área para remover rapidamente produtos marcados como oferta.
           </p>
           <div className="flex flex-wrap gap-2">
             {produtosDestaque.map((p) => (

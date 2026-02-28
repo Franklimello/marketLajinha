@@ -188,7 +188,7 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
 
   return (
     <div className="mb-5">
-      <h2 className="text-base font-bold text-stone-900 mb-3">Destaques</h2>
+      <h2 className="text-base font-bold text-stone-900 mb-3">Ofertas</h2>
       <div ref={ref} className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
         {produtos.map((p) => {
           const preco = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map(v => Number(v.preco))) : getPrecoProduto(p)
@@ -2086,7 +2086,7 @@ export default function LojaPage() {
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-3">
               <FiTag className="text-red-500" />
-              <h2 className="text-base font-bold text-stone-900">Promoções da loja</h2>
+              <h2 className="text-base font-bold text-stone-900">Promoções do dia</h2>
             </div>
             <HorizontalCards
               items={promocoes}
@@ -2123,6 +2123,9 @@ export default function LojaPage() {
                         )}
                         <p className="text-[13px] font-extrabold text-red-700 font-numeric leading-tight">
                           R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
+                        </p>
+                        <p className="text-[10px] font-semibold text-orange-600 mt-1 uppercase tracking-wide">
+                          Só hoje! Corra que vai acabar
                         </p>
                         <p className="text-[10px] text-stone-500 mt-0.5">Toque para abrir o produto</p>
                       </div>
