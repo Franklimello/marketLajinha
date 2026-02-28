@@ -42,6 +42,23 @@ function isStatusFinalizado(status) {
   return status === 'DELIVERED' || status === 'CANCELLED'
 }
 
+function getRiscoAlerta(pedido) {
+  const nivel = String(pedido?.risco_nivel || 'baixo').toLowerCase()
+  if (nivel === 'alto') {
+    return {
+      tipo: 'alto',
+      texto: 'ATENÇÃO: Cliente possui 2 ou mais pedidos cancelados após o lançamento do sistema. Recomenda-se confirmar pagamento antes de preparar.',
+    }
+  }
+  if (nivel === 'medio') {
+    return {
+      tipo: 'medio',
+      texto: 'Atenção: Cliente possui 1 pedido cancelado após o lançamento.',
+    }
+  }
+  return null
+}
+
 export default function Pedidos() {
   const { loja } = useAuth()
   const [pedidos, setPedidos] = useState([])
@@ -301,6 +318,7 @@ export default function Pedidos() {
             const st = STATUS_MAP[p.status] || STATUS_MAP.PENDING
             const pixOnline = isPixOnline(p)
             const pedidoColapsado = p.status === 'DELIVERED' || p.status === 'CANCELLED'
+            const riscoAlerta = getRiscoAlerta(p)
             return (
               <div
                 key={p.id}
@@ -310,6 +328,23 @@ export default function Pedidos() {
                 }}
                 className="bg-white rounded-xl border border-stone-200 p-4 hover:border-amber-300 hover:shadow-sm transition-all cursor-pointer"
               >
+                {riscoAlerta && (
+                  <div
+                    className={`mb-3 rounded-lg border px-3 py-2.5 ${
+                      riscoAlerta.tipo === 'alto'
+                        ? 'bg-red-50 border-red-300'
+                        : 'bg-amber-50 border-amber-300'
+                    }`}
+                  >
+                    <p
+                      className={`text-xs font-semibold leading-relaxed ${
+                        riscoAlerta.tipo === 'alto' ? 'text-red-800' : 'text-amber-800'
+                      }`}
+                    >
+                      {riscoAlerta.texto}
+                    </p>
+                  </div>
+                )}
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -554,6 +589,7 @@ function ChatLoja({ pedidoId, socketRef, onAviso }) {
 function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAviso }) {
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const pixOnline = isPixOnline(pedido)
+  const riscoAlerta = getRiscoAlerta(pedido)
   const [imprimindo, setImprimindo] = useState(false)
   const [statusModalAberto, setStatusModalAberto] = useState(false)
   const [alterandoStatus, setAlterandoStatus] = useState(false)
@@ -620,6 +656,23 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
         </div>
 
         <div className="p-5 space-y-5">
+          {riscoAlerta && (
+            <div
+              className={`rounded-lg border px-3 py-2.5 ${
+                riscoAlerta.tipo === 'alto'
+                  ? 'bg-red-50 border-red-300'
+                  : 'bg-amber-50 border-amber-300'
+              }`}
+            >
+              <p
+                className={`text-sm font-semibold leading-relaxed ${
+                  riscoAlerta.tipo === 'alto' ? 'text-red-800' : 'text-amber-800'
+                }`}
+              >
+                {riscoAlerta.texto}
+              </p>
+            </div>
+          )}
           {pixOnline && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
               <p className="text-sm font-semibold text-amber-800">

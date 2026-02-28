@@ -1,12 +1,57 @@
 const { prisma } = require('../config/database');
 const { calcularAbertaAgora } = require('./lojasService');
 const cuponsService = require('./cuponsService');
+const DATA_LANCAMENTO_OFICIAL = new Date('2026-02-28T00:00:00');
 
 const INCLUDE_ITENS = {
   itens: {
     include: { produto: { select: { id: true, nome: true, imagem_url: true } } },
   },
 };
+
+function calcularRiscoNivel(cancelamentosValidos) {
+  if (cancelamentosValidos >= 2) return 'alto';
+  if (cancelamentosValidos === 1) return 'medio';
+  return 'baixo';
+}
+
+async function obterCancelamentosValidosPorCliente(clienteIds = []) {
+  const idsValidos = [...new Set(clienteIds.filter(Boolean))];
+  if (idsValidos.length === 0) return new Map();
+
+  const agrupados = await prisma.pedidos.groupBy({
+    by: ['cliente_id'],
+    where: {
+      cliente_id: { in: idsValidos },
+      status: 'CANCELLED',
+      created_at: { gte: DATA_LANCAMENTO_OFICIAL },
+    },
+    _count: { _all: true },
+  });
+
+  const mapa = new Map();
+  for (const row of agrupados) {
+    if (!row.cliente_id) continue;
+    mapa.set(row.cliente_id, Number(row._count?._all || 0));
+  }
+  return mapa;
+}
+
+async function anexarRiscoPedidos(pedidos = []) {
+  if (!Array.isArray(pedidos) || pedidos.length === 0) return pedidos;
+  const mapaCancelamentos = await obterCancelamentosValidosPorCliente(
+    pedidos.map((p) => p?.cliente_id)
+  );
+
+  return pedidos.map((pedido) => {
+    const cancelamentosValidos = Number(mapaCancelamentos.get(pedido?.cliente_id) || 0);
+    return {
+      ...pedido,
+      cancelamentos_validos: cancelamentosValidos,
+      risco_nivel: calcularRiscoNivel(cancelamentosValidos),
+    };
+  });
+}
 
 async function listarPorLoja(lojaId, pagina = 1, limite = 50, filtros = {}) {
   const paginaNum = Math.max(1, parseInt(pagina, 10) || 1);
@@ -33,7 +78,8 @@ async function listarPorLoja(lojaId, pagina = 1, limite = 50, filtros = {}) {
     prisma.pedidos.count({ where }),
   ]);
 
-  return { dados, total, pagina: paginaNum, total_paginas: Math.ceil(total / limiteNum) };
+  const dadosComRisco = await anexarRiscoPedidos(dados);
+  return { dados: dadosComRisco, total, pagina: paginaNum, total_paginas: Math.ceil(total / limiteNum) };
 }
 
 async function listarPorCliente(clienteId) {
@@ -49,10 +95,13 @@ async function listarPorCliente(clienteId) {
 }
 
 async function buscarPorId(id) {
-  return prisma.pedidos.findUnique({
+  const pedido = await prisma.pedidos.findUnique({
     where: { id },
     include: { loja: { select: { id: true, nome: true } }, ...INCLUDE_ITENS },
   });
+  if (!pedido) return null;
+  const [pedidoComRisco] = await anexarRiscoPedidos([pedido]);
+  return pedidoComRisco;
 }
 
 /**
