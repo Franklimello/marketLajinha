@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -6,7 +6,11 @@ import {
   CardContent,
   Chip,
   Divider,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Typography,
 } from '@mui/material'
@@ -56,6 +60,29 @@ function idProduto(item) {
   return item?.produto_id || item?.produto?.id || nomeProduto(item)
 }
 
+function chaveMes(data) {
+  const d = new Date(data)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function labelMesAno(chave) {
+  const [ano, mes] = String(chave || '').split('-')
+  if (!ano || !mes) return chave
+  const data = new Date(Number(ano), Number(mes) - 1, 1)
+  return data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+}
+
+function intervaloMes(chave) {
+  const [ano, mes] = String(chave || '').split('-').map(Number)
+  if (!ano || !mes) return { inicio: '-', fim: '-' }
+  const inicio = new Date(ano, mes - 1, 1)
+  const fim = new Date(ano, mes, 0)
+  return {
+    inicio: inicio.toLocaleDateString('pt-BR'),
+    fim: fim.toLocaleDateString('pt-BR'),
+  }
+}
+
 export default function DashboardUAIFOOD({
   pedidos = [],
   apiMetrics = null,
@@ -79,6 +106,7 @@ export default function DashboardUAIFOOD({
     const pedidosHoje = pedidosValidos.filter((p) => inicioDoDia(p.created_at).getTime() === inicioHoje.getTime())
     const pedidos7 = pedidosValidos.filter((p) => new Date(p.created_at) >= inicio7)
     const pedidos30 = pedidosValidos.filter((p) => new Date(p.created_at) >= inicio30)
+    const faturamentoPorMes = {}
 
     const totalVendas = pedidosValidos.reduce((acc, p) => acc + Number(p?.total || 0), 0)
     const totalPedidosHoje = pedidosHoje.length
@@ -132,6 +160,12 @@ export default function DashboardUAIFOOD({
       if (Object.prototype.hasOwnProperty.call(vendasPorDiaMap, key)) {
         vendasPorDiaMap[key] += Number(p?.total || 0)
       }
+      const mes = chaveMes(p.created_at)
+      if (!faturamentoPorMes[mes]) {
+        faturamentoPorMes[mes] = { total: 0, pedidos: 0 }
+      }
+      faturamentoPorMes[mes].total += Number(p?.total || 0)
+      faturamentoPorMes[mes].pedidos += 1
     }
     const categoriasGrafico = dias.map((d) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }))
     const serieVendas = dias.map((d) => vendasPorDiaMap[chaveData(d)])
@@ -224,6 +258,7 @@ export default function DashboardUAIFOOD({
         ticketMedio,
         clientesAtivos,
       },
+      faturamentoPorMes,
       alertas,
       chart: {
         categoriasGrafico,
@@ -237,6 +272,24 @@ export default function DashboardUAIFOOD({
       clienteVipAlerta,
     }
   }, [pedidos, diasSerie])
+
+  const mesAtual = useMemo(() => chaveMes(new Date()), [])
+  const mesesDisponiveis = useMemo(() => {
+    const base = new Set(Object.keys(dados.faturamentoPorMes || {}))
+    base.add(mesAtual)
+    return [...base].sort((a, b) => b.localeCompare(a))
+  }, [dados.faturamentoPorMes, mesAtual])
+  const [mesSelecionado, setMesSelecionado] = useState(mesAtual)
+
+  useEffect(() => {
+    if (mesesDisponiveis.length === 0) return
+    if (!mesesDisponiveis.includes(mesSelecionado)) {
+      setMesSelecionado(mesesDisponiveis[0])
+    }
+  }, [mesesDisponiveis, mesSelecionado])
+
+  const resumoMes = dados.faturamentoPorMes[mesSelecionado] || { total: 0, pedidos: 0 }
+  const periodoMes = intervaloMes(mesSelecionado)
 
   const metrics = apiMetrics || dados.kpis
 
@@ -344,6 +397,43 @@ export default function DashboardUAIFOOD({
           </Grid>
         ))}
       </Grid>
+
+      <Card variant="outlined">
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filtro-mes-label">Filtrar mês</InputLabel>
+                <Select
+                  labelId="filtro-mes-label"
+                  value={mesSelecionado}
+                  label="Filtrar mês"
+                  onChange={(e) => setMesSelecionado(String(e.target.value))}
+                >
+                  {mesesDisponiveis.map((mes) => (
+                    <MenuItem key={mes} value={mes}>
+                      {labelMesAno(mes)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={8}>
+              <Stack spacing={0.5}>
+                <Typography variant="overline" color="text.secondary">
+                  Faturamento do mês selecionado
+                </Typography>
+                <Typography variant="h5" fontWeight={800}>
+                  {moeda(resumoMes.total)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Período: {periodoMes.inicio} até {periodoMes.fim} • {resumoMes.pedidos} pedido(s)
+                </Typography>
+              </Stack>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       {dados.alertas.length > 0 && (
         <Stack spacing={1}>
