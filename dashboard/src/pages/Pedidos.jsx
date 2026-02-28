@@ -462,9 +462,11 @@ function ChatLoja({ pedidoId, socketRef, onAviso }) {
   function handleSelecionarArquivo(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    const permitidos = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-    if (!permitidos.includes(file.type)) {
-      onAviso?.('Formato inválido. Envie JPG, PNG, WEBP ou PDF.', 'erro')
+    const mime = String(file.type || '').toLowerCase()
+    const isImagem = mime.startsWith('image/')
+    const isPdf = mime === 'application/pdf'
+    if (!isImagem && !isPdf) {
+      onAviso?.('Formato inválido. Envie imagem ou PDF.', 'erro')
       e.target.value = ''
       return
     }
@@ -503,7 +505,9 @@ function ChatLoja({ pedidoId, socketRef, onAviso }) {
       setTexto('')
       limparArquivo()
       setTimeout(() => scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight), 50)
-    } catch {}
+    } catch (err) {
+      onAviso?.(err?.message || 'Não foi possível enviar o anexo agora.', 'erro')
+    }
     finally { setEnviando(false) }
   }
 
@@ -559,25 +563,34 @@ function ChatLoja({ pedidoId, socketRef, onAviso }) {
             <button type="button" onClick={limparArquivo} className="text-[11px] text-red-500 hover:text-red-600">Remover</button>
           </div>
         )}
-        <form onSubmit={enviar} className="flex border-t border-amber-200 bg-white">
+        <form onSubmit={enviar} className="flex items-center gap-1 px-1 border-t border-amber-200 bg-white">
           <input
             ref={fileInputRef}
             type="file"
-            accept=".jpg,.jpeg,.png,.webp,.pdf"
+            accept="image/*,.pdf"
             onChange={handleSelecionarArquivo}
             className="hidden"
           />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 text-amber-500 hover:text-amber-700">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-9 h-9 shrink-0 inline-flex items-center justify-center text-amber-500 hover:text-amber-700"
+          >
             <FiPaperclip size={16} />
           </button>
           <input
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Responder cliente..."
-            className="flex-1 px-3 py-2.5 text-sm border-0 focus:ring-0 outline-none placeholder:text-stone-400"
+            className="min-w-0 flex-1 px-2 py-2.5 text-sm border-0 focus:ring-0 outline-none placeholder:text-stone-400"
             maxLength={500}
           />
-          <button type="submit" disabled={enviando || (!texto.trim() && !arquivo)} className="px-4 text-amber-600 hover:text-amber-700 disabled:text-stone-300">
+          <button
+            type="submit"
+            disabled={enviando || (!texto.trim() && !arquivo)}
+            className="w-9 h-9 shrink-0 rounded-lg bg-amber-600 text-white inline-flex items-center justify-center hover:bg-amber-700 disabled:bg-stone-300 disabled:text-white"
+            aria-label="Enviar mensagem"
+          >
             <FiSend size={16} />
           </button>
         </form>
