@@ -29,7 +29,8 @@ export default function App() {
           <Route path="/cadastro-loja" element={<CadastroLoja />} />
 
           <Route element={<DashLayout />}>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/pedidos" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/minha-loja" element={<MinhaLoja />} />
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/pedidos" element={<Pedidos />} />
@@ -46,7 +47,7 @@ export default function App() {
             <Route path="/admin" element={<AdminSistema />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/pedidos" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

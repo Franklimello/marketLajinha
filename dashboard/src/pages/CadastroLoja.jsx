@@ -58,7 +58,7 @@ export default function CadastroLoja() {
   }, [form.estado])
 
   if (user && loja) {
-    navigate('/')
+    navigate('/pedidos')
     return null
   }
 
@@ -174,7 +174,7 @@ export default function CadastroLoja() {
 
       const lojaCriada = await api.lojas.criar(dadosLoja)
       atualizarLoja(lojaCriada)
-      navigate('/')
+      navigate('/pedidos')
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setErro('Este e-mail já está em uso. Faça login ou use outro.')

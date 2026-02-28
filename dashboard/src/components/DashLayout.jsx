@@ -13,7 +13,7 @@ import { usePWA } from '../hooks/usePWA'
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const NAV = [
-  { to: '/', icon: FiGrid, label: 'Dashboard' },
+  { to: '/dashboard', icon: FiGrid, label: 'Dashboard' },
   { to: '/pedidos', icon: FiClipboard, label: 'Pedidos' },
   { to: '/produtos', icon: FiPackage, label: 'Cardápio' },
   { to: '/bairros', icon: FiMapPin, label: 'Bairros e Taxas' },
