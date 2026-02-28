@@ -2090,13 +2090,13 @@ export default function LojaPage() {
             </div>
             <HorizontalCards
               items={promocoes}
-              cardStep={200}
+              cardStep={132}
               renderItem={(promo) => (
                 <button
                   key={promo.id}
                   type="button"
                   onClick={() => abrirProdutoDaPromocao(promo)}
-                  className="snap-start shrink-0 w-[188px] text-left bg-white border border-stone-200 rounded-2xl p-2.5 shadow-sm hover:shadow-md transition-shadow"
+                  className="snap-start shrink-0 w-[120px] text-left bg-white border border-stone-200 rounded-xl p-1.5 shadow-sm"
                 >
                   {(promo.imagem_url || promo.produto?.imagem_url) ? (
                     <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
@@ -2112,21 +2112,21 @@ export default function LojaPage() {
                       <FiTag className="text-amber-600 text-xl" />
                     </div>
                   )}
-                  <div className="mt-2">
-                    <h3 className="text-[20px] font-extrabold text-stone-900 leading-tight line-clamp-1">
+                  <div className="mt-1.5">
+                    <h3 className="text-xs font-semibold text-stone-900 line-clamp-1">
                       {promo.produto?.nome || promo.titulo}
                     </h3>
                     {Number(promo.preco_promocional || 0) > 0 && (
-                      <div className="mt-1.5">
+                      <div className="mt-1">
                         {Number(promo.produto?.preco || 0) > 0 && (
-                          <p className="text-[13px] text-stone-500 line-through font-numeric">
+                          <p className="text-xs text-stone-500 line-through font-numeric">
                             R$ {Number(promo.produto.preco).toFixed(2).replace('.', ',')}
                           </p>
                         )}
-                        <p className="text-[18px] leading-tight font-extrabold text-red-800 font-numeric">
+                        <p className="text-[13px] font-extrabold text-red-700 font-numeric leading-tight">
                           R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
                         </p>
-                        <p className="text-[14px] font-medium text-amber-800 mt-2 uppercase leading-tight">
+                        <p className="text-[10px] font-semibold text-orange-600 mt-1 uppercase tracking-wide leading-tight">
                           Só hoje! Corra que vai acabar
                         </p>
                       </div>
