@@ -7,12 +7,13 @@ export default function HomeGreeting({
   cidadePadrao,
 }) {
   const cidadeAtual = cidadeSelecionada || cidadeGeo || cidadePadrao
+  const primeiroNome = String(cliente?.nome || '').trim().split(' ')[0]
+  const saudacaoFinal = String(saudacaoTexto || '').replace('__NOME__', primeiroNome ? `${primeiroNome} ` : '')
 
   return (
     <div className="mb-4">
       <h2 className="text-xl font-bold text-stone-900">
-        {saudacaoTexto}
-        {cliente?.nome ? <>, <span className="text-red-500">{cliente.nome.split(' ')[0]}</span></> : ''}!
+        {saudacaoFinal}
       </h2>
       <p className="text-sm text-stone-400 mt-0.5">
         {lojasAbertasCount > 0

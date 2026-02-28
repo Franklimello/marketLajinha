@@ -140,9 +140,9 @@ const CATEGORIA_CORES_FALLBACK = [
 function saudacao() {
   const h = new Date().getHours()
   
-  if (h < 12) return 'Bom dia ☀️ Bora começar o dia com algo gostoso?'
-  if (h < 18) return 'Boa tarde 🍔 Que tal aquele lanche agora?'
-  return 'Boa noite 🌙 Já escolheu o jantar de hoje?'
+  if (h < 12) return 'Bom dia ☀️ __NOME__Bora começar o dia com algo gostoso?'
+  if (h < 18) return 'Boa tarde 🍔 __NOME__Que tal aquele lanche agora?'
+  return 'Boa noite 🌙 __NOME__Já escolheu o jantar de hoje?'
 }
 
 function resolverCidadePadraoCliente(cliente) {
