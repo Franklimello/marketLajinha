@@ -42,6 +42,111 @@ function isStatusFinalizado(status) {
   return status === 'DELIVERED' || status === 'CANCELLED'
 }
 
+function escapeHtml(valor) {
+  return String(valor ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function abrirImpressaoNavegador(pedido) {
+  const popup = window.open('', '_blank', 'width=420,height=740')
+  if (!popup) return false
+
+  const itensHtml = (pedido.itens || []).map((item) => {
+    const nome = escapeHtml(item?.produto?.nome || 'Produto')
+    const qtd = Number(item?.quantidade || 0)
+    const subtotal = formatCurrency(Number(item?.preco_unitario || 0) * qtd)
+    return `<div class="linha-item"><span>${qtd}x ${nome}</span><strong>${subtotal}</strong></div>`
+  }).join('')
+
+  const total = formatCurrency(pedido?.total || 0)
+  const data = formatDate(pedido?.created_at)
+  const cliente = escapeHtml(pedido?.nome_cliente || 'Cliente')
+  const telefone = escapeHtml(pedido?.telefone_cliente || '-')
+  const endereco = escapeHtml(pedido?.endereco || '-')
+  const bairro = escapeHtml(pedido?.bairro || '-')
+  const referencia = escapeHtml(pedido?.referencia || '-')
+  const observacao = escapeHtml(pedido?.observacao || '-')
+  const pagamento = escapeHtml(PAGAMENTO_MAP[pedido?.forma_pagamento] || pedido?.forma_pagamento || '-')
+  const tipoEntrega = pedido?.tipo_entrega === 'RETIRADA' ? 'Retirada' : 'Entrega'
+  const idCurto = escapeHtml(String(pedido?.id || '').slice(-8))
+
+  const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Pedido ${idCurto}</title>
+    <style>
+      @page { size: 72mm auto; margin: 4mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, sans-serif; font-size: 12px; color: #111; }
+      .topo { text-align: center; margin-bottom: 8px; }
+      .titulo { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+      .sub { font-size: 11px; color: #444; }
+      .bloco { border-top: 1px dashed #999; padding-top: 6px; margin-top: 6px; }
+      .rotulo { font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 2px; }
+      .valor { font-size: 12px; margin-bottom: 4px; }
+      .linha-item { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; }
+      .total { border-top: 1px dashed #999; margin-top: 8px; padding-top: 8px; font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; }
+      .fim { text-align: center; margin-top: 12px; color: #555; font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <div class="topo">
+      <div class="titulo">Pedido</div>
+      <div class="sub">#${idCurto}</div>
+      <div class="sub">${data}</div>
+    </div>
+
+    <div class="bloco">
+      <div class="rotulo">Cliente</div>
+      <div class="valor">${cliente}</div>
+      <div class="rotulo">Telefone</div>
+      <div class="valor">${telefone}</div>
+      <div class="rotulo">Tipo de entrega</div>
+      <div class="valor">${tipoEntrega}</div>
+      <div class="rotulo">Endereço</div>
+      <div class="valor">${endereco}</div>
+      <div class="rotulo">Bairro</div>
+      <div class="valor">${bairro}</div>
+      <div class="rotulo">Referência</div>
+      <div class="valor">${referencia}</div>
+    </div>
+
+    <div class="bloco">
+      <div class="rotulo">Itens do pedido</div>
+      ${itensHtml || '<div class="valor">Sem itens</div>'}
+    </div>
+
+    <div class="bloco">
+      <div class="rotulo">Pagamento</div>
+      <div class="valor">${pagamento}</div>
+      <div class="rotulo">Observação</div>
+      <div class="valor">${observacao}</div>
+      <div class="total"><span>Total</span><span>${total}</span></div>
+    </div>
+
+    <div class="fim">UaiFood - impressão via navegador</div>
+
+    <script>
+      window.onload = function () {
+        window.focus();
+        window.print();
+        setTimeout(function () { window.close(); }, 300);
+      };
+    </script>
+  </body>
+</html>`
+
+  popup.document.open()
+  popup.document.write(html)
+  popup.document.close()
+  return true
+}
+
 function getRiscoAlerta(pedido) {
   const nivel = String(pedido?.risco_nivel || 'baixo').toLowerCase()
   if (nivel === 'alto') {
@@ -646,21 +751,20 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
     return () => clearTimeout(t)
   }, [statusAviso])
 
-  async function handleImprimir() {
+  function handleImprimir() {
     setImprimindo(true)
     try {
-      const res = await api.impressoras.imprimir(pedido.id)
-      const setores = res.setores || []
-      const erros = setores.filter((s) => s.status === 'erro' || s.status === 'sem_impressora')
-      if (erros.length === 0) {
-        onAviso?.('Impressão enviada com sucesso!', 'sucesso')
-      } else {
-        const msgs = erros.map((s) => `${s.setor}: ${s.erro || 'sem impressora cadastrada'}`).join('\n')
-        onAviso?.(`Alguns setores não foram impressos: ${msgs}`, 'erro')
+      const abriu = abrirImpressaoNavegador(pedido)
+      if (!abriu) {
+        onAviso?.('O navegador bloqueou a janela de impressão. Libere pop-ups e tente novamente.', 'erro')
+        return
       }
+      onAviso?.('Janela de impressão aberta.', 'sucesso')
     } catch (err) {
       onAviso?.(`Erro: ${err.message}`, 'erro')
-    } finally { setImprimindo(false) }
+    } finally {
+      setTimeout(() => setImprimindo(false), 150)
+    }
   }
 
   async function handleMudarStatusConfirmado(novoStatus) {
