@@ -33,6 +33,12 @@ import HomeCategoriesSection from '../componentes/home/HomeCategoriesSection'
 import HomeLoadingState from '../componentes/home/HomeLoadingState'
 import HomeEmptyState from '../componentes/home/HomeEmptyState'
 import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
+import {
+  getFeedCache,
+  resolveFeedCityFromStores,
+  setFeedCache,
+  getResolvedFeedCity,
+} from '../utils/feedCache'
 
 const SUPORTE_WHATSAPP = '5533999394706'
 const SUPORTE_NOME = 'Franklim'
@@ -719,6 +725,7 @@ export default function HomePage() {
   const catRef = useRef(null)
   const lojasComTaxaCarregadaRef = useRef(new Set())
   const storyTouchStartYRef = useRef(null)
+  const feedPrefetchRef = useRef({ cityId: '', ts: 0 })
 
   const cachedHome = getLocalItem(HOME_CACHE_KEY, null)
   const cachedHomeData =
@@ -778,6 +785,51 @@ export default function HomePage() {
     setCidadePadrao(cidade)
     setBairroPadrao(bairro)
   }, [cliente])
+
+  useEffect(() => {
+    if (!Array.isArray(lojas) || lojas.length === 0) return
+
+    const cidadeBase = String(cidadeSelecionada || resolverCidadePadraoCliente(cliente) || '').trim()
+    const cidadeResolvida = getResolvedFeedCity()
+    const alvo = resolveFeedCityFromStores(lojas, cidadeBase || cidadeResolvida?.nome, cidadeResolvida?.id)
+    if (!alvo?.id) return
+
+    const ultimoPrefetch = feedPrefetchRef.current
+    const agora = Date.now()
+    if (ultimoPrefetch.cityId === alvo.id && agora - ultimoPrefetch.ts < 90_000) return
+    const cacheAtual = getFeedCache(alvo.id)
+    if (cacheAtual?.posts && agora - Number(cacheAtual.ts || 0) < 90_000) {
+      feedPrefetchRef.current = { cityId: alvo.id, ts: agora }
+      return
+    }
+
+    let cancelado = false
+    let idleId = null
+    let timeoutId = null
+
+    const tarefa = async () => {
+      try {
+        const posts = await api.feed.listarPorCidade(alvo.id)
+        if (cancelado) return
+        setFeedCache(alvo, Array.isArray(posts) ? posts : [])
+        feedPrefetchRef.current = { cityId: alvo.id, ts: Date.now() }
+      } catch {
+        // prefetch silencioso para não impactar UX da home
+      }
+    }
+
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(() => { tarefa() }, { timeout: 1200 })
+    } else {
+      timeoutId = window.setTimeout(() => { tarefa() }, 450)
+    }
+
+    return () => {
+      cancelado = true
+      if (timeoutId) clearTimeout(timeoutId)
+      if (idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
+    }
+  }, [lojas, cidadeSelecionada, cliente])
 
   useEffect(() => {
     lojasComTaxaCarregadaRef.current.clear()

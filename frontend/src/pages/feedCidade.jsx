@@ -5,6 +5,12 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
 import { getItem as getLocalItem } from '../storage/localStorageService'
+import {
+  getFeedCache,
+  getResolvedFeedCity,
+  resolveFeedCityFromStores,
+  setFeedCache,
+} from '../utils/feedCache'
 
 const SELECTED_CITY_KEY = 'selectedCity'
 
@@ -215,24 +221,35 @@ export default function FeedCidadePage() {
   useEffect(() => {
     let cancelado = false
     async function carregar() {
-      setLoading(true)
+      const cidadeSelecionada = String(getLocalItem(SELECTED_CITY_KEY, '') || '').trim()
+      const cidadeFallback = cidadeDoCliente(cliente)
+      const cidadeBase = cidadeSelecionada || cidadeFallback
+      const cidadeResolvida = getResolvedFeedCity()
+      const podeSemearDoCache =
+        cidadeResolvida?.id &&
+        (!cidadeBase || cidadeResolvida.nome.toLowerCase() === cidadeBase.toLowerCase())
+
+      if (podeSemearDoCache) {
+        const cache = getFeedCache(cidadeResolvida.id)
+        if (cache?.posts) {
+          setCityInfo(cache.city || cidadeResolvida)
+          setPosts(cache.posts)
+          setLoading(false)
+        } else {
+          setLoading(true)
+        }
+      } else {
+        setLoading(true)
+      }
       setErro('')
       try {
-        const cidadeSelecionada = String(getLocalItem(SELECTED_CITY_KEY, '') || '').trim()
-        const cidadeFallback = cidadeDoCliente(cliente)
-        const cidadeBase = cidadeSelecionada || cidadeFallback
-
         const lojas = await api.lojas.home()
         const lista = Array.isArray(lojas) ? lojas : []
-        const cidadesMap = new Map()
-        for (const loja of lista) {
-          const id = String(loja?.cidade_id || '').trim()
-          const nome = String(loja?.cidade || '').trim()
-          if (!id || !nome || cidadesMap.has(id)) continue
-          cidadesMap.set(id, { id, nome })
-        }
-        const cidades = [...cidadesMap.values()]
-        const alvo = cidades.find((c) => c.nome.toLowerCase() === cidadeBase.toLowerCase()) || cidades[0]
+        const alvo = resolveFeedCityFromStores(
+          lista,
+          cidadeBase || cidadeResolvida?.nome,
+          cidadeResolvida?.id
+        )
         if (!alvo?.id) {
           throw new Error('Nenhuma cidade com lojas disponível para o feed.')
         }
@@ -241,6 +258,7 @@ export default function FeedCidadePage() {
         if (cancelado) return
         setCityInfo(alvo)
         setPosts(Array.isArray(feed) ? feed : [])
+        setFeedCache(alvo, Array.isArray(feed) ? feed : [])
       } catch (e) {
         if (!cancelado) setErro(e.message || 'Não foi possível carregar o feed.')
       } finally {
