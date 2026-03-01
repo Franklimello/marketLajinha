@@ -23,8 +23,6 @@ const PAGAMENTO_MAP = {
   CASH: 'Dinheiro',
 }
 const PIX_ONLINE_TAG = '[PIX ONLINE]'
-const PEDIDOS_ABA_FIXA_KEY = 'uaifood:pedidos_aba_fixa'
-const PEDIDOS_AUTO_PRINT_USB_KEY = 'uaifood:pedidos_auto_print_usb'
 
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -205,21 +203,6 @@ export default function Pedidos() {
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
   const [wsConectado, setWsConectado] = useState(false)
   const [feedback, setFeedback] = useState(null)
-  const [autoPrintUsb, setAutoPrintUsb] = useState(() => {
-    try {
-      return localStorage.getItem(PEDIDOS_AUTO_PRINT_USB_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
-  const [pedidoPrintPendente, setPedidoPrintPendente] = useState(null)
-  const [modoAbaFixa, setModoAbaFixa] = useState(() => {
-    try {
-      return localStorage.getItem(PEDIDOS_ABA_FIXA_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
   const audioRef = useRef(null)
   const socketRef = useRef(null)
   const intervaloRef = useRef(null)
@@ -229,7 +212,6 @@ export default function Pedidos() {
   const primeiraCargaRef = useRef(true)
   const filtroStatusRef = useRef('APPROVED')
   const buscaRef = useRef('')
-  const autoPrintUsbRef = useRef(false)
 
   useEffect(() => {
     filtroStatusRef.current = filtroStatus
@@ -240,94 +222,15 @@ export default function Pedidos() {
   }, [busca])
 
   useEffect(() => {
-    autoPrintUsbRef.current = autoPrintUsb
-  }, [autoPrintUsb])
-
-  useEffect(() => {
     return () => {
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
     }
   }, [])
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(PEDIDOS_ABA_FIXA_KEY, modoAbaFixa ? '1' : '0')
-    } catch {
-      // noop
-    }
-  }, [modoAbaFixa])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(PEDIDOS_AUTO_PRINT_USB_KEY, autoPrintUsb ? '1' : '0')
-    } catch {
-      // noop
-    }
-  }, [autoPrintUsb])
-
-  useEffect(() => {
-    if (!modoAbaFixa) return undefined
-    function handleBeforeUnload(e) {
-      e.preventDefault()
-      e.returnValue = ''
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [modoAbaFixa])
-
   function mostrarFeedback(texto, tipo = 'erro') {
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
     setFeedback({ texto, tipo })
     feedbackTimerRef.current = setTimeout(() => setFeedback(null), 2600)
-  }
-
-  function tocarAlertaForte() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext
-    if (!AudioCtx) return
-    const ctx = new AudioCtx()
-    const sequencia = [0, 220, 460]
-    for (const inicio of sequencia) {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'square'
-      osc.frequency.value = 880
-      gain.gain.value = 0.0001
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      const t0 = ctx.currentTime + inicio / 1000
-      gain.gain.exponentialRampToValueAtTime(0.45, t0 + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18)
-      osc.start(t0)
-      osc.stop(t0 + 0.2)
-    }
-    setTimeout(() => {
-      ctx.close().catch(() => {})
-    }, 900)
-  }
-
-  function tentarImpressaoUsbAutomatica(pedido) {
-    const abriu = abrirImpressaoNavegador(pedido)
-    if (!abriu) {
-      setPedidoPrintPendente(pedido)
-      mostrarFeedback('Pop-up bloqueado. Clique em "Imprimir agora".', 'erro')
-      tocarAlertaForte()
-      return false
-    }
-    setPedidoPrintPendente(null)
-    mostrarFeedback('Impressão USB iniciada automaticamente.', 'sucesso')
-    return true
-  }
-
-  function imprimirAgoraPendente() {
-    if (!pedidoPrintPendente) return
-    const abriu = abrirImpressaoNavegador(pedidoPrintPendente)
-    if (!abriu) {
-      mostrarFeedback('Ainda bloqueado. Permita pop-up para este site.', 'erro')
-      tocarAlertaForte()
-      return
-    }
-    setPedidoPrintPendente(null)
-    mostrarFeedback('Janela de impressão aberta.', 'sucesso')
   }
 
   function montarParamsConsulta() {
@@ -410,11 +313,6 @@ export default function Pedidos() {
       })
       setUltimaAtualizacao(new Date())
       audioRef.current?.play()?.catch(() => {})
-      setPedidoAberto(pedido)
-      setNaoLidasMap((prev) => ({ ...prev, [pedido.id]: 0 }))
-      if (autoPrintUsbRef.current) {
-        tentarImpressaoUsbAutomatica(pedido)
-      }
     })
 
     socket.on('pedido:atualizado', (pedidoAtualizado) => {
@@ -518,45 +416,6 @@ export default function Pedidos() {
           <button onClick={() => carregarPedidos(true)} title="Atualizar agora" className="p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition">
             <FiRefreshCw size={20} />
           </button>
-        </div>
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex flex-wrap items-center gap-2 justify-between">
-          <p className="text-xs sm:text-sm text-amber-900">
-            Modo aba fixa: mantenha esta guia em <strong>/pedidos</strong> aberta para receber pedidos em tempo real.
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setModoAbaFixa((prev) => !prev)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                modoAbaFixa
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'
-              }`}
-              title="Evita fechar/recarregar acidentalmente esta aba"
-            >
-              {modoAbaFixa ? 'Aba fixa: ATIVA' : 'Ativar aba fixa'}
-            </button>
-            <button
-              type="button"
-              onClick={() => window.open('/pedidos', '_blank', 'noopener,noreferrer')}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-stone-700 border border-stone-300 hover:bg-stone-50"
-              title="Abra em outra guia e use Fixar guia no navegador"
-            >
-              Abrir em nova aba
-            </button>
-            <button
-              type="button"
-              onClick={() => setAutoPrintUsb((prev) => !prev)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                autoPrintUsb
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-50'
-              }`}
-              title="Tenta imprimir USB automaticamente ao detectar pedido novo"
-            >
-              {autoPrintUsb ? 'Auto print USB: ATIVO' : 'Ativar auto print USB'}
-            </button>
-          </div>
         </div>
         <audio ref={audioRef} src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2JkZWTjHxybG16iJSdnpiQg3VtcIGRnaalm5CDdG90gZGfo6Sgk4R2cXSCkZ+koZiMfnRyeYiXoaOemIyCdnN3hZSfoaCXi392c3eElp+joZiMfnZzeIWWoaOel4t+dXJ3" preload="auto" />
       </div>
@@ -709,7 +568,6 @@ export default function Pedidos() {
           onMudarStatus={mudarStatus}
           socketRef={socketRef}
           onAviso={mostrarFeedback}
-          onImpressaoUsbSucesso={() => setPedidoPrintPendente(null)}
         />
       )}
 
@@ -727,25 +585,6 @@ export default function Pedidos() {
         </div>
       )}
 
-      {pedidoPrintPendente && (
-        <div className="fixed inset-x-0 bottom-4 z-80 px-4">
-          <div className="max-w-lg mx-auto rounded-2xl border border-red-300 bg-red-600 text-white shadow-2xl p-4">
-            <p className="text-sm font-semibold">
-              Pop-up bloqueado no pedido #{String(pedidoPrintPendente?.id || '').slice(-8)}.
-            </p>
-            <p className="text-xs text-red-100 mt-1">
-              Clique no botão abaixo para imprimir agora e não perder o pedido.
-            </p>
-            <button
-              type="button"
-              onClick={imprimirAgoraPendente}
-              className="mt-3 w-full rounded-xl bg-white text-red-700 font-extrabold text-base py-3 hover:bg-red-50 transition-colors"
-            >
-              Imprimir agora
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -917,7 +756,7 @@ function ChatLoja({ pedidoId, socketRef, onAviso }) {
   )
 }
 
-function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAviso, onImpressaoUsbSucesso }) {
+function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAviso }) {
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const pixOnline = isPixOnline(pedido)
   const riscoAlerta = getRiscoAlerta(pedido)
@@ -961,7 +800,6 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
         return
       }
       onAviso?.('Janela de impressão aberta.', 'sucesso')
-      onImpressaoUsbSucesso?.()
     } catch (err) {
       onAviso?.(`Erro: ${err.message}`, 'erro')
     } finally {
