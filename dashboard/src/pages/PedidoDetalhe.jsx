@@ -32,6 +32,12 @@ function isPixOnline(pedido) {
   return pedido?.forma_pagamento === 'PIX' && String(pedido?.observacao || '').includes(PIX_ONLINE_TAG)
 }
 
+function labelPagamentoPedido(pedido) {
+  const forma = String(pedido?.forma_pagamento || '').toUpperCase()
+  if (forma === 'PIX') return isPixOnline(pedido) ? 'PIX online' : 'PIX na entrega'
+  return PAGAMENTO_MAP[forma] || pedido?.forma_pagamento || '-'
+}
+
 export default function PedidoDetalhe() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -192,7 +198,7 @@ export default function PedidoDetalhe() {
         </div>
         <div className="p-4 border-t border-stone-200 flex justify-between items-center bg-stone-50 rounded-b-xl">
           <div className="text-sm text-stone-500">
-            {PAGAMENTO_MAP[pedido.forma_pagamento] || pedido.forma_pagamento} &middot; {formatDate(pedido.created_at)}
+            {labelPagamentoPedido(pedido)} &middot; {formatDate(pedido.created_at)}
           </div>
           <span className="text-xl font-bold text-stone-900">{formatCurrency(pedido.total)}</span>
         </div>

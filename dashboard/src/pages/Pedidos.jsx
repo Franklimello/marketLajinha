@@ -38,6 +38,12 @@ function isPixOnline(pedido) {
   return pedido?.forma_pagamento === 'PIX' && String(pedido?.observacao || '').includes(PIX_ONLINE_TAG)
 }
 
+function labelPagamentoPedido(pedido) {
+  const forma = String(pedido?.forma_pagamento || '').toUpperCase()
+  if (forma === 'PIX') return isPixOnline(pedido) ? 'PIX online' : 'PIX na entrega'
+  return PAGAMENTO_MAP[forma] || pedido?.forma_pagamento || '-'
+}
+
 function isStatusFinalizado(status) {
   return status === 'DELIVERED' || status === 'CANCELLED'
 }
@@ -89,7 +95,7 @@ function abrirImpressaoNavegador(pedido) {
   const bairro = escapeHtml(pedido?.bairro || '-')
   const referencia = escapeHtml(pedido?.referencia || '-')
   const observacao = escapeHtml(limparObservacaoImpressao(pedido?.observacao))
-  const pagamento = escapeHtml(PAGAMENTO_MAP[pedido?.forma_pagamento] || pedido?.forma_pagamento || '-')
+  const pagamento = escapeHtml(labelPagamentoPedido(pedido))
   const tipoEntrega = pedido?.tipo_entrega === 'RETIRADA' ? 'Retirada' : 'Entrega'
   const idCurto = escapeHtml(String(pedido?.id || '').slice(-8))
 
@@ -177,7 +183,7 @@ function getRiscoAlerta(pedido) {
   if (nivel === 'medio') {
     return {
       tipo: 'medio',
-      texto: 'Atenção: Cliente possui 1 pedido cancelado após o lançamento.',
+      texto: 'Atenção: Cliente possui 1 pedido cancelado no UaiFood.',
     }
   }
   return null
@@ -535,7 +541,7 @@ export default function Pedidos() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-bold text-stone-900">{formatCurrency(p.total)}</p>
-                    <p className="text-xs text-stone-400">{PAGAMENTO_MAP[p.forma_pagamento] || p.forma_pagamento}</p>
+                    <p className="text-xs text-stone-400">{labelPagamentoPedido(p)}</p>
                   </div>
                 </div>
 
@@ -968,7 +974,7 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
           <div className="bg-stone-50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-stone-500">Pagamento</span>
-              <span className="font-medium text-stone-900">{PAGAMENTO_MAP[pedido.forma_pagamento] || pedido.forma_pagamento}</span>
+              <span className="font-medium text-stone-900">{labelPagamentoPedido(pedido)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-stone-500">Data</span>
