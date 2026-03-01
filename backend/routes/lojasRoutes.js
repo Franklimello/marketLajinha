@@ -13,6 +13,7 @@ router.get('/home', lojasController.home);
 router.get('/ativos', lojasController.listarAtivas);
 router.get('/minha', authMiddleware, requireAuth, lojasController.buscarMinhaLoja);
 router.get('/slug/:slug', lojasController.buscarPorSlug);
+router.get('/:id/status', authMiddleware, requireAuth, lojasController.obterStatusOperacional);
 router.get('/:lojaId/produtos', produtosController.listarPorLoja);
 router.get('/:id', lojasController.buscarPorId);
 

@@ -3,7 +3,7 @@ const clientesService = require('../services/clientesService');
 const { statusPedidoEnum, formaPagamentoEnum } = require('../schemas/pedidosSchema');
 const { imprimirPedidoPorSetor } = require('../services/impressaoService');
 const { notificarCliente, notificarLoja } = require('../services/notificacaoService');
-const { emitNovoPedido, emitStatusPedido } = require('../config/socket');
+const { emitNovoPedido, emitStatusPedido, getIO } = require('../config/socket');
 
 async function listar(req, res, next) {
   try {
@@ -58,6 +58,11 @@ async function criar(req, res, next) {
     const pedido = await pedidosService.criar(dados);
 
     emitNovoPedido(dados.loja_id, pedido);
+    getIO()?.to(`store_${dados.loja_id}`).emit('order_status', {
+      orderId: pedido.id,
+      status: 'printing',
+      createdAt: new Date().toISOString(),
+    });
 
     imprimirPedidoPorSetor(pedido.id).catch((err) => {
       console.error(`[Impressão Auto] Falha ao imprimir pedido ${pedido.id}:`, err.message);

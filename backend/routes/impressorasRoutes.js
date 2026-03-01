@@ -4,6 +4,7 @@ const ctrl = require('../controllers/impressorasController');
 const { authMiddleware, requireAuth, requireAdmin } = require('../middleware');
 
 router.get('/fila', ctrl.filaAgente);
+router.get('/agente/printers', ctrl.listarAgente);
 router.patch('/fila/:id/impresso', ctrl.filaMarcarImpresso);
 router.patch('/fila/:id/erro', ctrl.filaMarcarErro);
 

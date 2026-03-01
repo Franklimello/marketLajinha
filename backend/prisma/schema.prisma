@@ -417,8 +417,10 @@ model Impressora {
   loja_id String
   setor   String
   nome    String  @default("")
-  ip      String
-  porta   Int     @default(9100)
+  type    TipoImpressora @default(IP)
+  ip      String?
+  porta   Int?    @default(9100)
+  usb_identifier String?
   largura Int     @default(80)
   ativa   Boolean @default(true)
 
@@ -485,8 +487,10 @@ model FilaImpressao {
   loja_id      String
   pedido_id    String
   setor        String
+  impressora_tipo  TipoImpressora @default(IP)
   impressora_ip    String
   impressora_porta Int             @default(9100)
+  impressora_usb_identifier String @default("")
   largura      Int                 @default(80)
   conteudo     String
   status       StatusImpressao     @default(PENDING)
@@ -634,6 +638,11 @@ enum StatusImpressao {
   PENDING
   PRINTED
   ERROR
+}
+
+enum TipoImpressora {
+  IP
+  USB
 }
 
 enum TipoDesconto {

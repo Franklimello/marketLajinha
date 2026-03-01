@@ -1,5 +1,7 @@
 const lojasService = require('../services/lojasService');
 const { gerarPixQRCode } = require('../utils/pix');
+const { getStatus } = require('../services/printRuntimeService');
+const { prisma } = require('../config/database');
 
 async function listar(req, res, next) {
   try {
@@ -147,7 +149,6 @@ async function atualizarCategoriasDesativadas(req, res, next) {
       .map((c) => c.trim())
       .filter(Boolean);
 
-    const { prisma } = require('../config/database');
     const { invalidarCache } = require('../config/redis');
     await prisma.lojas.update({
       where: { id: loja.id },
@@ -200,6 +201,44 @@ async function gerarPix(req, res, next) {
   }
 }
 
+async function obterStatusOperacional(req, res, next) {
+  try {
+    const lojaId = String(req.params.id || '').trim();
+    if (!lojaId) return res.status(400).json({ erro: 'ID da loja é obrigatório.' });
+
+    const runtime = getStatus(lojaId);
+    const impressoras = await prisma.impressora.findMany({
+      where: { loja_id: lojaId, ativa: true },
+      select: { id: true, setor: true, nome: true },
+      orderBy: { setor: 'asc' },
+    });
+
+    const runtimeBySector = new Map();
+    for (const p of runtime.printers || []) {
+      if (!p?.sector) continue;
+      runtimeBySector.set(String(p.sector).toLowerCase(), p);
+    }
+
+    const printers = impressoras.map((p) => {
+      const match = runtimeBySector.get(String(p.setor || '').toLowerCase());
+      return {
+        id: p.id,
+        sector: p.setor,
+        name: p.nome || '',
+        status: match?.status || 'offline',
+      };
+    });
+
+    res.json({
+      online: runtime.online,
+      lastHeartbeatAt: runtime.lastHeartbeatAt,
+      printers,
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   listar,
   listarAtivas,
@@ -214,4 +253,5 @@ module.exports = {
   excluir,
   gerarPix,
   atualizarCategoriasDesativadas,
+  obterStatusOperacional,
 };

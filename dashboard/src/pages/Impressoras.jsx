@@ -17,7 +17,9 @@ export default function Impressoras() {
   const [impressoras, setImpressoras] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [modal, setModal] = useState(null)
-  const [form, setForm] = useState({ setor: '', nome: '', ip: '', porta: 9100, largura: 80 })
+  const [form, setForm] = useState({
+    setor: '', nome: '', type: 'ip', ip: '', porta: 9100, usb_identifier: '', largura: 80,
+  })
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [testando, setTestando] = useState(null)
@@ -32,13 +34,21 @@ export default function Impressoras() {
   useEffect(() => { carregar() }, [carregar])
 
   function abrirNova() {
-    setForm({ setor: '', nome: '', ip: '', porta: 9100, largura: 80 })
+    setForm({ setor: '', nome: '', type: 'ip', ip: '', porta: 9100, usb_identifier: '', largura: 80 })
     setErro('')
     setModal('nova')
   }
 
   function abrirEditar(imp) {
-    setForm({ setor: imp.setor, nome: imp.nome || '', ip: imp.ip, porta: imp.porta, largura: imp.largura || 80 })
+    setForm({
+      setor: imp.setor,
+      nome: imp.nome || '',
+      type: String(imp?.type || 'IP').toUpperCase() === 'USB' ? 'usb' : 'ip',
+      ip: imp.ip || '',
+      porta: imp.porta || 9100,
+      usb_identifier: imp.usb_identifier || '',
+      largura: imp.largura || 80,
+    })
     setErro('')
     setModal(imp.id)
   }
@@ -46,8 +56,12 @@ export default function Impressoras() {
   async function salvar(e) {
     e.preventDefault()
     setErro('')
-    if (!form.setor.trim() || !form.ip.trim()) {
-      setErro('Setor e IP são obrigatórios.')
+    if (!form.setor.trim()) {
+      setErro('Setor é obrigatório.')
+      return
+    }
+    if (form.type === 'ip' && !String(form.ip || '').trim()) {
+      setErro('IP é obrigatório para impressora do tipo IP.')
       return
     }
     setSalvando(true)
@@ -158,7 +172,12 @@ export default function Impressoras() {
                   <span className="font-bold text-stone-900">{imp.setor}</span>
                   {imp.nome && <span className="text-sm text-stone-400 truncate">· {imp.nome}</span>}
                 </div>
-                <p className="text-sm text-stone-500 mt-0.5 font-mono">{imp.ip}:{imp.porta} · {imp.largura || 80}mm</p>
+              <p className="text-sm text-stone-500 mt-0.5 font-mono">
+                {String(imp?.type || 'IP').toUpperCase() === 'USB'
+                  ? `USB ${imp.usb_identifier ? `· ${imp.usb_identifier}` : ''}`
+                  : `${imp.ip}:${imp.porta}`
+                } · {imp.largura || 80}mm
+              </p>
               </div>
 
               <div className="flex items-center gap-0.5 shrink-0">
@@ -297,24 +316,48 @@ export default function Impressoras() {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-stone-700 mb-1">IP da impressora *</label>
-                  <input
-                    value={form.ip}
-                    onChange={(e) => setForm((p) => ({ ...p, ip: e.target.value }))}
-                    required
-                    placeholder="192.168.1.100"
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono"
-                  />
-                </div>
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">Porta</label>
-                  <input
-                    type="number"
-                    value={form.porta}
-                    onChange={(e) => setForm((p) => ({ ...p, porta: parseInt(e.target.value) || 9100 }))}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono"
-                  />
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Tipo *</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm((p) => ({ ...p, type: String(e.target.value || 'ip') }))}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white"
+                  >
+                    <option value="ip">IP (rede)</option>
+                    <option value="usb">USB (local)</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  {form.type === 'ip' ? (
+                    <>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">IP da impressora *</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        <input
+                          value={form.ip}
+                          onChange={(e) => setForm((p) => ({ ...p, ip: e.target.value }))}
+                          required
+                          placeholder="192.168.1.100"
+                          className="col-span-2 w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono"
+                        />
+                        <input
+                          type="number"
+                          value={form.porta}
+                          onChange={(e) => setForm((p) => ({ ...p, porta: parseInt(e.target.value) || 9100 }))}
+                          className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Identificador USB</label>
+                      <input
+                        value={form.usb_identifier}
+                        onChange={(e) => setForm((p) => ({ ...p, usb_identifier: e.target.value }))}
+                        placeholder="Ex.: VID:04B8_PID:0202"
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono"
+                      />
+                    </>
+                  )}
                 </div>
               </div>
 

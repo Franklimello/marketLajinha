@@ -45,16 +45,21 @@ async function imprimirPedidoPorSetor(pedidoId) {
         loja_id: pedido.loja_id,
         pedido_id: pedido.id,
         setor,
-        impressora_ip: impressora.ip,
-        impressora_porta: impressora.porta,
+        impressora_tipo: (String(impressora.type || 'IP').toUpperCase() === 'USB' ? 'USB' : 'IP'),
+        impressora_ip: String(impressora.ip || ''),
+        impressora_porta: Number(impressora.porta || 9100),
+        impressora_usb_identifier: String(impressora.usb_identifier || ''),
         largura: impressora.largura || 80,
         conteudo: ticket,
         status: 'PENDING',
       },
     });
 
-    console.log(`[Impressão] Job enfileirado: setor "${setor}" -> ${impressora.ip}:${impressora.porta}`);
-    resultados.push({ setor, status: 'enfileirado', impressora: `${impressora.ip}:${impressora.porta}`, itens: itens.length });
+    const alvo = String(impressora.type || 'IP').toUpperCase() === 'USB'
+      ? `USB:${impressora.usb_identifier || impressora.nome || setor}`
+      : `${impressora.ip}:${impressora.porta}`;
+    console.log(`[Impressão] Job enfileirado: setor "${setor}" -> ${alvo}`);
+    resultados.push({ setor, status: 'enfileirado', impressora: alvo, itens: itens.length });
   }
 
   return { sucesso: true, pedidoId, setores: resultados };

@@ -1,4 +1,6 @@
 const net = require('net');
+const escpos = require('escpos');
+escpos.USB = require('escpos-usb');
 
 const ESC = '\x1B';
 const GS = '\x1D';
@@ -36,6 +38,62 @@ function sendToPrinter(ip, port, data, timeoutMs = 8000) {
   });
 }
 
+function parseUsbIdentifier(identifier = '') {
+  const raw = String(identifier || '').trim();
+  if (!raw) return null;
+  // Expected patterns: "VID:04B8_PID:0202", "04B8:0202"
+  const regexA = /VID[:=_-]?([0-9A-F]{4}).*PID[:=_-]?([0-9A-F]{4})/i;
+  const matchA = raw.match(regexA);
+  if (matchA) return { vid: parseInt(matchA[1], 16), pid: parseInt(matchA[2], 16) };
+  const regexB = /^([0-9A-F]{4})[:_-]([0-9A-F]{4})$/i;
+  const matchB = raw.match(regexB);
+  if (matchB) return { vid: parseInt(matchB[1], 16), pid: parseInt(matchB[2], 16) };
+  return null;
+}
+
+function sendToUsbPrinter(usbIdentifier, data, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const parsed = parseUsbIdentifier(usbIdentifier);
+    if (!parsed) {
+      reject(new Error('Identificador USB inválido. Use formato VID:XXXX_PID:YYYY.'));
+      return;
+    }
+
+    let done = false;
+    const finish = (err) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      err ? reject(err) : resolve();
+    };
+
+    const timer = setTimeout(() => {
+      finish(new Error('Impressora USB não respondeu. Verifique conexão/driver.'));
+    }, timeoutMs);
+
+    try {
+      const device = new escpos.USB(parsed.vid, parsed.pid);
+      device.open((error) => {
+        if (error) {
+          finish(new Error('Não foi possível abrir a impressora USB.'));
+          return;
+        }
+        const printer = new escpos.Printer(device);
+        printer.raw(Buffer.from(data, 'binary'), (rawErr) => {
+          if (rawErr) {
+            finish(new Error('Falha ao enviar dados para impressora USB.'));
+            return;
+          }
+          try { printer.close(); } catch {}
+          finish(null);
+        });
+      });
+    } catch {
+      finish(new Error('Impressora USB indisponível.'));
+    }
+  });
+}
+
 function buildTestTicket(lojaNome = 'MarketLajinha') {
   let t = '';
   t += `${ESC}@`;
@@ -61,4 +119,4 @@ function buildTestTicket(lojaNome = 'MarketLajinha') {
   return t;
 }
 
-module.exports = { sendToPrinter, buildTestTicket };
+module.exports = { sendToPrinter, sendToUsbPrinter, buildTestTicket };
