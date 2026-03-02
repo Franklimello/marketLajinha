@@ -52,7 +52,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
             >
               {ativandoPublico
                 ? 'Salvando...'
-                : (ranking.userRankingPublico ? 'Público: ON' : 'Público: OFF')}
+                : (ranking.userRankingPublico ? 'Participar' : 'Participar')}
             </button>
           ) : null}
           <span className="text-[11px] font-semibold text-amber-700">
@@ -74,7 +74,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
             </p>
           )}
           {!ranking.userRankingPublico && (
-            <p className="text-[11px] text-stone-500 mt-1">Ative o botão &quot;Público: ON&quot; para aparecer no Top 10.</p>
+            <p className="text-[11px] text-stone-500 mt-1">compre e participe</p>
           )}
         </div>
       )}
@@ -85,9 +85,6 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
         )}
         {ranking.isLoading && (
           <p className="text-xs text-stone-500">Carregando ranking...</p>
-        )}
-        {!ranking.isLoading && listaExibida.length === 0 && (
-          <p className="text-xs text-stone-500">Ainda não há participantes públicos neste mês.</p>
         )}
         {!ranking.isLoading && listaExibida.map((user, index) => {
           const posicao = index + 1
