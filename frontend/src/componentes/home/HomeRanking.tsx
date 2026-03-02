@@ -49,7 +49,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
             >
               {ativandoPublico
                 ? 'Salvando...'
-                : (ranking.userRankingPublico ? 'Participar' : 'Participar')}
+                : (ranking.userRankingPublico ? 'Participando' : 'Participar')}
             </button>
           ) : null}
           <span className="text-[11px] font-semibold text-amber-700">

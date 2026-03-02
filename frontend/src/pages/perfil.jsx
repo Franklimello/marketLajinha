@@ -242,8 +242,8 @@ export default function PerfilPage() {
     setEnviandoFoto(true)
     try {
       const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase()
-      // Reaproveita o mesmo prefixo já permitido nas regras do Firebase Storage.
-      const path = `chat/perfis/${cliente.id}/${Date.now()}.${extensao}`
+      // Usa o mesmo padrão de caminho já utilizado no chat para evitar bloqueio por regra.
+      const path = `chat/pedidos/${cliente.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`
       const fotoUrl = await uploadArquivoChat(arquivo, path)
       await atualizarPerfil({ foto_url: fotoUrl })
       setSucesso('Foto de perfil atualizada!')
