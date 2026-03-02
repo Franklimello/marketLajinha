@@ -6,6 +6,7 @@ const { authMiddleware } = require('../middleware');
 router.get('/me', authMiddleware, ctrl.meuPerfil);
 router.post('/cadastro', authMiddleware, ctrl.cadastrar);
 router.put('/me', authMiddleware, ctrl.atualizarPerfil);
+router.patch('/me/ranking-publico', authMiddleware, ctrl.atualizarRankingPublico);
 
 router.get('/me/enderecos', authMiddleware, ctrl.listarEnderecos);
 router.post('/me/enderecos', authMiddleware, ctrl.criarEndereco);

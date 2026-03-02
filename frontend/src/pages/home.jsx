@@ -32,6 +32,7 @@ import HomeStoriesSection from '../componentes/home/HomeStoriesSection'
 import HomeCategoriesSection from '../componentes/home/HomeCategoriesSection'
 import HomeLoadingState from '../componentes/home/HomeLoadingState'
 import HomeEmptyState from '../componentes/home/HomeEmptyState'
+import HomeRanking from '../componentes/home/HomeRanking'
 import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
 import {
   getFeedCache,
@@ -345,7 +346,7 @@ const StoryViewerModal = memo(function StoryViewerModal({
   if (!story) return null
 
   return (
-    <div className="fixed inset-0 z-[130] bg-black/92 backdrop-blur-xs animate-scale-in">
+    <div className="fixed inset-0 z-130 bg-black/92 backdrop-blur-xs animate-scale-in">
       <div className="w-full max-w-lg mx-auto h-full relative text-white select-none">
         <div className="absolute top-2 left-3 right-3 z-20 flex gap-1">
           {(grupo.stories || []).map((s, i) => (
@@ -863,6 +864,10 @@ export default function HomePage() {
   const lojasAbertas = useMemo(() => lojas.filter((l) => l.aberta_agora ?? l.aberta), [lojas])
   const lojasFechadas = useMemo(() => lojas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojas])
   const categoriasDinamicas = useMemo(() => extrairCategorias(lojas), [lojas])
+  const cidadeRanking = useMemo(() => {
+    const cidadeBase = String(cidadeSelecionada || cidadeGeo || cidadePadrao || '').trim()
+    return resolveFeedCityFromStores(lojas, cidadeBase)
+  }, [lojas, cidadeSelecionada, cidadeGeo, cidadePadrao])
 
   const lojasFiltradas = useMemo(() => {
     let lista = [...lojasAbertas, ...lojasFechadas]
@@ -1180,6 +1185,12 @@ export default function HomePage() {
         </div>
         <span className="text-red-600 text-lg">→</span>
       </Link>
+
+      <HomeRanking
+        cidadeId={cidadeRanking?.id || ''}
+        cidadeNome={cidadeRanking?.nome || ''}
+        currentUserId={cliente?.id || ''}
+      />
 
       <HomeStoriesSection
         storiesCarregando={storiesCarregando}

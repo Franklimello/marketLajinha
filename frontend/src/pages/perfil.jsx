@@ -7,6 +7,7 @@ import BAIRROS_DISPONIVEIS from '../data/bairros'
 import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiSave, FiX, FiBell, FiTag, FiMessageCircle, FiChevronRight, FiUser, FiSettings, FiHome } from 'react-icons/fi'
 import { canUseWebPush } from '../utils/pwaEnvironment'
 import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
+import { uploadArquivoChat } from '../config/firebase'
 
 const ESTADOS_SUPORTADOS = [
   { sigla: 'MG', nome: 'Minas Gerais' },
@@ -26,12 +27,15 @@ export default function PerfilPage() {
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [enviandoFoto, setEnviandoFoto] = useState(false)
 
   const [formCadastro, setFormCadastro] = useState({ nome: '', telefone: '' })
   const [cadastroInit, setCadastroInit] = useState(false)
   const [ativandoPush, setAtivandoPush] = useState(false)
   const [cidadesSugestoes, setCidadesSugestoes] = useState([])
   const [lojasHome, setLojasHome] = useState([])
+  const [cuponsAtivos, setCuponsAtivos] = useState([])
+  const [carregandoCupons, setCarregandoCupons] = useState(false)
   const [cidadesComLojas, setCidadesComLojas] = useState([])
   const [cidadeSelecionada, setCidadeSelecionada] = useState(() => String(getLocalItem(SELECTED_CITY_KEY, '') || ''))
   const [carregandoCidades, setCarregandoCidades] = useState(false)
@@ -216,6 +220,40 @@ export default function PerfilPage() {
     finally { setSalvando(false) }
   }
 
+  async function alterarFotoPerfil(event) {
+    const arquivo = event.target.files?.[0]
+    event.target.value = ''
+    if (!arquivo || !cliente?.id) return
+
+    const tipo = String(arquivo.type || '').toLowerCase()
+    if (!tipo.startsWith('image/')) {
+      setErro('Selecione uma imagem válida para foto de perfil.')
+      return
+    }
+
+    const limite = 5 * 1024 * 1024
+    if (arquivo.size > limite) {
+      setErro('A foto deve ter no máximo 5MB.')
+      return
+    }
+
+    setErro('')
+    setSucesso('')
+    setEnviandoFoto(true)
+    try {
+      const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase()
+      const path = `clientes/${cliente.id}/perfil/${Date.now()}.${extensao}`
+      const fotoUrl = await uploadArquivoChat(arquivo, path)
+      await atualizarPerfil({ foto_url: fotoUrl })
+      setSucesso('Foto de perfil atualizada!')
+      setTimeout(() => setSucesso(''), 2200)
+    } catch (err) {
+      setErro(err?.message || 'Não foi possível enviar a foto de perfil.')
+    } finally {
+      setEnviandoFoto(false)
+    }
+  }
+
   async function ativarPush() {
     setErro('')
     setSucesso('')
@@ -236,9 +274,7 @@ export default function PerfilPage() {
 
   const pushDisponivel = canUseWebPush({ requireStandalone: true })
   const enderecoAtivo = enderecos.find((e) => e.padrao) || enderecos[0] || null
-  const cuponsDisponiveis = lojasHome
-    .filter((l) => l?.cupom_ativo?.codigo)
-    .filter((l) => !cidadeSelecionada || String(l.cidade || '').trim() === cidadeSelecionada)
+  const cuponsDisponiveis = cuponsAtivos
 
   function abrirModalDados() {
     setEditandoPerfil(false)
@@ -256,6 +292,28 @@ export default function PerfilPage() {
     setModalCidade(false)
     navigate('/', { replace: true })
   }
+
+  useEffect(() => {
+    if (!modalCupons) return
+    let cancelado = false
+    setCarregandoCupons(true)
+    api.cupons.listarAtivos()
+      .then((lista) => {
+        if (cancelado) return
+        setCuponsAtivos(Array.isArray(lista) ? lista : [])
+      })
+      .catch(() => {
+        if (cancelado) return
+        setCuponsAtivos([])
+      })
+      .finally(() => {
+        if (!cancelado) setCarregandoCupons(false)
+      })
+
+    return () => {
+      cancelado = true
+    }
+  }, [modalCupons])
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 pb-24 bg-stone-50 min-h-screen">
@@ -331,7 +389,7 @@ export default function PerfilPage() {
       </button>
 
       {(modalCupons || modalAtendimento || modalDados || modalEnderecos || modalConfig || modalCidade) && (
-        <div className="fixed inset-0 z-[120] bg-black/45 p-4 flex items-center justify-center">
+        <div className="fixed inset-0 z-120 bg-black/45 p-4 flex items-center justify-center">
           <div className="absolute inset-0" onClick={() => {
             setModalCupons(false); setModalAtendimento(false); setModalDados(false); setModalEnderecos(false); setModalConfig(false); setModalCidade(false)
           }} />
@@ -342,16 +400,23 @@ export default function PerfilPage() {
                   <h3 className="font-bold text-stone-900">Cupons disponíveis</h3>
                   <button onClick={() => setModalCupons(false)} className="p-1 rounded hover:bg-stone-100"><FiX /></button>
                 </div>
-                {cuponsDisponiveis.length === 0 ? (
-                  <p className="text-sm text-stone-500">Nenhum cupom ativo para a cidade selecionada no momento.</p>
+                {carregandoCupons ? (
+                  <p className="text-sm text-stone-500">Carregando cupons ativos...</p>
+                ) : cuponsDisponiveis.length === 0 ? (
+                  <p className="text-sm text-stone-500">Nenhum cupom ativo no momento.</p>
                 ) : (
                   <div className="space-y-2">
-                    {cuponsDisponiveis.map((loja) => (
-                      <div key={`${loja.id}-${loja.cupom_ativo.codigo}`} className="border border-stone-200 rounded-xl p-3">
-                        <p className="text-sm font-semibold text-stone-900">{loja.nome}</p>
-                        <p className="text-xs text-stone-500">{loja.cidade}</p>
+                    {cuponsDisponiveis.map((cupom) => (
+                      <div key={cupom.id} className="border border-stone-200 rounded-xl p-3">
+                        <p className="text-sm font-semibold text-stone-900">{cupom?.loja?.nome || 'Loja'}</p>
+                        <p className="text-xs text-stone-500">{cupom?.loja?.cidade || '-'}</p>
                         <p className="mt-2 text-xs text-stone-600">Cupom</p>
-                        <p className="font-bold text-red-700">{String(loja.cupom_ativo.codigo || '').toUpperCase()}</p>
+                        <p className="font-bold text-red-700">{String(cupom.codigo || '').toUpperCase()}</p>
+                        <p className="text-[11px] text-stone-500 mt-1">
+                          {cupom.tipo_desconto === 'PERCENTAGE'
+                            ? `${Number(cupom.valor_desconto || 0)}% de desconto`
+                            : `R$ ${Number(cupom.valor_desconto || 0).toFixed(2).replace('.', ',')} de desconto`}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -385,6 +450,32 @@ export default function PerfilPage() {
                 </div>
                 {editandoPerfil ? (
                   <form onSubmit={salvarPerfil} className="space-y-3">
+                    <div className="flex items-center gap-3 rounded-xl border border-stone-200 p-3 bg-stone-50">
+                      {cliente?.foto_url ? (
+                        <img
+                          src={cliente.foto_url}
+                          alt="Foto de perfil"
+                          className="w-14 h-14 rounded-full object-cover border border-stone-200 bg-white"
+                        />
+                      ) : (
+                        <span className="w-14 h-14 rounded-full bg-red-100 text-red-700 inline-flex items-center justify-center text-lg font-bold border border-red-200">
+                          {(cliente?.nome || '?').trim().charAt(0).toUpperCase() || '?'}
+                        </span>
+                      )}
+                      <div>
+                        <label className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-red-700 text-white text-xs font-semibold cursor-pointer hover:bg-red-800 disabled:opacity-60">
+                          {enviandoFoto ? 'Enviando foto...' : 'Trocar foto'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={enviandoFoto}
+                            onChange={alterarFotoPerfil}
+                          />
+                        </label>
+                        <p className="text-[11px] text-stone-500 mt-1">Formatos de imagem, até 5MB.</p>
+                      </div>
+                    </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Nome</label>
                       <input value={formPerfil.nome} onChange={(e) => setFormPerfil((p) => ({ ...p, nome: e.target.value }))} required className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
@@ -400,6 +491,29 @@ export default function PerfilPage() {
                   </form>
                 ) : (
                   <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      {cliente?.foto_url ? (
+                        <img
+                          src={cliente.foto_url}
+                          alt="Foto de perfil"
+                          className="w-14 h-14 rounded-full object-cover border border-stone-200 bg-white"
+                        />
+                      ) : (
+                        <span className="w-14 h-14 rounded-full bg-red-100 text-red-700 inline-flex items-center justify-center text-lg font-bold border border-red-200">
+                          {(cliente?.nome || '?').trim().charAt(0).toUpperCase() || '?'}
+                        </span>
+                      )}
+                      <label className="inline-flex items-center justify-center px-3 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-semibold cursor-pointer hover:bg-red-50 disabled:opacity-60">
+                        {enviandoFoto ? 'Enviando foto...' : 'Adicionar foto'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={enviandoFoto}
+                          onChange={alterarFotoPerfil}
+                        />
+                      </label>
+                    </div>
                     <div>
                       <p className="font-semibold text-stone-900">{cliente.nome}</p>
                       <p className="text-xs text-stone-400">{cliente.email}</p>

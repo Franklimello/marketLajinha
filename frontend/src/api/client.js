@@ -137,6 +137,9 @@ export const api = {
     votar: (postId, optionSelected) =>
       request(`/feed/posts/${postId}/vote`, { method: 'POST', body: JSON.stringify({ option_selected: optionSelected }) }),
   },
+  ranking: {
+    mensalCidade: (cidadeId) => request(`/ranking/mensal?cidade_id=${encodeURIComponent(String(cidadeId || ''))}`),
+  },
   stories: {
     listarAtivas: () => request('/stories/active'),
   },
@@ -147,6 +150,7 @@ export const api = {
   cupons: {
     aplicar: (data) => request('/cupons/aplicar', { method: 'POST', body: JSON.stringify(data) }),
     listarDisponiveis: (lojaId) => request(`/cupons/disponiveis/${lojaId}`),
+    listarAtivos: () => request('/cupons/ativos'),
   },
   avaliacoes: {
     criar: (data) => request('/avaliacoes', { method: 'POST', body: JSON.stringify(data) }),
@@ -175,5 +179,10 @@ export const api = {
     excluirEndereco: (id) => request(`/clientes/me/enderecos/${id}`, { method: 'DELETE' }),
     salvarFcmToken: (token) => request('/clientes/me/fcm-token', { method: 'POST', body: JSON.stringify({ token }) }),
     removerFcmToken: (token) => request('/clientes/me/fcm-token', { method: 'DELETE', body: JSON.stringify({ token }) }),
+    atualizarRankingPublico: (rankingPublico) =>
+      request('/clientes/me/ranking-publico', {
+        method: 'PATCH',
+        body: JSON.stringify({ ranking_publico: !!rankingPublico }),
+      }),
   },
 }

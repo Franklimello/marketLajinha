@@ -28,6 +28,7 @@ async function cadastrar(req, res, next) {
       nome,
       email: req.firebaseDecoded.email || '',
       telefone: telefone || '',
+      foto_url: String(req.firebaseDecoded.picture || '').trim(),
     });
     res.status(201).json(cliente);
   } catch (e) { next(e) }
@@ -40,10 +41,11 @@ async function atualizarPerfil(req, res, next) {
     const cliente = await clientesService.buscarPorFirebaseUid(req.firebaseDecoded.uid);
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
-    const { nome, telefone } = req.body;
+    const { nome, telefone, foto_url } = req.body;
     const atualizado = await clientesService.atualizar(cliente.id, {
       ...(nome && { nome }),
       ...(telefone !== undefined && { telefone }),
+      ...(foto_url !== undefined && { foto_url: String(foto_url || '').trim() }),
     });
     res.json(atualizado);
   } catch (e) { next(e) }
@@ -142,8 +144,28 @@ async function removerFcmToken(req, res, next) {
   } catch (e) { next(e) }
 }
 
+async function atualizarRankingPublico(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) return res.status(401).json({ erro: 'Token obrigatório.' });
+    const cliente = await clientesService.buscarPorFirebaseUid(req.firebaseDecoded.uid);
+    if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
+
+    const rankingPublico = Boolean(req.body?.ranking_publico);
+    const atualizado = await clientesService.atualizar(cliente.id, {
+      ranking_publico: rankingPublico,
+    });
+    res.json({
+      ok: true,
+      ranking_publico: Boolean(atualizado?.ranking_publico),
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   meuPerfil, cadastrar, atualizarPerfil,
   listarEnderecos, criarEndereco, atualizarEndereco, definirPadrao, excluirEndereco,
   salvarFcmToken, removerFcmToken,
+  atualizarRankingPublico,
 };

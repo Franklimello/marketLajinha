@@ -175,6 +175,8 @@ model Clientes {
   nome         String
   email        String
   telefone     String   @default("")
+  foto_url     String   @default("")
+  ranking_publico Boolean @default(true)
   created_at   DateTime @default(now())
 
   enderecos  EnderecoCliente[]
@@ -185,6 +187,7 @@ model Clientes {
   postLikes     PostLike[]
   postComments  PostComment[]
   postVotes     PostVote[]
+  rankingsMensais RankingMensalUsuario[]
 }
 
 model FcmToken {
@@ -229,10 +232,31 @@ model Cidades {
   bairros Bairros[]
   posts   StorePost[]
   lojas   Lojas[]
+  rankingsMensais RankingMensalUsuario[]
 
   @@unique([estado, nome])
   @@index([estado, nome])
   @@index([estado_id])
+}
+
+model RankingMensalUsuario {
+  id             String   @id @default(cuid())
+  cidade_id      String
+  mes_referencia String
+  cliente_id     String
+  pedidos_mes    Int      @default(0)
+  ranking_publico Boolean @default(true)
+  nome_snapshot  String   @default("")
+  foto_snapshot  String   @default("")
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  cidadeRef Cidades  @relation(fields: [cidade_id], references: [id], onDelete: Cascade)
+  cliente   Clientes @relation(fields: [cliente_id], references: [id], onDelete: Cascade)
+
+  @@unique([cidade_id, mes_referencia, cliente_id])
+  @@index([cidade_id, mes_referencia, pedidos_mes])
+  @@index([cliente_id, mes_referencia])
 }
 
 model StorePost {
