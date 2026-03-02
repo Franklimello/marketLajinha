@@ -125,6 +125,28 @@ export default function PerfilPage() {
     }
   }, [editEndereco, formEnd.cidade, formEnd.estado])
 
+  useEffect(() => {
+    if (!modalCupons) return
+    let cancelado = false
+    setCarregandoCupons(true)
+    api.cupons.listarAtivos()
+      .then((lista) => {
+        if (cancelado) return
+        setCuponsAtivos(Array.isArray(lista) ? lista : [])
+      })
+      .catch(() => {
+        if (cancelado) return
+        setCuponsAtivos([])
+      })
+      .finally(() => {
+        if (!cancelado) setCarregandoCupons(false)
+      })
+
+    return () => {
+      cancelado = true
+    }
+  }, [modalCupons])
+
   async function carregarEnderecos() {
     try { setEnderecos(await api.clientes.enderecos()) } catch {}
   }
@@ -298,28 +320,6 @@ export default function PerfilPage() {
     setModalCidade(false)
     navigate('/', { replace: true })
   }
-
-  useEffect(() => {
-    if (!modalCupons) return
-    let cancelado = false
-    setCarregandoCupons(true)
-    api.cupons.listarAtivos()
-      .then((lista) => {
-        if (cancelado) return
-        setCuponsAtivos(Array.isArray(lista) ? lista : [])
-      })
-      .catch(() => {
-        if (cancelado) return
-        setCuponsAtivos([])
-      })
-      .finally(() => {
-        if (!cancelado) setCarregandoCupons(false)
-      })
-
-    return () => {
-      cancelado = true
-    }
-  }, [modalCupons])
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 pb-24 bg-stone-50 min-h-screen">
