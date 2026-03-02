@@ -242,13 +242,19 @@ export default function PerfilPage() {
     setEnviandoFoto(true)
     try {
       const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase()
-      const path = `clientes/${cliente.id}/perfil/${Date.now()}.${extensao}`
+      // Reaproveita o mesmo prefixo já permitido nas regras do Firebase Storage.
+      const path = `chat/perfis/${cliente.id}/${Date.now()}.${extensao}`
       const fotoUrl = await uploadArquivoChat(arquivo, path)
       await atualizarPerfil({ foto_url: fotoUrl })
       setSucesso('Foto de perfil atualizada!')
       setTimeout(() => setSucesso(''), 2200)
     } catch (err) {
-      setErro(err?.message || 'Não foi possível enviar a foto de perfil.')
+      const msg = String(err?.message || '')
+      if (msg.includes('storage/unauthorized') || msg.includes('403')) {
+        setErro('Sem permissão para enviar a foto agora. Tente novamente em instantes.')
+      } else {
+        setErro(msg || 'Não foi possível enviar a foto de perfil.')
+      }
     } finally {
       setEnviandoFoto(false)
     }

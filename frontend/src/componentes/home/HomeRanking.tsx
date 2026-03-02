@@ -17,10 +17,10 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
 
   if (!cidadeId) return null
 
-  async function participarPublico() {
+  async function atualizarParticipacaoPublica(publico) {
     setAtivandoPublico(true)
     try {
-      await api.clientes.atualizarRankingPublico(true)
+      await api.clientes.atualizarRankingPublico(publico)
       await ranking.refetch()
     } finally {
       setAtivandoPublico(false)
@@ -37,9 +37,28 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
         <h3 className="text-sm font-extrabold text-amber-800">
           🏆 Ranking de {cidadeNome || 'sua cidade'} - {ranking.mesLabel || 'mês atual'}
         </h3>
-        <span className="text-[11px] font-semibold text-amber-700">
-          ⏳ encerra em {ranking.diasRestantes} dia{ranking.diasRestantes === 1 ? '' : 's'}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          {currentUserId ? (
+            <button
+              type="button"
+              onClick={() => atualizarParticipacaoPublica(!ranking.userRankingPublico)}
+              disabled={ativandoPublico || ranking.isLoading}
+              className={`px-2 py-1 rounded-md text-[10px] font-semibold border ${
+                ranking.userRankingPublico
+                  ? 'border-green-300 bg-green-100 text-green-700'
+                  : 'border-red-300 bg-red-100 text-red-700'
+              } disabled:opacity-60`}
+              title={ranking.userRankingPublico ? 'Você está no ranking público' : 'Você está fora do ranking público'}
+            >
+              {ativandoPublico
+                ? 'Salvando...'
+                : (ranking.userRankingPublico ? 'Público: ON' : 'Público: OFF')}
+            </button>
+          ) : null}
+          <span className="text-[11px] font-semibold text-amber-700">
+            ⏳ encerra em {ranking.diasRestantes} dia{ranking.diasRestantes === 1 ? '' : 's'}
+          </span>
+        </div>
       </div>
 
       {mostraCardPessoal && (
@@ -55,14 +74,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
             </p>
           )}
           {!ranking.userRankingPublico && (
-            <button
-              type="button"
-              onClick={participarPublico}
-              disabled={ativandoPublico}
-              className="mt-2 inline-flex items-center rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-            >
-              {ativandoPublico ? 'Ativando...' : 'Participar do Ranking Público'}
-            </button>
+            <p className="text-[11px] text-stone-500 mt-1">Ative o botão &quot;Público: ON&quot; para aparecer no Top 10.</p>
           )}
         </div>
       )}
