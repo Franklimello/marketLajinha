@@ -6,7 +6,7 @@ const STATUS_MENSAGENS = {
   PENDING: { titulo: 'Pedido recebido', corpo: 'Seu pedido foi recebido e está aguardando aprovação.' },
   APPROVED: { titulo: 'Pedido aprovado!', corpo: 'Seu pedido foi aprovado e está sendo preparado.' },
   IN_ROUTE: { titulo: 'Saiu para entrega!', corpo: 'Seu pedido saiu para entrega. Fique atento!' },
-  DELIVERED: { titulo: 'Pedido entregue!', corpo: 'Seu pedido foi entregue. Bom apetite!' },
+  DELIVERED: { titulo: 'Pedido entregue!', corpo: 'Seu pedido foi entregue com sucesso.' },
   CANCELLED: { titulo: 'Pedido cancelado', corpo: 'Infelizmente seu pedido foi cancelado.' },
 };
 
