@@ -11,9 +11,9 @@ function medalha(posicao) {
 }
 
 function pedestalClasses(posicao) {
-  if (posicao === 1) return 'h-24 bg-linear-to-b from-amber-300 via-amber-400 to-amber-500 border-amber-300'
-  if (posicao === 2) return 'h-18 bg-linear-to-b from-slate-200 via-slate-300 to-slate-400 border-slate-300'
-  return 'h-14 bg-linear-to-b from-orange-200 via-orange-300 to-orange-400 border-orange-300'
+  if (posicao === 1) return 'h-14 bg-linear-to-b from-amber-200 via-amber-300 to-amber-400 border-amber-200'
+  if (posicao === 2) return 'h-11 bg-linear-to-b from-slate-100 via-slate-200 to-slate-300 border-slate-200'
+  return 'h-9 bg-linear-to-b from-orange-100 via-orange-200 to-orange-300 border-orange-200'
 }
 
 export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }) {
@@ -79,7 +79,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
           <p className="text-xs text-stone-500">Carregando ranking...</p>
         )}
         {!ranking.isLoading && (
-          <div className="rounded-2xl border border-stone-200 bg-stone-900 px-3 pb-3 pt-5">
+          <div className="rounded-xl border border-amber-200 bg-white/90 px-2.5 pb-2.5 pt-3">
             <div className="grid grid-cols-3 items-end gap-2">
               {podiumSlots.map(({ posicao, user }) => {
                 const { nomeExibicao, fotoExibicao } = getDisplayUser({
@@ -89,25 +89,25 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                 const pedidos = Number(user?.pedidos_mes || 0)
                 return (
                   <div key={`podium-${posicao}`} className="flex flex-col items-center">
-                    <div className="relative mb-2">
+                    <div className="relative mb-1.5">
                       <img
                         src={fotoExibicao}
                         alt={nomeExibicao}
-                        className={`w-10 h-10 rounded-full object-cover border-2 ${
+                        className={`w-8 h-8 rounded-full object-cover border ${
                           posicao === 1 ? 'border-amber-300' : posicao === 2 ? 'border-slate-300' : 'border-orange-300'
                         } bg-stone-200`}
                         loading="lazy"
                       />
-                      <span className="absolute -bottom-1 -right-1 text-[13px]">{medalha(posicao)}</span>
+                      <span className="absolute -bottom-1 -right-1 text-[11px]">{medalha(posicao)}</span>
                     </div>
-                    <p className="max-w-[88px] text-center text-[11px] font-semibold text-white truncate">
+                    <p className="max-w-[76px] text-center text-[10px] font-semibold text-stone-700 truncate">
                       {user ? nomeExibicao : '-'}
                     </p>
-                    <p className="text-[10px] text-stone-300 mb-1">
+                    <p className="text-[9px] text-stone-500 mb-1">
                       {user ? `${pedidos} pedido${pedidos === 1 ? '' : 's'}` : '--'}
                     </p>
                     <div className={`w-full rounded-t-xl border ${pedestalClasses(posicao)} flex items-center justify-center`}>
-                      <span className="text-xs font-extrabold text-stone-900">{posicao}</span>
+                      <span className="text-[10px] font-extrabold text-stone-800">{posicao}</span>
                     </div>
                   </div>
                 )
