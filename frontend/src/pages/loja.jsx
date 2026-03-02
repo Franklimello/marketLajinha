@@ -1236,17 +1236,26 @@ export default function LojaPage() {
                       Enviar no WhatsApp da loja
                     </a>
                   )}
-                  {pedidoCriado?.id && (
+                  {pedidoCriado?.id ? (
                     <Link
                       to="/pedidos"
                       className="inline-flex items-center justify-center w-full py-2.5 bg-white border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors"
                     >
                       Enviar dentro do sistema (chat)
                     </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="inline-flex items-center justify-center w-full py-2.5 bg-stone-100 border border-stone-200 text-stone-400 rounded-lg text-xs font-semibold cursor-not-allowed"
+                      title="Disponível após clicar em Já paguei"
+                    >
+                      Enviar dentro do sistema (chat)
+                    </button>
                   )}
                 </div>
                 <p className="text-[11px] text-amber-700 mt-1.5">
-                  Você pode escolher qualquer uma das opções acima.
+                  Você pode escolher WhatsApp agora ou chat do sistema após confirmar em "Já paguei".
                 </p>
               </div>
               <button onClick={copiarPayload} className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 text-sm">{copiado ? <><FiCheck /> Copiado!</> : <><FiCopy /> Copiar código PIX</>}</button>
@@ -1298,12 +1307,15 @@ export default function LojaPage() {
       (agendado && !agendadoPara) ||
       (Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo))
     )
+    const pixOnlineCheckout = tipoPagamento === 'online' && formPedido.forma_pagamento === 'PIX'
 
     const labelBotaoCheckout = enviando
       ? 'Enviando...'
       : agendado
         ? `Agendar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
-        : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+        : pixOnlineCheckout
+          ? `Finalizar pagamento — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+          : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
 
     return (
       <div className="fixed inset-0 z-110">
