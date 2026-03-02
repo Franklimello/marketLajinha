@@ -16,9 +16,9 @@ export function useMonthlyCityRanking({ cidadeId, currentUserId = '' }) {
     queryKey: ['ranking-mensal-cidade', cidadeId, currentUserId],
     queryFn: () => api.ranking.mensalCidade(cidadeId),
     enabled: Boolean(cidadeId),
-    staleTime: 45_000,
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 60 * 12,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
   })
 
   const data = rankingQuery.data || {}

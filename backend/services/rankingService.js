@@ -1,4 +1,5 @@
 const { prisma } = require('../config/database');
+const RANKING_REFRESH_MS = 12 * 60 * 60 * 1000; // 2x por dia
 
 function getMesReferencia() {
   const now = new Date();
@@ -16,6 +17,29 @@ function getPeriodoMesAtual() {
 
 async function recalcularRankingMensalCidade(cidadeId) {
   const mesReferencia = getMesReferencia();
+  const ultimoRegistro = await prisma.rankingMensalUsuario.findFirst({
+    where: { cidade_id: cidadeId, mes_referencia: mesReferencia },
+    select: { updated_at: true },
+    orderBy: { updated_at: 'desc' },
+  });
+
+  if (ultimoRegistro?.updated_at) {
+    const idadeMs = Date.now() - new Date(ultimoRegistro.updated_at).getTime();
+    if (idadeMs < RANKING_REFRESH_MS) {
+      const linhasCache = await prisma.rankingMensalUsuario.findMany({
+        where: { cidade_id: cidadeId, mes_referencia: mesReferencia },
+        select: {
+          cliente_id: true,
+          pedidos_mes: true,
+          ranking_publico: true,
+          nome_snapshot: true,
+          foto_snapshot: true,
+        },
+      });
+      return { mesReferencia, linhas: linhasCache };
+    }
+  }
+
   const { inicio, fim } = getPeriodoMesAtual();
 
   const agregados = await prisma.pedidos.groupBy({

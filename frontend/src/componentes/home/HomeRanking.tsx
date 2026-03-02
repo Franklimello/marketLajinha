@@ -12,9 +12,9 @@ function medalha(posicao) {
 }
 
 function pedestalClasses(posicao) {
-  if (posicao === 1) return 'h-14 bg-linear-to-b from-amber-200 via-amber-300 to-amber-400 border-amber-200'
-  if (posicao === 2) return 'h-11 bg-linear-to-b from-slate-100 via-slate-200 to-slate-300 border-slate-200'
-  return 'h-9 bg-linear-to-b from-orange-100 via-orange-200 to-orange-300 border-orange-200'
+  if (posicao === 1) return 'h-11 bg-linear-to-b from-amber-200 via-amber-300 to-amber-400 border-amber-200'
+  if (posicao === 2) return 'h-9 bg-linear-to-b from-slate-100 via-slate-200 to-slate-300 border-slate-200'
+  return 'h-7 bg-linear-to-b from-orange-100 via-orange-200 to-orange-300 border-orange-200'
 }
 
 export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }) {
@@ -44,10 +44,10 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
   const isFotoPadrao = (foto) => !foto || String(foto).trim() === '/avatar-default.png'
 
   return (
-    <section className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+    <section className="mb-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-extrabold text-amber-800 truncate whitespace-nowrap">
-          🏆 Ranking {cidadeNome || 'cidade'} - {ranking.mesLabel || 'mês'}
+        <h3 className="text-sm font-extrabold text-stone-800 truncate whitespace-nowrap">
+          🏆 ranking lajinha
         </h3>
         <div className="flex flex-col items-end gap-1">
           {currentUserId ? (
@@ -67,13 +67,13 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                 : (ranking.userRankingPublico ? 'Participando' : 'Participar')}
             </button>
           ) : null}
-          <span className="text-[11px] font-semibold text-amber-700 whitespace-nowrap">
+          <span className="text-[11px] font-semibold text-stone-600 whitespace-nowrap">
             ⏳ {ranking.diasRestantes} dia{ranking.diasRestantes === 1 ? '' : 's'}
           </span>
         </div>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2">
         {ranking.error && (
           <p className="text-xs text-red-600">Não foi possível carregar o ranking agora.</p>
         )}
@@ -81,7 +81,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
           <p className="text-xs text-stone-500">Carregando ranking...</p>
         )}
         {!ranking.isLoading && (
-          <div className="rounded-xl border border-amber-200 bg-white/90 px-2.5 pb-2.5 pt-3">
+          <div className="px-1.5 pb-1.5 pt-1.5">
             <div className="grid grid-cols-3 items-end gap-2">
               {podiumSlots.map(({ posicao, user }) => {
                 const { nomeExibicao, fotoExibicao } = getDisplayUser({
@@ -91,7 +91,12 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                 const pedidos = Number(user?.pedidos_mes || 0)
                 return (
                   <div key={`podium-${posicao}`} className="flex flex-col items-center">
-                    <div className="relative mb-1.5">
+                    <div className="relative mb-1">
+                      {posicao === 1 && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[12px]" aria-label="Primeiro lugar">
+                          👑
+                        </span>
+                      )}
                       {user && !isFotoPadrao(fotoExibicao) ? (
                         <img
                           src={fotoExibicao}
@@ -114,13 +119,13 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                       )}
                       <span className="absolute -bottom-1 -right-1 text-[11px]">{medalha(posicao)}</span>
                     </div>
-                    <p className="max-w-[76px] text-center text-[10px] font-semibold text-stone-700 truncate">
+                    <p className="max-w-[72px] text-center text-[10px] font-semibold text-stone-700 truncate">
                       {user ? nomeExibicao : '-'}
                     </p>
-                    <p className="text-[9px] text-stone-500 mb-1">
+                    <p className="text-[9px] text-stone-500 mb-0.5">
                       {user ? `${pedidos} pedido${pedidos === 1 ? '' : 's'}` : '--'}
                     </p>
-                    <div className={`w-full rounded-t-xl border ${pedestalClasses(posicao)} flex items-center justify-center`}>
+                    <div className={`w-full rounded-t-lg border ${pedestalClasses(posicao)} flex items-center justify-center`}>
                       <span className="text-[10px] font-extrabold text-stone-800">{posicao}</span>
                     </div>
                   </div>
