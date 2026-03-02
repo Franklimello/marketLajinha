@@ -723,6 +723,7 @@ export default function HomePage() {
   const [visibleCount, setVisibleCount] = useState(12)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
+  const [mostrarSecoesSecundarias, setMostrarSecoesSecundarias] = useState(false)
   const catRef = useRef(null)
   const lojasComTaxaCarregadaRef = useRef(new Set())
   const storyTouchStartYRef = useRef(null)
@@ -761,6 +762,35 @@ export default function HomePage() {
     }
     setCarregando(false)
   }, [homeQuery.isLoading, homeQuery.data])
+
+  // Prioriza a dobra inicial (saudação, busca, feed e ranking) antes de montar
+  // seções mais pesadas da home.
+  useEffect(() => {
+    if (carregando) {
+      setMostrarSecoesSecundarias(false)
+      return
+    }
+
+    let cancelado = false
+    let timeoutId = null
+    let idleId = null
+
+    const liberar = () => {
+      if (cancelado) return
+      setMostrarSecoesSecundarias(true)
+    }
+
+    timeoutId = window.setTimeout(liberar, 120)
+    if ('requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(liberar, { timeout: 400 })
+    }
+
+    return () => {
+      cancelado = true
+      if (timeoutId) clearTimeout(timeoutId)
+      if (idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
+    }
+  }, [carregando])
 
   useEffect(() => {
     if (!homeQuery.error) {
@@ -1192,104 +1222,110 @@ export default function HomePage() {
         currentUserId={cliente?.id || ''}
       />
 
-      <HomeStoriesSection
-        storiesCarregando={storiesCarregando}
-        storiesGroups={storiesGroups}
-        storiesSeenMap={storiesSeenMap}
-        onOpenStories={openStories}
-        StoriesRailComponent={StoriesRail}
-      />
+      {mostrarSecoesSecundarias ? (
+        <>
+          <HomeStoriesSection
+            storiesCarregando={storiesCarregando}
+            storiesGroups={storiesGroups}
+            storiesSeenMap={storiesSeenMap}
+            onOpenStories={openStories}
+            StoriesRailComponent={StoriesRail}
+          />
 
-      <HomeCarousel />
+          <HomeCarousel />
 
-      <HomeCategoriesSection
-        catRef={catRef}
-        categoriasDinamicas={categoriasDinamicas}
-        categoriaSel={categoriaSel}
-        onToggleCategoria={setCategoriaSel}
-        onClearCategoria={() => setCategoriaSel(null)}
-        CategoriaCardComponent={CategoriaCard}
-      />
+          <HomeCategoriesSection
+            catRef={catRef}
+            categoriasDinamicas={categoriasDinamicas}
+            categoriaSel={categoriaSel}
+            onToggleCategoria={setCategoriaSel}
+            onClearCategoria={() => setCategoriaSel(null)}
+            CategoriaCardComponent={CategoriaCard}
+          />
 
-      {/* Stores */}
-      {lojasFiltradas.length === 0 ? (
-        <HomeEmptyState busca={busca} />
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-stone-500">
-              {lojasFiltradas.length} loja{lojasFiltradas.length !== 1 ? 's' : ''} encontrada{lojasFiltradas.length !== 1 ? 's' : ''}
-            </p>
-            <div className="inline-flex items-center rounded-xl border border-stone-200 bg-white p-1">
-              <button
-                type="button"
-                onClick={() => setModoVisualizacao('lista')}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'lista' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
-                aria-label="Visualização em lista"
-              >
-                <FiList size={14} /> Lista
-              </button>
-              <button
-                type="button"
-                onClick={() => setModoVisualizacao('grade')}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'grade' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
-                aria-label="Visualização em grade"
-              >
-                <FiGrid size={14} /> Grade
-              </button>
-            </div>
-          </div>
-
-          {modoVisualizacao === 'grade' ? (
-            <div className="grid grid-cols-3 gap-x-3 gap-y-5">
-              {lojasVisiveis.map((loja, idx) => (
-                <LojaCardGrid key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
-              ))}
-            </div>
+          {/* Stores */}
+          {lojasFiltradas.length === 0 ? (
+            <HomeEmptyState busca={busca} />
           ) : (
-            <div className="space-y-1">
-              {filtradasAbertas.length > 0 && (
-                <>
-                  {!busca && !categoriaSel && filtradasFechadas.length > 0 && (
-                    <div className="flex items-center gap-2 pt-1 pb-2">
-                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs font-semibold text-stone-700">Abertas agora</span>
-                    </div>
-                  )}
-                  {filtradasAbertasVisiveis.map((loja, idx) => (
-                    <LojaCard key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
-                  ))}
-                </>
-              )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-stone-500">
+                  {lojasFiltradas.length} loja{lojasFiltradas.length !== 1 ? 's' : ''} encontrada{lojasFiltradas.length !== 1 ? 's' : ''}
+                </p>
+                <div className="inline-flex items-center rounded-xl border border-stone-200 bg-white p-1">
+                  <button
+                    type="button"
+                    onClick={() => setModoVisualizacao('lista')}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'lista' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
+                    aria-label="Visualização em lista"
+                  >
+                    <FiList size={14} /> Lista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModoVisualizacao('grade')}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'grade' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
+                    aria-label="Visualização em grade"
+                  >
+                    <FiGrid size={14} /> Grade
+                  </button>
+                </div>
+              </div>
 
-              {filtradasFechadasVisiveis.length > 0 && (
-                <>
-                  {!busca && !categoriaSel && filtradasAbertasVisiveis.length > 0 && (
-                    <div className="flex items-center gap-2 pt-4 pb-2">
-                      <span className="w-2 h-2 bg-stone-300 rounded-full" />
-                      <span className="text-xs font-semibold text-stone-400">Fechadas</span>
-                      <div className="flex-1 h-px bg-stone-100" />
-                    </div>
-                  )}
-                  {filtradasFechadasVisiveis.map((loja, idx) => (
-                    <LojaCard
-                      key={loja.id}
-                      loja={loja}
-                      idx={filtradasAbertasVisiveis.length + idx}
-                      taxaBairro={taxaBairroPorLoja[loja.id]}
-                    />
+              {modoVisualizacao === 'grade' ? (
+                <div className="grid grid-cols-3 gap-x-3 gap-y-5">
+                  {lojasVisiveis.map((loja, idx) => (
+                    <LojaCardGrid key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
                   ))}
-                </>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filtradasAbertas.length > 0 && (
+                    <>
+                      {!busca && !categoriaSel && filtradasFechadas.length > 0 && (
+                        <div className="flex items-center gap-2 pt-1 pb-2">
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-xs font-semibold text-stone-700">Abertas agora</span>
+                        </div>
+                      )}
+                      {filtradasAbertasVisiveis.map((loja, idx) => (
+                        <LojaCard key={loja.id} loja={loja} idx={idx} taxaBairro={taxaBairroPorLoja[loja.id]} />
+                      ))}
+                    </>
+                  )}
+
+                  {filtradasFechadasVisiveis.length > 0 && (
+                    <>
+                      {!busca && !categoriaSel && filtradasAbertasVisiveis.length > 0 && (
+                        <div className="flex items-center gap-2 pt-4 pb-2">
+                          <span className="w-2 h-2 bg-stone-300 rounded-full" />
+                          <span className="text-xs font-semibold text-stone-400">Fechadas</span>
+                          <div className="flex-1 h-px bg-stone-100" />
+                        </div>
+                      )}
+                      {filtradasFechadasVisiveis.map((loja, idx) => (
+                        <LojaCard
+                          key={loja.id}
+                          loja={loja}
+                          idx={filtradasAbertasVisiveis.length + idx}
+                          taxaBairro={taxaBairroPorLoja[loja.id]}
+                        />
+                      ))}
+                    </>
+                  )}
+                </div>
               )}
             </div>
           )}
-        </div>
-      )}
 
-      <HomeBottomSupport
-        suporteWhatsapp={SUPORTE_WHATSAPP}
-        suporteInstagram={SUPORTE_INSTAGRAM}
-      />
+          <HomeBottomSupport
+            suporteWhatsapp={SUPORTE_WHATSAPP}
+            suporteInstagram={SUPORTE_INSTAGRAM}
+          />
+        </>
+      ) : (
+        <div className="h-24" />
+      )}
 
       {storyModalOpen && (
         <div

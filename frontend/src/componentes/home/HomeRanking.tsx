@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FiUser } from 'react-icons/fi'
 import { api } from '../../api/client'
 import { useMonthlyCityRanking } from '../../hooks/useMonthlyCityRanking'
 import { getDisplayUser } from '../../utils/ranking'
@@ -40,12 +41,13 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
     { posicao: 3, user: top3[2] || null },
   ]
   const listaExpandida = expandido ? (Array.isArray(ranking.top10) ? ranking.top10.slice(3, 10) : []) : []
+  const isFotoPadrao = (foto) => !foto || String(foto).trim() === '/avatar-default.png'
 
   return (
     <section className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-extrabold text-amber-800">
-          🏆 Ranking de {cidadeNome || 'sua cidade'} - {ranking.mesLabel || 'mês atual'}
+        <h3 className="text-sm font-extrabold text-amber-800 truncate whitespace-nowrap">
+          🏆 Ranking {cidadeNome || 'cidade'} - {ranking.mesLabel || 'mês'}
         </h3>
         <div className="flex flex-col items-end gap-1">
           {currentUserId ? (
@@ -65,8 +67,8 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                 : (ranking.userRankingPublico ? 'Participando' : 'Participar')}
             </button>
           ) : null}
-          <span className="text-[11px] font-semibold text-amber-700">
-            ⏳ encerra em {ranking.diasRestantes} dia{ranking.diasRestantes === 1 ? '' : 's'}
+          <span className="text-[11px] font-semibold text-amber-700 whitespace-nowrap">
+            ⏳ {ranking.diasRestantes} dia{ranking.diasRestantes === 1 ? '' : 's'}
           </span>
         </div>
       </div>
@@ -90,14 +92,26 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                 return (
                   <div key={`podium-${posicao}`} className="flex flex-col items-center">
                     <div className="relative mb-1.5">
-                      <img
-                        src={fotoExibicao}
-                        alt={nomeExibicao}
-                        className={`w-8 h-8 rounded-full object-cover border ${
-                          posicao === 1 ? 'border-amber-300' : posicao === 2 ? 'border-slate-300' : 'border-orange-300'
-                        } bg-stone-200`}
-                        loading="lazy"
-                      />
+                      {user && !isFotoPadrao(fotoExibicao) ? (
+                        <img
+                          src={fotoExibicao}
+                          alt={nomeExibicao}
+                          className={`w-8 h-8 rounded-full object-cover border ${
+                            posicao === 1 ? 'border-amber-300' : posicao === 2 ? 'border-slate-300' : 'border-orange-300'
+                          } bg-stone-200`}
+                          loading="eager"
+                          fetchPriority={posicao === 1 ? 'high' : 'auto'}
+                        />
+                      ) : (
+                        <span
+                          className={`w-8 h-8 rounded-full border inline-flex items-center justify-center ${
+                            posicao === 1 ? 'border-amber-300 text-amber-700 bg-amber-50' : posicao === 2 ? 'border-slate-300 text-slate-600 bg-slate-50' : 'border-orange-300 text-orange-700 bg-orange-50'
+                          }`}
+                          aria-label="Sem foto"
+                        >
+                          <FiUser size={14} />
+                        </span>
+                      )}
                       <span className="absolute -bottom-1 -right-1 text-[11px]">{medalha(posicao)}</span>
                     </div>
                     <p className="max-w-[76px] text-center text-[10px] font-semibold text-stone-700 truncate">
@@ -132,12 +146,21 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-xs font-bold text-stone-500 min-w-8">{medalha(posicao)}</span>
-                  <img
-                    src={fotoExibicao}
-                    alt={nomeExibicao}
-                    className="w-8 h-8 rounded-full object-cover bg-stone-200"
-                    loading="lazy"
-                  />
+                  {!isFotoPadrao(fotoExibicao) ? (
+                    <img
+                      src={fotoExibicao}
+                      alt={nomeExibicao}
+                      className="w-8 h-8 rounded-full object-cover bg-stone-200"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span
+                      className="w-8 h-8 rounded-full border border-stone-300 text-stone-500 bg-stone-50 inline-flex items-center justify-center"
+                      aria-label="Sem foto"
+                    >
+                      <FiUser size={14} />
+                    </span>
+                  )}
                   <p className="text-sm font-semibold text-stone-800 truncate">{nomeExibicao}</p>
                 </div>
                 <span className="text-xs font-bold text-stone-600">
