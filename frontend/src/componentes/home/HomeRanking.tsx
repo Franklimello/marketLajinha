@@ -28,9 +28,6 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
   }
 
   const listaExibida = expandido ? ranking.top10 : ranking.top3
-  const mostraCardPessoal =
-    (ranking.userPosition > 0 && ranking.userPosition <= 20) || !ranking.userRankingPublico
-
   return (
     <section className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -60,24 +57,6 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
           </span>
         </div>
       </div>
-
-      {mostraCardPessoal && (
-        <div className="mt-3 rounded-xl border border-amber-300 bg-white px-3 py-2.5">
-          <p className="text-sm font-semibold text-stone-800">
-            {ranking.userPosition > 0
-              ? `🏅 Você está em ${ranking.userPosition}º lugar este mês!`
-              : '🏅 Faça seus pedidos e apareça no ranking deste mês!'}
-          </p>
-          {ranking.userPosition > 3 && ranking.faltamParaTop3 > 0 && (
-            <p className="text-xs text-stone-600 mt-1">
-              Faltam {ranking.faltamParaTop3} pedido{ranking.faltamParaTop3 === 1 ? '' : 's'} para entrar no Top 3.
-            </p>
-          )}
-          {!ranking.userRankingPublico && (
-            <p className="text-[11px] text-stone-500 mt-1">compre e participe</p>
-          )}
-        </div>
-      )}
 
       <div className="mt-3 space-y-2">
         {ranking.error && (
@@ -123,12 +102,6 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
         >
           {expandido ? 'Ver menos' : 'Ver Top 10'}
         </button>
-      )}
-
-      {!ranking.isLoading && (
-        <p className="mt-2 text-[11px] text-stone-500">
-          {ranking.totalParticipantes} participante{ranking.totalParticipantes === 1 ? '' : 's'} no ranking mensal.
-        </p>
       )}
     </section>
   )
