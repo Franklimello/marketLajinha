@@ -10,6 +10,12 @@ function medalha(posicao) {
   return `#${posicao}`
 }
 
+function pedestalClasses(posicao) {
+  if (posicao === 1) return 'h-24 bg-linear-to-b from-amber-300 via-amber-400 to-amber-500 border-amber-300'
+  if (posicao === 2) return 'h-18 bg-linear-to-b from-slate-200 via-slate-300 to-slate-400 border-slate-300'
+  return 'h-14 bg-linear-to-b from-orange-200 via-orange-300 to-orange-400 border-orange-300'
+}
+
 export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }) {
   const [expandido, setExpandido] = useState(false)
   const [ativandoPublico, setAtivandoPublico] = useState(false)
@@ -27,7 +33,14 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
     }
   }
 
-  const listaExibida = expandido ? ranking.top10 : ranking.top3
+  const top3 = Array.isArray(ranking.top3) ? ranking.top3.slice(0, 3) : []
+  const podiumSlots = [
+    { posicao: 2, user: top3[1] || null },
+    { posicao: 1, user: top3[0] || null },
+    { posicao: 3, user: top3[2] || null },
+  ]
+  const listaExpandida = expandido ? (Array.isArray(ranking.top10) ? ranking.top10.slice(3, 10) : []) : []
+
   return (
     <section className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -58,43 +71,85 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
         </div>
       </div>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3">
         {ranking.error && (
           <p className="text-xs text-red-600">Não foi possível carregar o ranking agora.</p>
         )}
         {ranking.isLoading && (
           <p className="text-xs text-stone-500">Carregando ranking...</p>
         )}
-        {!ranking.isLoading && listaExibida.map((user, index) => {
-          const posicao = index + 1
-          const { nomeExibicao, fotoExibicao } = getDisplayUser({
-            nomeCompleto: user?.nome_snapshot,
-            fotoPerfil: user?.foto_snapshot,
-          })
-          return (
-            <div
-              key={String(user?.cliente_id || `${posicao}-${nomeExibicao}`)}
-              className={`flex items-center justify-between rounded-xl px-3 py-2 ${posicao <= 3 ? 'bg-white border border-amber-200' : 'bg-white/80 border border-stone-200'}`}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-base">{medalha(posicao)}</span>
-                <img
-                  src={fotoExibicao}
-                  alt={nomeExibicao}
-                  className="w-8 h-8 rounded-full object-cover bg-stone-200"
-                  loading="lazy"
-                />
-                <p className="text-sm font-semibold text-stone-800 truncate">{nomeExibicao}</p>
-              </div>
-              <span className="text-xs font-bold text-stone-600">
-                {Number(user?.pedidos_mes || 0)} pedido{Number(user?.pedidos_mes || 0) === 1 ? '' : 's'}
-              </span>
+        {!ranking.isLoading && (
+          <div className="rounded-2xl border border-stone-200 bg-stone-900 px-3 pb-3 pt-5">
+            <div className="grid grid-cols-3 items-end gap-2">
+              {podiumSlots.map(({ posicao, user }) => {
+                const { nomeExibicao, fotoExibicao } = getDisplayUser({
+                  nomeCompleto: user?.nome_snapshot,
+                  fotoPerfil: user?.foto_snapshot,
+                })
+                const pedidos = Number(user?.pedidos_mes || 0)
+                return (
+                  <div key={`podium-${posicao}`} className="flex flex-col items-center">
+                    <div className="relative mb-2">
+                      <img
+                        src={fotoExibicao}
+                        alt={nomeExibicao}
+                        className={`w-10 h-10 rounded-full object-cover border-2 ${
+                          posicao === 1 ? 'border-amber-300' : posicao === 2 ? 'border-slate-300' : 'border-orange-300'
+                        } bg-stone-200`}
+                        loading="lazy"
+                      />
+                      <span className="absolute -bottom-1 -right-1 text-[13px]">{medalha(posicao)}</span>
+                    </div>
+                    <p className="max-w-[88px] text-center text-[11px] font-semibold text-white truncate">
+                      {user ? nomeExibicao : '-'}
+                    </p>
+                    <p className="text-[10px] text-stone-300 mb-1">
+                      {user ? `${pedidos} pedido${pedidos === 1 ? '' : 's'}` : '--'}
+                    </p>
+                    <div className={`w-full rounded-t-xl border ${pedestalClasses(posicao)} flex items-center justify-center`}>
+                      <span className="text-xs font-extrabold text-stone-900">{posicao}</span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )
-        })}
+          </div>
+        )}
       </div>
 
-      {ranking.top10.length > 3 && (
+      {expandido && listaExpandida.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {listaExpandida.map((user, index) => {
+            const posicao = index + 4
+            const { nomeExibicao, fotoExibicao } = getDisplayUser({
+              nomeCompleto: user?.nome_snapshot,
+              fotoPerfil: user?.foto_snapshot,
+            })
+            return (
+              <div
+                key={String(user?.cliente_id || `${posicao}-${nomeExibicao}`)}
+                className="flex items-center justify-between rounded-xl border border-stone-200 bg-white/90 px-3 py-2"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-bold text-stone-500 min-w-8">{medalha(posicao)}</span>
+                  <img
+                    src={fotoExibicao}
+                    alt={nomeExibicao}
+                    className="w-8 h-8 rounded-full object-cover bg-stone-200"
+                    loading="lazy"
+                  />
+                  <p className="text-sm font-semibold text-stone-800 truncate">{nomeExibicao}</p>
+                </div>
+                <span className="text-xs font-bold text-stone-600">
+                  {Number(user?.pedidos_mes || 0)} pedido{Number(user?.pedidos_mes || 0) === 1 ? '' : 's'}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {Array.isArray(ranking.top10) && ranking.top10.length > 3 && (
         <button
           type="button"
           onClick={() => setExpandido((v) => !v)}
