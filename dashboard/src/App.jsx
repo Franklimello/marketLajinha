@@ -1,5 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { getAnalyticsCompat } from './config/firebase'
 import Login from './pages/Login'
 import CadastroLoja from './pages/CadastroLoja'
 import DashLayout from './components/DashLayout'
@@ -19,10 +21,39 @@ import Promocoes from './pages/Promocoes'
 import Stories from './pages/Stories'
 import Posts from './pages/Posts'
 
+function AnalyticsTracker() {
+  const location = useLocation()
+
+  useEffect(() => {
+    let ativo = true
+    ;(async () => {
+      const analytics = await getAnalyticsCompat()
+      if (!analytics || !ativo) return
+      try {
+        const { logEvent } = await import('firebase/analytics')
+        if (!ativo) return
+        logEvent(analytics, 'page_view', {
+          page_path: location.pathname,
+          page_location: window.location.href,
+          page_title: document.title,
+        })
+      } catch {
+        // noop
+      }
+    })()
+    return () => {
+      ativo = false
+    }
+  }, [location.pathname])
+
+  return null
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <AnalyticsTracker />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<CadastroLoja />} />

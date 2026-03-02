@@ -17,6 +17,7 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const storage = getStorage(app)
 export const googleProvider = new GoogleAuthProvider()
+let analytics = null
 
 async function getMessagingCompat() {
   try {
@@ -28,6 +29,20 @@ async function getMessagingCompat() {
   }
 }
 export { getMessagingCompat }
+
+export async function getAnalyticsCompat() {
+  if (typeof window === 'undefined') return null
+  if (analytics) return analytics
+  try {
+    const { getAnalytics, isSupported } = await import('firebase/analytics')
+    const supported = await isSupported()
+    if (!supported) return null
+    analytics = getAnalytics(app)
+    return analytics
+  } catch {
+    return null
+  }
+}
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.5,

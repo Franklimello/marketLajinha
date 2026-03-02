@@ -1,6 +1,6 @@
 {
   "name": "marketlajinha-impressao",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Central de Impressão Automática - MarketLajinha",
   "main": "main.js",
   "scripts": {
@@ -15,7 +15,9 @@
       "output": "dist"
     },
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "assets/icon.ico"
     },
     "nsis": {

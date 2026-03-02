@@ -5,6 +5,7 @@ import Footer from './componentes/footer'
 import InstallPrompt from './componentes/InstallPrompt'
 import { useAuth } from './context/AuthContext'
 import { setTokenGetter } from './api/client'
+import { getAnalyticsCompat } from './config/firebase'
 import { getItem as getLocalItem, setItem as setLocalItem } from './storage/localStorageService'
 
 const TERMOS_VERSAO = 'v1'
@@ -13,7 +14,7 @@ function ModalAceiteTermos({ onAccept }) {
   const [checked, setChecked] = useState(false)
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/55 flex items-end sm:items-center justify-center p-4">
+    <div className="fixed inset-0 z-120 bg-black/55 flex items-end sm:items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-200">
           <h2 className="text-lg font-bold text-stone-900">Termo de Uso e Isenção</h2>
@@ -114,6 +115,28 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname])
+
+  useEffect(() => {
+    let ativo = true
+    ;(async () => {
+      const analytics = await getAnalyticsCompat()
+      if (!analytics || !ativo) return
+      try {
+        const { logEvent } = await import('firebase/analytics')
+        if (!ativo) return
+        logEvent(analytics, 'page_view', {
+          page_path: pathname,
+          page_location: window.location.href,
+          page_title: document.title,
+        })
+      } catch {
+        // noop: analytics não deve quebrar fluxo principal
+      }
+    })()
+    return () => {
+      ativo = false
+    }
   }, [pathname])
 
   useEffect(() => {

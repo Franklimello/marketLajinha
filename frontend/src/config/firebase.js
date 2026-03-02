@@ -9,12 +9,14 @@ const firebaseConfig = {
   storageBucket: "marcketlainha.firebasestorage.app",
   messagingSenderId: "910649841875",
   appId: "1:910649841875:web:3ea1a73381a6914f56dc26",
+  measurementId: "G-QJ6RRF830R",
 }
 
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const storage = getStorage(app)
 const googleProvider = new GoogleAuthProvider()
+let analytics = null
 
 async function getMessagingCompat() {
   try {
@@ -26,7 +28,21 @@ async function getMessagingCompat() {
   }
 }
 
-export { auth, onAuthStateChanged, googleProvider, getMessagingCompat }
+async function getAnalyticsCompat() {
+  if (typeof window === 'undefined') return null
+  if (analytics) return analytics
+  try {
+    const { getAnalytics, isSupported } = await import('firebase/analytics')
+    const supported = await isSupported()
+    if (!supported) return null
+    analytics = getAnalytics(app)
+    return analytics
+  } catch {
+    return null
+  }
+}
+
+export { auth, onAuthStateChanged, googleProvider, getMessagingCompat, getAnalyticsCompat }
 
 export async function uploadArquivoChat(file, path) {
   const storageRef = ref(storage, path)
