@@ -88,7 +88,6 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                   nomeCompleto: user?.nome_snapshot,
                   fotoPerfil: user?.foto_snapshot,
                 })
-                const pedidos = Number(user?.pedidos_mes || 0)
                 return (
                   <div key={`podium-${posicao}`} className="flex flex-col items-center">
                     <div className="relative mb-1">
@@ -121,9 +120,6 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                     </div>
                     <p className="max-w-[72px] text-center text-[10px] font-semibold text-stone-700 truncate">
                       {user ? nomeExibicao : '-'}
-                    </p>
-                    <p className="text-[9px] text-stone-500 mb-0.5">
-                      {user ? `${pedidos} pedido${pedidos === 1 ? '' : 's'}` : '--'}
                     </p>
                     <div className={`w-full rounded-t-lg border ${pedestalClasses(posicao)} flex items-center justify-center`}>
                       <span className="text-[10px] font-extrabold text-stone-800">{posicao}</span>
@@ -168,9 +164,6 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
                   )}
                   <p className="text-sm font-semibold text-stone-800 truncate">{nomeExibicao}</p>
                 </div>
-                <span className="text-xs font-bold text-stone-600">
-                  {Number(user?.pedidos_mes || 0)} pedido{Number(user?.pedidos_mes || 0) === 1 ? '' : 's'}
-                </span>
               </div>
             )
           })}

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, getCachedData } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
-import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift, FiStar, FiCalendar } from 'react-icons/fi'
+import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift, FiStar, FiCalendar, FiSearch } from 'react-icons/fi'
 import { getItem as getLocalItem, setItem as setLocalItem, removeItem as removeLocalItem } from '../storage/localStorageService'
 import { getItem as getSessionItem, setItem as setSessionItem, removeItem as removeSessionItem } from '../storage/sessionStorageService'
 import { addLocalOrderHistory, enqueuePendingOrder, setupAutoSync } from '../storage/offlineDatabase'
@@ -303,6 +303,7 @@ export default function LojaPage() {
   const [carregando, setCarregando] = useState(() => !getCachedData(`/lojas/slug/${slug}`))
   const [erro, setErro] = useState(null)
   const [categoriaSel, setCategoriaSel] = useState(null)
+  const [buscaProdutoLoja, setBuscaProdutoLoja] = useState('')
   const [showInfo, setShowInfo] = useState(false)
 
   const [produtoDetalhe, setProdutoDetalhe] = useState(null)
@@ -755,6 +756,12 @@ export default function LojaPage() {
     }
     return { produtosPorCategoria: map, categorias: Object.keys(map) }
   }, [produtos.dados])
+
+  const produtosBusca = useMemo(() => {
+    const termo = normalizeText(buscaProdutoLoja)
+    if (!termo) return []
+    return (produtos?.dados || []).filter((p) => normalizeText(p?.nome).includes(termo))
+  }, [buscaProdutoLoja, produtos?.dados])
 
   const enderecoPadraoCliente = useMemo(() => {
     const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
@@ -2239,7 +2246,71 @@ export default function LojaPage() {
           </div>
         )}
 
-        {!produtosCarregando && categoriaSel === null ? (
+        {!produtosCarregando && (
+          <div className="mb-3">
+            <div className="relative">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
+              <input
+                value={buscaProdutoLoja}
+                onChange={(e) => { setBuscaProdutoLoja(e.target.value); setCategoriaSel(null) }}
+                placeholder="Buscar produto pelo nome"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
+              />
+            </div>
+          </div>
+        )}
+
+        {!produtosCarregando && buscaProdutoLoja.trim() ? (
+          <>
+            <div className="mb-3 flex items-end justify-between">
+              <h2 className="text-base font-extrabold text-stone-900">Resultados</h2>
+              <span className="text-[11px] font-semibold text-stone-400">
+                {produtosBusca.length} item{produtosBusca.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="space-y-2 animate-fade-in-up">
+              {produtosBusca.length === 0 ? (
+                <p className="text-sm text-stone-400">Nenhum produto encontrado para essa busca.</p>
+              ) : produtosBusca.map((p, idx) => {
+                const qtd = qtdMap[p.id] || 0
+                const precoMin = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map((v) => Number(v.preco))) : getPrecoProduto(p)
+                const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
+                const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
+                return (
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 bg-white rounded-xl border p-3 text-left transition-colors ${semEstoque ? 'border-stone-200 opacity-60' : 'border-stone-100 hover:bg-stone-50 active:bg-stone-100'}`}>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
+                      {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2">
+                          {temPromocao && (
+                            <span className="text-xs text-stone-400 line-through font-numeric">
+                              R$ {Number(p.preco).toFixed(2).replace('.', ',')}
+                            </span>
+                          )}
+                          <p className="text-red-600 font-bold text-sm font-numeric">
+                            {p.variacoes?.length > 0 ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}` : `R$ ${precoMin.toFixed(2).replace('.', ',')}`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {p.imagem_url && (
+                      <img
+                        src={p.imagem_url}
+                        alt=""
+                        loading={idx < 6 ? 'eager' : 'lazy'}
+                        fetchPriority={idx < 4 ? 'high' : 'auto'}
+                        decoding={idx < 4 ? 'sync' : 'async'}
+                        className="w-16 h-16 rounded-lg object-cover shrink-0"
+                      />
+                    )}
+                    {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">{qtd}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        ) : !produtosCarregando && categoriaSel === null ? (
           <>
             <div className="mb-3 flex items-end justify-between">
               <h2 className="text-lg font-extrabold text-stone-900">Cardápio</h2>
