@@ -22,7 +22,10 @@ function normalizarEstrategiaPizza(produto) {
 function calcularPrecoSaboresPizza(estrategia, sabores = []) {
   if (!sabores.length) return 0;
   const precos = sabores.map((s) => Number(s.preco || 0));
-  if (estrategia === 'MEDIA' || estrategia === 'SOMA_PROPORCIONAL') {
+  if (estrategia === 'MEDIA') {
+    return precos.reduce((s, p) => s + p, 0) / sabores.length;
+  }
+  if (estrategia === 'SOMA_PROPORCIONAL') {
     return precos.reduce((s, p) => s + p, 0) / sabores.length;
   }
   return Math.max(...precos);

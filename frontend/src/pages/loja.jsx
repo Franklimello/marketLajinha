@@ -107,10 +107,35 @@ function calcularPrecoSaboresPizza(produto, sabores = []) {
   if (!sabores.length) return 0
   const estrategia = String(produto?.pizza_preco_sabores || 'MAIOR').toUpperCase()
   const precos = sabores.map((s) => Number(s.preco || 0))
-  if (estrategia === 'MEDIA' || estrategia === 'SOMA_PROPORCIONAL') {
+  if (estrategia === 'MEDIA') {
+    return precos.reduce((acc, p) => acc + p, 0) / sabores.length
+  }
+  if (estrategia === 'SOMA_PROPORCIONAL') {
     return precos.reduce((acc, p) => acc + p, 0) / sabores.length
   }
   return Math.max(...precos)
+}
+
+function getPrecoMinimoProduto(produto) {
+  const variacoes = Array.isArray(produto?.variacoes) ? produto.variacoes : []
+  if (!variacoes.length) return getPrecoProduto(produto)
+
+  if (!isProdutoPizza(produto)) {
+    return Math.min(...variacoes.map((v) => Number(v.preco || 0)))
+  }
+
+  const sabores = getAdicionaisAtivos(produto).filter((a) => !!a.is_sabor)
+  if (!sabores.length) {
+    return Math.min(...variacoes.map((v) => Number(v.preco || 0)))
+  }
+
+  const precosPossiveis = variacoes.map((v) => {
+    const precoBase = getPrecoProduto(produto, v)
+    const menorSabor = Math.min(...sabores.map((s) => getPrecoAdicionalPorVariacao(s, v)))
+    return precoBase + (Number.isFinite(menorSabor) ? menorSabor : 0)
+  })
+
+  return Math.min(...precosPossiveis)
 }
 
 function calcularPrecoConfiguracao(produto, variacao, adicionais = []) {
@@ -233,7 +258,7 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
       <h2 className="text-base font-bold text-stone-900 mb-3">Ofertas</h2>
       <div ref={ref} className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
         {produtos.map((p) => {
-          const preco = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map(v => Number(v.preco))) : getPrecoProduto(p)
+          const preco = getPrecoMinimoProduto(p)
           return (
             <button key={p.id} onClick={() => onAdd(p)} className="snap-start shrink-0 w-[120px] text-left">
               <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
@@ -241,7 +266,9 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
               </div>
               <p className="text-xs font-semibold text-stone-900 mt-1.5 line-clamp-1">{p.nome}</p>
               <p className="text-xs text-red-700 font-bold font-numeric">
-                {p.variacoes?.length > 0 && 'a partir de '}R$ {preco.toFixed(2).replace('.', ',')}
+                {p.variacoes?.length > 0
+                  ? `a partir de R$ ${preco.toFixed(2).replace('.', ',')}${isProdutoPizza(p) ? ' (1 sabor)' : ''}`
+                  : `R$ ${preco.toFixed(2).replace('.', ',')}`}
               </p>
             </button>
           )
@@ -1869,7 +1896,10 @@ export default function LojaPage() {
           <div className="px-4 pt-4 pb-1">
             <p className="text-base font-bold text-stone-900 mb-3">quantos sabores?</p>
             <div className="grid grid-cols-2 gap-2">
-              {[1, 2].map((qtd) => (
+              {Array.from(
+                { length: Math.max(1, Math.max(...(p.variacoes || []).map((v) => getMaxSaboresVariacao(v)))) },
+                (_, i) => i + 1
+              ).map((qtd) => (
                 <button
                   key={qtd}
                   type="button"
@@ -2382,7 +2412,7 @@ export default function LojaPage() {
                 <p className="text-sm text-stone-400">Nenhum produto encontrado para essa busca.</p>
               ) : produtosBusca.map((p, idx) => {
                 const qtd = qtdMap[p.id] || 0
-                const precoMin = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map((v) => Number(v.preco))) : getPrecoProduto(p)
+                const precoMin = getPrecoMinimoProduto(p)
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
@@ -2398,7 +2428,9 @@ export default function LojaPage() {
                             </span>
                           )}
                           <p className="text-red-600 font-bold text-sm font-numeric">
-                            {p.variacoes?.length > 0 ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}` : `R$ ${precoMin.toFixed(2).replace('.', ',')}`}
+                            {p.variacoes?.length > 0
+                              ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}${isProdutoPizza(p) ? ' (1 sabor)' : ''}`
+                              : `R$ ${precoMin.toFixed(2).replace('.', ',')}`}
                           </p>
                         </div>
                       </div>
@@ -2467,7 +2499,7 @@ export default function LojaPage() {
               {(produtosPorCategoria[categoriaSel] || []).map((p, idx) => {
                 const qtd = qtdMap[p.id] || 0
                 const temConfig = (p.variacoes?.length > 0) || (p.adicionais?.length > 0)
-                const precoMin = p.variacoes?.length > 0 ? Math.min(...p.variacoes.map((v) => Number(v.preco))) : getPrecoProduto(p)
+                const precoMin = getPrecoMinimoProduto(p)
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
@@ -2483,7 +2515,9 @@ export default function LojaPage() {
                             </span>
                           )}
                           <p className="text-red-600 font-bold text-sm font-numeric">
-                            {p.variacoes?.length > 0 ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}` : `R$ ${precoMin.toFixed(2).replace('.', ',')}`}
+                            {p.variacoes?.length > 0
+                              ? `a partir de R$ ${precoMin.toFixed(2).replace('.', ',')}${isProdutoPizza(p) ? ' (1 sabor)' : ''}`
+                              : `R$ ${precoMin.toFixed(2).replace('.', ',')}`}
                           </p>
                         </div>
                         {temPromocao && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">promoção</span>}

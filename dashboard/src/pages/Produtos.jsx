@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import ModalProduto from '../components/ModalProduto'
+import ModalPizza from '../components/ModalPizza'
 import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiChevronDown, FiChevronUp, FiPackage, FiStar, FiX, FiTag } from 'react-icons/fi'
 
 function formatCurrency(valor) {
@@ -38,7 +39,9 @@ export default function Produtos() {
   const [todosProdutos, setTodosProdutos] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [modalAberto, setModalAberto] = useState(false)
+  const [modalPizzaAberto, setModalPizzaAberto] = useState(false)
   const [produtoEditando, setProdutoEditando] = useState(null)
+  const [pizzaEditando, setPizzaEditando] = useState(null)
   const [categoriaModal, setCategoriaModal] = useState('')
   const [busca, setBusca] = useState('')
   const [categoriasAbertas, setCategoriasAbertas] = useState({})
@@ -273,7 +276,17 @@ export default function Produtos() {
     setModalAberto(true)
   }
 
+  function abrirNovaPizza() {
+    setPizzaEditando(null)
+    setModalPizzaAberto(true)
+  }
+
   function abrirEditar(p) {
+    if (String(p?.tipo_produto || '').toUpperCase() === 'PIZZA') {
+      setPizzaEditando(p)
+      setModalPizzaAberto(true)
+      return
+    }
     setProdutoEditando(p)
     setCategoriaModal(p.categoria || '')
     setModalAberto(true)
@@ -299,6 +312,18 @@ export default function Produtos() {
     setModalCategoria(false)
     abrirNovoProduto(novaCategoriaNome.trim())
     setNovaCategoriaNome('')
+  }
+
+  function handleSalvoPizza(produtoSalvo, isNovo) {
+    setModalPizzaAberto(false)
+    setPizzaEditando(null)
+    if (isNovo) {
+      carregarProdutos()
+    } else if (produtoSalvo) {
+      setTodosProdutos((prev) =>
+        prev.map((p) => (p.id === produtoSalvo.id ? { ...p, ...produtoSalvo } : p))
+      )
+    }
   }
 
   function abrirEditarCategoria(categoria) {
@@ -386,6 +411,12 @@ export default function Produtos() {
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white border border-stone-200 text-stone-700 font-medium rounded-lg hover:bg-stone-50 transition-colors text-xs sm:text-sm"
           >
             <FiPlus /> Categoria
+          </button>
+          <button
+            onClick={abrirNovaPizza}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm"
+          >
+            <FiPlus /> Pizza
           </button>
           <button
             onClick={() => abrirNovoProduto('')}
@@ -765,6 +796,19 @@ export default function Produtos() {
             setCategoriaModal('')
           }}
           onSalvo={handleSalvo}
+        />
+      )}
+
+      {/* Modal pizza */}
+      {modalPizzaAberto && (
+        <ModalPizza
+          lojaId={loja.id}
+          produto={pizzaEditando}
+          onFechar={() => {
+            setModalPizzaAberto(false)
+            setPizzaEditando(null)
+          }}
+          onSalvo={handleSalvoPizza}
         />
       )}
     </div>

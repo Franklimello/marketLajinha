@@ -15,7 +15,6 @@ const ESTRATEGIAS_PRECO_SABORES = [
 ]
 const TIPOS_PRODUTO_UI = [
   { id: 'NORMAL', label: 'Normal' },
-  { id: 'PIZZA', label: 'Pizza' },
   { id: 'HAMBURGUER', label: 'Hambúrguer' },
   { id: 'ROUPA', label: 'Roupa' },
   { id: 'FARMACIA', label: 'Farmácia' },
