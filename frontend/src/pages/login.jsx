@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '../config/firebase'
@@ -19,10 +19,11 @@ export default function LoginPage() {
 
   const destino = perfilCompleto ? voltar : '/perfil'
 
-  if (logado) {
-    navigate(destino, { replace: true })
-    return null
-  }
+  useEffect(() => {
+    if (logado) navigate(destino, { replace: true })
+  }, [logado, destino, navigate])
+
+  if (logado) return null
 
   async function handleSubmit(e) {
     e.preventDefault()

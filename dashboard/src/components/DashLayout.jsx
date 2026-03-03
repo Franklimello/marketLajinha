@@ -153,22 +153,21 @@ export default function DashLayout() {
     )
   }
 
-  if (!user) {
-    navigate('/login')
-    return null
-  }
-
   const isAdminPage = location.pathname.startsWith('/admin')
+  const redirectPath = !user
+    ? '/login'
+    : (!loja && !isSuperAdmin)
+      ? '/cadastro-loja'
+      : (!loja && isSuperAdmin && !isAdminPage)
+        ? '/admin'
+        : null
 
-  if (!loja && !isSuperAdmin) {
-    navigate('/cadastro-loja')
-    return null
-  }
+  useEffect(() => {
+    if (!redirectPath) return
+    navigate(redirectPath, { replace: true })
+  }, [redirectPath, navigate])
 
-  if (!loja && isSuperAdmin && !isAdminPage) {
-    navigate('/admin')
-    return null
-  }
+  if (redirectPath) return null
 
   async function handleLogout() {
     await logout()

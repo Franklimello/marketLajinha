@@ -61,8 +61,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!messagingEnv) return undefined
     const unsub = messagingEnv.onMessage(messagingEnv.messaging, (payload) => {
-      const { title, body } = payload.notification || {}
-      const data = payload.data || {}
+      const safePayload = payload || {}
+      const { title, body } = safePayload.notification || {}
+      const data = safePayload.data || {}
       if (Notification.permission === 'granted') {
         const n = new Notification(title || 'MarketLajinha', {
           body: body || '',
