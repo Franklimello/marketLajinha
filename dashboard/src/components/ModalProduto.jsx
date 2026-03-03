@@ -6,13 +6,6 @@ import { FiUpload, FiCamera, FiImage, FiPlus, FiTrash2 } from 'react-icons/fi'
 const TAMANHOS_PADRAO = ['P', 'M', 'G', 'GG']
 const TAMANHOS_PIZZA_PADRAO = ['BROTO', 'MEDIA', 'GRANDE', 'FAMILIA']
 const TAMANHOS_PIZZA_LABEL = { BROTO: 'Broto', MEDIA: 'Média', GRANDE: 'Grande', FAMILIA: 'Família' }
-const TAMANHOS_ROUPA_PADRAO = ['PP', 'P', 'M', 'G', 'GG', 'XG']
-const TAMANHOS_HAMBURGUER_PADRAO = ['SIMPLES', 'DUPLO', 'TRIPLO']
-const TAMANHOS_FARMACIA_PADRAO = ['UNIDADE', 'CAIXA', 'FRASCO']
-const TAMANHOS_MERCEARIA_PADRAO = ['UNIDADE', '500G', '1KG']
-const TAMANHOS_ACAI_PADRAO = ['300ML', '500ML', '700ML', '1L']
-const TAMANHOS_MARMITA_PADRAO = ['PEQUENA', 'MEDIA', 'GRANDE']
-const TAMANHOS_BEBIDAS_PADRAO = ['LATA', '600ML', '1L', '2L']
 const TAMANHOS_ML_PADRAO = ['100ML', '200ML', '300ML', '400ML', '500ML', '600ML', '700ML', '800ML', '900ML', '1L']
 const TAMANHOS_RAPIDOS = [...TAMANHOS_PADRAO, ...TAMANHOS_ML_PADRAO]
 const ESTRATEGIAS_PRECO_SABORES = [
@@ -157,11 +150,9 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       setTipoProdutoUi(value)
       if (value === 'PIZZA') {
         setForm((prev) => ({ ...prev, tipo_produto: 'PIZZA' }))
-      } else if (value === 'NORMAL') {
-        setForm((prev) => ({ ...prev, tipo_produto: 'NORMAL' }))
       } else {
-        // Templates específicos continuam salvando como NORMAL no backend.
-        aplicarTemplateSegmento(value)
+        // Tipos visuais por segmento continuam salvando como NORMAL no backend.
+        setForm((prev) => ({ ...prev, tipo_produto: 'NORMAL' }))
       }
       return
     }
@@ -249,165 +240,6 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         ...getPresetPizza(tam),
       }))
     })
-  }
-
-  function montarVariacoesRapidas(nomes = []) {
-    const precosExistentes = new Map(
-      (variacoes || []).map((v) => [String(v.nome || '').trim().toUpperCase(), Number(v.preco || 0)])
-    )
-    return nomes.map((nome) => {
-      const n = String(nome || '').trim().toUpperCase()
-      return {
-        nome: n,
-        preco: Number(precosExistentes.get(n) || 0),
-        fatias: 0,
-        max_sabores: 1,
-      }
-    })
-  }
-
-  function aplicarTemplateSegmento(templateId) {
-    const baseItem = (nome, preco = 0, ordem_item = 0) => ({ nome, preco, ordem_item, is_sabor: false })
-    const baseGrupo = (nome, min, max, ordem_grupo, itens) => ({ nome, min, max, ordem_grupo, itens })
-
-    setForm((prev) => ({ ...prev, tipo_produto: 'NORMAL' }))
-    setTipoProdutoUi(templateId)
-    setErro('')
-
-    if (templateId === 'HAMBURGUER') {
-      setVariacoes(montarVariacoesRapidas(TAMANHOS_HAMBURGUER_PADRAO))
-      setGruposAdicionais([
-        baseGrupo('Ponto da carne', 1, 1, 0, [
-          baseItem('Ao ponto', 0, 0),
-          baseItem('Bem passado', 0, 1),
-          baseItem('Mal passado', 0, 2),
-        ]),
-        baseGrupo('Queijos e adicionais', 0, 3, 1, [
-          baseItem('Queijo extra', 3, 0),
-          baseItem('Bacon', 4, 1),
-          baseItem('Ovo', 2.5, 2),
-          baseItem('Catupiry', 3.5, 3),
-        ]),
-        baseGrupo('Molhos', 0, 2, 2, [
-          baseItem('Maionese da casa', 0, 0),
-          baseItem('Barbecue', 0, 1),
-          baseItem('Pimenta', 0, 2),
-        ]),
-      ])
-      return
-    }
-
-    if (templateId === 'ROUPA') {
-      setVariacoes(montarVariacoesRapidas(TAMANHOS_ROUPA_PADRAO))
-      setGruposAdicionais([
-        baseGrupo('Cor', 1, 1, 0, [
-          baseItem('Preto', 0, 0),
-          baseItem('Branco', 0, 1),
-          baseItem('Azul', 0, 2),
-          baseItem('Vermelho', 0, 3),
-        ]),
-        baseGrupo('Modelagem', 0, 1, 1, [
-          baseItem('Slim', 0, 0),
-          baseItem('Regular', 0, 1),
-          baseItem('Oversized', 0, 2),
-        ]),
-      ])
-      return
-    }
-
-    if (templateId === 'FARMACIA') {
-      setVariacoes(montarVariacoesRapidas(TAMANHOS_FARMACIA_PADRAO))
-      setGruposAdicionais([
-        baseGrupo('Dosagem / Concentração', 1, 1, 0, [
-          baseItem('250mg', 0, 0),
-          baseItem('500mg', 0, 1),
-          baseItem('750mg', 0, 2),
-        ]),
-        baseGrupo('Quantidade da embalagem', 1, 1, 1, [
-          baseItem('10 unidades', 0, 0),
-          baseItem('20 unidades', 0, 1),
-          baseItem('30 unidades', 0, 2),
-        ]),
-      ])
-      return
-    }
-
-    if (templateId === 'MERCEARIA') {
-      setVariacoes(montarVariacoesRapidas(TAMANHOS_MERCEARIA_PADRAO))
-      setGruposAdicionais([
-        baseGrupo('Marca', 0, 1, 0, [
-          baseItem('Marca A', 0, 0),
-          baseItem('Marca B', 0, 1),
-          baseItem('Marca C', 0, 2),
-        ]),
-        baseGrupo('Tipo / Corte', 0, 1, 1, [
-          baseItem('Tradicional', 0, 0),
-          baseItem('Premium', 2, 1),
-        ]),
-      ])
-      return
-    }
-
-    if (templateId === 'ACAI') {
-      setVariacoes(montarVariacoesRapidas(TAMANHOS_ACAI_PADRAO))
-      setGruposAdicionais([
-        baseGrupo('Base', 1, 1, 0, [
-          baseItem('Açaí tradicional', 0, 0),
-          baseItem('Açaí zero açúcar', 1, 1),
-        ]),
-        baseGrupo('Frutas e toppings', 0, 6, 1, [
-          baseItem('Morango', 2, 0),
-          baseItem('Banana', 1.5, 1),
-          baseItem('Leite condensado', 2, 2),
-          baseItem('Paçoca', 2.5, 3),
-          baseItem('Granola', 1.5, 4),
-        ]),
-        baseGrupo('Caldas', 0, 2, 2, [
-          baseItem('Chocolate', 0, 0),
-          baseItem('Morango', 0, 1),
-          baseItem('Caramelo', 0, 2),
-        ]),
-      ])
-      return
-    }
-
-    if (templateId === 'MARMITA') {
-      setVariacoes(montarVariacoesRapidas(TAMANHOS_MARMITA_PADRAO))
-      setGruposAdicionais([
-        baseGrupo('Escolha a proteína', 1, 1, 0, [
-          baseItem('Frango grelhado', 0, 0),
-          baseItem('Bife acebolado', 2, 1),
-          baseItem('Peixe', 3, 2),
-        ]),
-        baseGrupo('Acompanhamentos', 1, 2, 1, [
-          baseItem('Arroz', 0, 0),
-          baseItem('Feijão', 0, 1),
-          baseItem('Macarrão', 1, 2),
-          baseItem('Purê', 1.5, 3),
-        ]),
-        baseGrupo('Extras', 0, 3, 2, [
-          baseItem('Ovo', 2, 0),
-          baseItem('Salada', 3, 1),
-          baseItem('Farofa', 1.5, 2),
-        ]),
-      ])
-      return
-    }
-
-    if (templateId === 'BEBIDAS') {
-      setVariacoes(montarVariacoesRapidas(TAMANHOS_BEBIDAS_PADRAO))
-      setGruposAdicionais([
-        baseGrupo('Temperatura', 0, 1, 0, [
-          baseItem('Gelada', 0, 0),
-          baseItem('Natural', 0, 1),
-        ]),
-        baseGrupo('Complementos', 0, 2, 1, [
-          baseItem('Gelo', 0, 0),
-          baseItem('Limão', 0.5, 1),
-          baseItem('Hortelã', 0.5, 2),
-        ]),
-      ])
-    }
   }
 
   const variacoesCustomizadas = variacoes.filter((v) => !isTamanhoPadrao(v.nome))
@@ -876,65 +708,6 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                   ? 'Pizza precisa de tamanho obrigatório. Defina preço, fatias e limite de sabores por tamanho.'
                   : 'Defina tamanhos/variações para este produto. Ex: P, M, G ou 300ml, 500ml. Cada tamanho tem seu preço próprio.'}
               </p>
-              {form.tipo_produto !== 'PIZZA' && (
-                <div className="border border-stone-200 bg-stone-50 rounded-xl p-3 space-y-2">
-                  <p className="text-xs font-semibold text-stone-700">Modelos rápidos por segmento</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => aplicarTemplateSegmento('HAMBURGUER')}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700"
-                    >
-                      Hambúrguer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => aplicarTemplateSegmento('ROUPA')}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700"
-                    >
-                      Roupa
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => aplicarTemplateSegmento('FARMACIA')}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700"
-                    >
-                      Farmácia
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => aplicarTemplateSegmento('MERCEARIA')}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700"
-                    >
-                      Mercearia
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => aplicarTemplateSegmento('ACAI')}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700"
-                    >
-                      Açaí
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => aplicarTemplateSegmento('MARMITA')}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700"
-                    >
-                      Marmita
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => aplicarTemplateSegmento('BEBIDAS')}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-stone-700"
-                    >
-                      Bebidas
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-stone-500">
-                    Esses modelos criam variações e grupos iniciais. Depois você pode ajustar nomes, preços e regras.
-                  </p>
-                </div>
-              )}
               <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
                 <p className="text-xs font-medium text-stone-600">
                   {form.tipo_produto === 'PIZZA' ? 'Tamanhos rápidos de pizza' : 'Tamanhos rápidos (tradicionais)'}
