@@ -44,6 +44,21 @@ export default function DashLayout() {
   const audioRef = useRef(null)
   const { canInstall, isIOS, installed, showIOSGuide, promptInstall, dismissIOSGuide } = usePWA()
   const showInstallBtn = canInstall || (isIOS && !installed)
+  const isAdminPage = location.pathname.startsWith('/admin')
+  const redirectPath = loading
+    ? null
+    : !user
+      ? '/login'
+      : (!loja && !isSuperAdmin)
+        ? '/cadastro-loja'
+        : (!loja && isSuperAdmin && !isAdminPage)
+          ? '/admin'
+          : null
+
+  useEffect(() => {
+    if (!redirectPath) return
+    navigate(redirectPath, { replace: true })
+  }, [redirectPath, navigate])
 
   const registrarNovoPedido = useCallback((pedido) => {
     const id = String(pedido?.id || '')
@@ -152,20 +167,6 @@ export default function DashLayout() {
       </div>
     )
   }
-
-  const isAdminPage = location.pathname.startsWith('/admin')
-  const redirectPath = !user
-    ? '/login'
-    : (!loja && !isSuperAdmin)
-      ? '/cadastro-loja'
-      : (!loja && isSuperAdmin && !isAdminPage)
-        ? '/admin'
-        : null
-
-  useEffect(() => {
-    if (!redirectPath) return
-    navigate(redirectPath, { replace: true })
-  }, [redirectPath, navigate])
 
   if (redirectPath) return null
 
