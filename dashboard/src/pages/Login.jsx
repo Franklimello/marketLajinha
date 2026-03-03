@@ -30,7 +30,8 @@ export default function Login() {
     setErro('')
     setCarregandoGoogle(true)
     try {
-      await loginGoogle()
+      const resultado = await loginGoogle()
+      if (resultado?.redirect) return
       navigate('/pedidos')
     } catch (err) {
       setErro(err?.message || 'Não foi possível entrar com Google.')

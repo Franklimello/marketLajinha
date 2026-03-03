@@ -3,6 +3,7 @@ import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithRedirect,
   signInWithPopup,
   signOut,
 } from 'firebase/auth'
@@ -126,7 +127,25 @@ export function AuthProvider({ children }) {
   const login = (email, senha) =>
     signInWithEmailAndPassword(auth, email, senha)
 
-  const loginGoogle = () => signInWithPopup(auth, googleProvider)
+  const loginGoogle = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider)
+      return { redirect: false }
+    } catch (err) {
+      const code = String(err?.code || '')
+      const msg = String(err?.message || '')
+      const deveUsarRedirect =
+        code === 'auth/popup-blocked' ||
+        code === 'auth/cancelled-popup-request' ||
+        msg.toLowerCase().includes('cross-origin-opener-policy')
+
+      if (deveUsarRedirect) {
+        await signInWithRedirect(auth, googleProvider)
+        return { redirect: true }
+      }
+      throw err
+    }
+  }
 
   const cadastrar = (email, senha) =>
     createUserWithEmailAndPassword(auth, email, senha)
