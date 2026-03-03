@@ -104,15 +104,12 @@ export function AuthProvider({ children }) {
           setLoja(null)
         }
 
-        // Só verifica admin quando não existe loja vinculada.
-        if (!minhaLoja) {
-          try {
-            await api.admin.stats()
-            setIsSuperAdmin(true)
-          } catch {
-            setIsSuperAdmin(false)
-          }
-        } else {
+        // Verifica super admin mesmo quando há loja vinculada.
+        // Um usuário pode ser lojista e super admin ao mesmo tempo.
+        try {
+          await api.admin.stats()
+          setIsSuperAdmin(true)
+        } catch {
           setIsSuperAdmin(false)
         }
       } else {
