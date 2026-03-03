@@ -9,6 +9,43 @@ const INCLUDE_ITENS = {
   },
 };
 
+function isPizzaProduto(produto) {
+  return String(produto?.tipo_produto || '').toUpperCase() === 'PIZZA';
+}
+
+function normalizarEstrategiaPizza(produto) {
+  const valor = String(produto?.pizza_preco_sabores || 'MAIOR').toUpperCase();
+  if (valor === 'MEDIA' || valor === 'SOMA_PROPORCIONAL' || valor === 'MAIOR') return valor;
+  return 'MAIOR';
+}
+
+function calcularPrecoSaboresPizza(estrategia, sabores = []) {
+  if (!sabores.length) return 0;
+  const precos = sabores.map((s) => Number(s.preco || 0));
+  if (estrategia === 'MEDIA' || estrategia === 'SOMA_PROPORCIONAL') {
+    return precos.reduce((s, p) => s + p, 0) / sabores.length;
+  }
+  return Math.max(...precos);
+}
+
+function agruparAdicionaisPorGrupo(adicionais = []) {
+  const map = new Map();
+  for (const adicional of adicionais) {
+    const nome = String(adicional?.grupo_nome || 'Complementos').trim() || 'Complementos';
+    if (!map.has(nome)) {
+      map.set(nome, {
+        nome,
+        min: Math.max(0, Number(adicional?.grupo_min || 0)),
+        max: Math.max(0, Number(adicional?.grupo_max ?? 99)),
+        isSabor: !!adicional?.is_sabor,
+      });
+    } else if (adicional?.is_sabor) {
+      map.get(nome).isSabor = true;
+    }
+  }
+  return [...map.values()].map((g) => ({ ...g, max: Math.max(g.min, g.max) }));
+}
+
 function calcularRiscoNivel(cancelamentosValidos) {
   if (cancelamentosValidos >= 2) return 'alto';
   if (cancelamentosValidos === 1) return 'medio';
@@ -143,30 +180,67 @@ async function criar(data) {
 
   const itensComPreco = itens.map((item) => {
     const produto = produtoMap.get(item.produto_id);
+    const ehPizza = isPizzaProduto(produto);
 
     let precoBase = Number(produto.preco);
     let variacaoNome = '';
     let variacaoPreco = 0;
 
+    const variacao = item.variacao_id
+      ? produto.variacoes.find((v) => v.id === item.variacao_id)
+      : null;
+
     if (item.variacao_id) {
-      const variacao = produto.variacoes.find((v) => v.id === item.variacao_id);
       if (variacao) {
         precoBase = Number(variacao.preco);
         variacaoNome = variacao.nome;
         variacaoPreco = Number(variacao.preco);
       }
     }
+    if (ehPizza && !variacao) {
+      const err = new Error(`Selecione um tamanho válido para a pizza "${produto.nome}".`);
+      err.status = 400;
+      throw err;
+    }
 
     let adicionaisSelecionados = [];
-    let somaAdicionais = 0;
     if (item.adicionais_ids?.length) {
       adicionaisSelecionados = produto.adicionais.filter((a) =>
         item.adicionais_ids.includes(a.id)
       );
-      somaAdicionais = adicionaisSelecionados.reduce((s, a) => s + Number(a.preco), 0);
     }
 
-    const precoUnitario = precoBase + somaAdicionais;
+    const grupos = agruparAdicionaisPorGrupo(produto.adicionais || []);
+    for (const grupo of grupos) {
+      const selecionadosNoGrupo = adicionaisSelecionados.filter((a) => a.grupo_nome === grupo.nome).length;
+      const min = Number(grupo.min || 0);
+      const maxBase = Number(grupo.max || 99);
+      const maxPizza = ehPizza && grupo.isSabor ? Number(variacao?.max_sabores || maxBase || 1) : maxBase;
+      const max = Math.max(min, maxPizza);
+      if (selecionadosNoGrupo < min || selecionadosNoGrupo > max) {
+        const err = new Error(`Seleção inválida no grupo "${grupo.nome}" para "${produto.nome}".`);
+        err.status = 400;
+        throw err;
+      }
+    }
+
+    let precoAdicionais = 0;
+    if (ehPizza) {
+      const sabores = adicionaisSelecionados.filter((a) => !!a.is_sabor);
+      const extras = adicionaisSelecionados.filter((a) => !a.is_sabor);
+      const maxSabores = Number(variacao?.max_sabores || 1);
+      if (sabores.length < 1 || sabores.length > maxSabores) {
+        const err = new Error(`Pizza "${produto.nome}" permite de 1 até ${maxSabores} sabor(es) para este tamanho.`);
+        err.status = 400;
+        throw err;
+      }
+      precoAdicionais = calcularPrecoSaboresPizza(normalizarEstrategiaPizza(produto), sabores)
+        + extras.reduce((s, a) => s + Number(a.preco), 0);
+    } else {
+      precoAdicionais = adicionaisSelecionados.reduce((s, a) => s + Number(a.preco), 0);
+    }
+
+    const precoUnitario = precoBase + precoAdicionais;
 
     return {
       produto_id: item.produto_id,
@@ -175,7 +249,7 @@ async function criar(data) {
       variacao_nome: variacaoNome,
       variacao_preco: variacaoPreco,
       adicionais_json: JSON.stringify(
-        adicionaisSelecionados.map((a) => ({ nome: a.nome, preco: Number(a.preco) }))
+        adicionaisSelecionados.map((a) => ({ nome: a.nome, preco: Number(a.preco), is_sabor: !!a.is_sabor }))
       ),
     };
   });

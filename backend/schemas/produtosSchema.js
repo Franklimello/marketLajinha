@@ -3,6 +3,8 @@ const { z } = require('zod');
 const schemaVariacao = z.object({
   nome: z.string().min(1, 'Nome da variação é obrigatório'),
   preco: z.coerce.number().min(0, 'Preço deve ser >= 0'),
+  fatias: z.coerce.number().int().min(0).optional().default(0),
+  max_sabores: z.coerce.number().int().min(1).optional().default(1),
 });
 
 const schemaAdicional = z.object({
@@ -13,6 +15,7 @@ const schemaAdicional = z.object({
   grupo_max: z.coerce.number().int().min(0).optional().default(99),
   ordem_grupo: z.coerce.number().int().min(0).optional().default(0),
   ordem_item: z.coerce.number().int().min(0).optional().default(0),
+  is_sabor: z.boolean().optional().default(false),
 });
 
 const schemaProdutos = z.object({
@@ -29,8 +32,19 @@ const schemaProdutos = z.object({
   setor_impressao: z.string().optional().default(''),
   ativo: z.boolean().optional().default(true),
   destaque: z.boolean().optional().default(false),
+  tipo_produto: z.enum(['NORMAL', 'PIZZA']).optional().default('NORMAL'),
+  pizza_preco_sabores: z.enum(['MAIOR', 'MEDIA', 'SOMA_PROPORCIONAL']).optional().default('MAIOR'),
   variacoes: z.array(schemaVariacao).optional().default([]),
   adicionais: z.array(schemaAdicional).optional().default([]),
+}).superRefine((data, ctx) => {
+  if (data.tipo_produto !== 'PIZZA') return;
+  if (!Array.isArray(data.variacoes) || data.variacoes.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['variacoes'],
+      message: 'Produto do tipo pizza precisa de pelo menos um tamanho.',
+    });
+  }
 });
 
 const schemaProdutosPut = z.object({
@@ -46,6 +60,8 @@ const schemaProdutosPut = z.object({
   setor_impressao: z.string().optional(),
   ativo: z.boolean().optional(),
   destaque: z.boolean().optional(),
+  tipo_produto: z.enum(['NORMAL', 'PIZZA']).optional(),
+  pizza_preco_sabores: z.enum(['MAIOR', 'MEDIA', 'SOMA_PROPORCIONAL']).optional(),
   variacoes: z.array(schemaVariacao).optional(),
   adicionais: z.array(schemaAdicional).optional(),
 });

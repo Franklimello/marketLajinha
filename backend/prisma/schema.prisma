@@ -128,6 +128,8 @@ model Produtos {
   setor_impressao  String   @default("")
   ativo            Boolean
   destaque         Boolean  @default(false)
+  tipo_produto     String   @default("NORMAL")
+  pizza_preco_sabores String @default("MAIOR")
 
   loja       Lojas              @relation(fields: [loja_id], references: [id], onDelete: Cascade)
   itens      ItensPedido[]
@@ -146,6 +148,8 @@ model VariacaoProduto {
   produto_id String
   nome       String
   preco      Decimal
+  fatias     Int     @default(0)
+  max_sabores Int    @default(1)
 
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
 
@@ -162,6 +166,7 @@ model AdicionalProduto {
   grupo_max  Int     @default(99)
   ordem_grupo Int    @default(0)
   ordem_item Int     @default(0)
+  is_sabor   Boolean @default(false)
 
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
 

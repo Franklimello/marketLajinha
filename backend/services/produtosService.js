@@ -78,6 +78,8 @@ async function criar(data) {
       setor_impressao: rest.setor_impressao || '',
       ativo: rest.ativo !== undefined ? rest.ativo : true,
       destaque: rest.destaque !== undefined ? rest.destaque : false,
+      tipo_produto: rest.tipo_produto || 'NORMAL',
+      pizza_preco_sabores: rest.pizza_preco_sabores || 'MAIOR',
     },
     include: INCLUDE_COMPLETO,
   });
@@ -85,7 +87,13 @@ async function criar(data) {
   if (variacoes?.length) {
     for (const v of variacoes) {
       await prisma.variacaoProduto.create({
-        data: { nome: v.nome, preco: v.preco, produto_id: produto.id },
+        data: {
+          nome: v.nome,
+          preco: v.preco,
+          produto_id: produto.id,
+          fatias: Number.isFinite(v.fatias) ? v.fatias : 0,
+          max_sabores: Number.isFinite(v.max_sabores) ? Math.max(1, v.max_sabores) : 1,
+        },
       });
     }
   }
@@ -101,6 +109,7 @@ async function criar(data) {
           grupo_max: Number.isFinite(a.grupo_max) ? a.grupo_max : 99,
           ordem_grupo: Number.isFinite(a.ordem_grupo) ? a.ordem_grupo : 0,
           ordem_item: Number.isFinite(a.ordem_item) ? a.ordem_item : idx,
+          is_sabor: !!a.is_sabor,
         },
       });
     }
@@ -127,7 +136,13 @@ async function atualizar(id, data) {
       await tx.variacaoProduto.deleteMany({ where: { produto_id: id } });
       for (const v of variacoes) {
         await tx.variacaoProduto.create({
-          data: { nome: v.nome, preco: v.preco, produto_id: id },
+          data: {
+            nome: v.nome,
+            preco: v.preco,
+            produto_id: id,
+            fatias: Number.isFinite(v.fatias) ? v.fatias : 0,
+            max_sabores: Number.isFinite(v.max_sabores) ? Math.max(1, v.max_sabores) : 1,
+          },
         });
       }
     }
@@ -145,6 +160,7 @@ async function atualizar(id, data) {
             grupo_max: Number.isFinite(a.grupo_max) ? a.grupo_max : 99,
             ordem_grupo: Number.isFinite(a.ordem_grupo) ? a.ordem_grupo : 0,
             ordem_item: Number.isFinite(a.ordem_item) ? a.ordem_item : idx,
+            is_sabor: !!a.is_sabor,
           },
         });
       }

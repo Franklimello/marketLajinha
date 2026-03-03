@@ -147,6 +147,15 @@ describe('Schema: Produtos', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  test('rejeita pizza sem tamanho', () => {
+    const result = schemaProdutos.safeParse({
+      ...produtoValido,
+      tipo_produto: 'PIZZA',
+      variacoes: [],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('Schema: Usuários', () => {

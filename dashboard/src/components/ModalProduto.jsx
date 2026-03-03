@@ -4,8 +4,26 @@ import { uploadImagem } from '../config/firebase'
 import { FiUpload, FiCamera, FiImage, FiPlus, FiTrash2 } from 'react-icons/fi'
 
 const TAMANHOS_PADRAO = ['P', 'M', 'G', 'GG']
+const TAMANHOS_PIZZA_PADRAO = ['BROTO', 'MEDIA', 'GRANDE', 'FAMILIA']
+const TAMANHOS_PIZZA_LABEL = { BROTO: 'Broto', MEDIA: 'Média', GRANDE: 'Grande', FAMILIA: 'Família' }
 const TAMANHOS_ML_PADRAO = ['100ML', '200ML', '300ML', '400ML', '500ML', '600ML', '700ML', '800ML', '900ML', '1L']
 const TAMANHOS_RAPIDOS = [...TAMANHOS_PADRAO, ...TAMANHOS_ML_PADRAO]
+const ESTRATEGIAS_PRECO_SABORES = [
+  { id: 'MAIOR', label: 'Cobrar sabor mais caro (padrão iFood)' },
+  { id: 'MEDIA', label: 'Cobrar média dos sabores' },
+  { id: 'SOMA_PROPORCIONAL', label: 'Cobrar soma proporcional dos sabores' },
+]
+
+function getPresetPizza(nome) {
+  const normalizado = String(nome || '').trim().toUpperCase()
+  const mapa = {
+    BROTO: { fatias: 4, max_sabores: 1 },
+    MEDIA: { fatias: 6, max_sabores: 2 },
+    GRANDE: { fatias: 8, max_sabores: 2 },
+    FAMILIA: { fatias: 12, max_sabores: 3 },
+  }
+  return mapa[normalizado] || { fatias: 8, max_sabores: 2 }
+}
 
 function parseIngredientes(texto) {
   return String(texto || '')
@@ -32,6 +50,7 @@ function agruparAdicionais(adicionais = []) {
     g.itens.push({
       nome: a.nome || '',
       preco: Number(a.preco || 0),
+      is_sabor: !!a.is_sabor,
       ordem_item: Number.isFinite(a.ordem_item) ? Number(a.ordem_item) : g.itens.length,
     })
   })
@@ -48,6 +67,8 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     nome: '', descricao: '', preco: 0, estoque: 0,
     controla_estoque: false,
     imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
+    tipo_produto: 'NORMAL',
+    pizza_preco_sabores: 'MAIOR',
   })
   const [variacoes, setVariacoes] = useState([])
   const [gruposAdicionais, setGruposAdicionais] = useState([])
@@ -74,8 +95,15 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         setor_impressao: produto.setor_impressao || '',
         ativo: produto.ativo ?? true,
         destaque: produto.destaque ?? false,
+        tipo_produto: produto.tipo_produto || 'NORMAL',
+        pizza_preco_sabores: produto.pizza_preco_sabores || 'MAIOR',
       })
-      setVariacoes((produto.variacoes || []).map((v) => ({ nome: v.nome, preco: Number(v.preco) })))
+      setVariacoes((produto.variacoes || []).map((v) => ({
+        nome: v.nome,
+        preco: Number(v.preco),
+        fatias: Number(v.fatias || 0),
+        max_sabores: Number(v.max_sabores || 1),
+      })))
       setGruposAdicionais(agruparAdicionais(produto.adicionais || []))
       setIngredientes(parseIngredientes(produto.descricao || ''))
       setImagemFile(null)
@@ -87,6 +115,8 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         nome: '', descricao: '', preco: 0, estoque: 0,
         controla_estoque: false,
         imagem_url: '', categoria: categoriaInicial || '', setor_impressao: '', ativo: true, destaque: false,
+        tipo_produto: 'NORMAL',
+        pizza_preco_sabores: 'MAIOR',
       })
       setVariacoes([])
       setGruposAdicionais([])
@@ -125,10 +155,18 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   }
 
   // Variações
-  function addVariacao() { setVariacoes((prev) => [...prev, { nome: '', preco: 0 }]) }
+  function addVariacao() {
+    setVariacoes((prev) => [...prev, { nome: '', preco: 0, fatias: 0, max_sabores: 1 }])
+  }
   function removeVariacao(i) { setVariacoes((prev) => prev.filter((_, idx) => idx !== i)) }
   function handleVariacaoChange(i, field, value) {
-    setVariacoes((prev) => prev.map((v, idx) => idx === i ? { ...v, [field]: field === 'preco' ? (parseFloat(value) || 0) : value } : v))
+    setVariacoes((prev) => prev.map((v, idx) => {
+      if (idx !== i) return v
+      if (field === 'preco') return { ...v, preco: parseFloat(value) || 0 }
+      if (field === 'fatias') return { ...v, fatias: Math.max(0, parseInt(value || 0, 10) || 0) }
+      if (field === 'max_sabores') return { ...v, max_sabores: Math.max(1, parseInt(value || 1, 10) || 1) }
+      return { ...v, [field]: value }
+    }))
   }
 
   function isTamanhoPadrao(nome) {
@@ -144,7 +182,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     setVariacoes((prev) => {
       const idx = prev.findIndex((v) => String(v.nome || '').trim().toUpperCase() === target)
       if (idx >= 0) return prev.filter((_, i) => i !== idx)
-      return [...prev, { nome: target, preco: 0 }]
+      return [...prev, { nome: target, preco: 0, ...getPresetPizza(target) }]
     })
   }
 
@@ -156,7 +194,20 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       if (idx >= 0) {
         return prev.map((v, i) => (i === idx ? { ...v, preco } : v))
       }
-      return [...prev, { nome: target, preco }]
+      return [...prev, { nome: target, preco, ...getPresetPizza(target) }]
+    })
+  }
+
+  function aplicarConfiguracaoRapidaPizza() {
+    setVariacoes((prev) => {
+      const precosExistentes = new Map(
+        (prev || []).map((v) => [String(v.nome || '').trim().toUpperCase(), Number(v.preco || 0)])
+      )
+      return TAMANHOS_PIZZA_PADRAO.map((tam) => ({
+        nome: tam,
+        preco: Number(precosExistentes.get(tam) || 0),
+        ...getPresetPizza(tam),
+      }))
     })
   }
 
@@ -192,7 +243,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       if (idx !== idxGrupo) return g
       return {
         ...g,
-        itens: [...g.itens, { nome: '', preco: 0, ordem_item: g.itens.length }],
+        itens: [...g.itens, { nome: '', preco: 0, ordem_item: g.itens.length, is_sabor: false }],
       }
     }))
   }
@@ -220,6 +271,8 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               ? (parseFloat(value) || 0)
               : field === 'ordem_item'
                 ? (parseInt(value || 0, 10) || 0)
+                : field === 'is_sabor'
+                  ? !!value
                 : value,
           }
         }),
@@ -263,6 +316,57 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     })
   }
 
+  function aplicarGrupoSaboresPizza() {
+    setGruposAdicionais((prev) => {
+      const nomeGrupo = 'Escolha os sabores'
+      const idxExistente = prev.findIndex(
+        (g) => String(g?.nome || '').trim().toLowerCase() === nomeGrupo.toLowerCase()
+      )
+
+      const saboresBase = ingredientes.length
+        ? ingredientes
+        : ['Calabresa', 'Frango com Catupiry', 'Portuguesa', 'Marguerita']
+
+      const itensPadrao = saboresBase.map((nome, idx) => ({
+        nome,
+        preco: 0,
+        ordem_item: idx,
+        is_sabor: true,
+      }))
+
+      if (idxExistente >= 0) {
+        const copia = [...prev]
+        const atual = copia[idxExistente]
+        const existentes = new Set((atual.itens || []).map((i) => String(i.nome || '').trim().toLowerCase()))
+        const novos = itensPadrao
+          .filter((it) => !existentes.has(String(it.nome || '').trim().toLowerCase()))
+          .map((it, i) => ({ ...it, ordem_item: (atual.itens?.length || 0) + i }))
+        copia[idxExistente] = {
+          ...atual,
+          nome: nomeGrupo,
+          min: Math.max(1, Number(atual.min || 1)),
+          max: Math.max(3, Number(atual.max || 3)),
+          itens: [
+            ...(atual.itens || []).map((it, i) => ({ ...it, ordem_item: Number.isFinite(it.ordem_item) ? it.ordem_item : i })),
+            ...novos,
+          ],
+        }
+        return copia
+      }
+
+      return [
+        ...prev,
+        {
+          nome: nomeGrupo,
+          min: 1,
+          max: 3,
+          ordem_grupo: prev.length,
+          itens: itensPadrao,
+        },
+      ]
+    })
+  }
+
   useEffect(() => {
     if (produto) return
     if (autoAdicionaisRef.current) return
@@ -292,7 +396,14 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         imagem_url = await uploadImagem(imagemFile, path)
       }
 
-      const variacoesLimpas = variacoes.filter((v) => v.nome.trim())
+      const variacoesLimpas = variacoes
+        .filter((v) => v.nome.trim())
+        .map((v) => ({
+          nome: String(v.nome || '').trim(),
+          preco: Number(v.preco || 0),
+          fatias: Math.max(0, parseInt(v.fatias || 0, 10) || 0),
+          max_sabores: Math.max(1, parseInt(v.max_sabores || 1, 10) || 1),
+        }))
       const adicionaisLimpos = gruposAdicionais.flatMap((grupo, idxGrupo) => {
         const nomeGrupo = String(grupo.nome || '').trim()
         if (!nomeGrupo) return []
@@ -304,6 +415,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           .map(({ item, idxItem }) => ({
             nome: String(item.nome || '').trim(),
             preco: Number(item.preco || 0),
+            is_sabor: !!item.is_sabor,
             grupo_nome: nomeGrupo,
             grupo_min: min,
             grupo_max: max,
@@ -311,6 +423,15 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
             ordem_item: Number.isFinite(item.ordem_item) ? Number(item.ordem_item) : idxItem,
           }))
       })
+      if (form.tipo_produto === 'PIZZA') {
+        if (!variacoesLimpas.length) {
+          throw new Error('Pizza precisa ter pelo menos um tamanho com preço.')
+        }
+        const temSabor = adicionaisLimpos.some((a) => a.is_sabor)
+        if (!temSabor) {
+          throw new Error('Marque pelo menos um item como sabor de pizza no grupo de adicionais.')
+        }
+      }
       const dados = {
         ...form,
         estoque: form.controla_estoque ? Number(form.estoque || 0) : 0,
@@ -403,6 +524,36 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-1">Nome *</label>
                 <input name="nome" value={form.nome} onChange={handleChange} required placeholder="ex: X-Burguer" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Tipo de produto *</label>
+                  <select
+                    name="tipo_produto"
+                    value={form.tipo_produto}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+                  >
+                    <option value="NORMAL">Normal</option>
+                    <option value="PIZZA">Pizza</option>
+                  </select>
+                </div>
+                {form.tipo_produto === 'PIZZA' && (
+                  <div>
+                    <label className="block text-sm font-medium text-stone-700 mb-1">Preço dos sabores</label>
+                    <select
+                      name="pizza_preco_sabores"
+                      value={form.pizza_preco_sabores}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+                    >
+                      {ESTRATEGIAS_PRECO_SABORES.map((op) => (
+                        <option key={op.id} value={op.id}>{op.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -521,14 +672,28 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           {abaAtiva === 'tamanhos' && (
             <>
               <p className="text-xs text-stone-400">
-                Defina tamanhos/variações para este produto. Ex: P, M, G ou 300ml, 500ml. Cada tamanho tem seu preço próprio.
+                {form.tipo_produto === 'PIZZA'
+                  ? 'Pizza precisa de tamanho obrigatório. Defina preço, fatias e limite de sabores por tamanho.'
+                  : 'Defina tamanhos/variações para este produto. Ex: P, M, G ou 300ml, 500ml. Cada tamanho tem seu preço próprio.'}
               </p>
               <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
-                <p className="text-xs font-medium text-stone-600">Tamanhos rápidos (tradicionais)</p>
-                {TAMANHOS_PADRAO.map((tam) => {
+                <p className="text-xs font-medium text-stone-600">
+                  {form.tipo_produto === 'PIZZA' ? 'Tamanhos rápidos de pizza' : 'Tamanhos rápidos (tradicionais)'}
+                </p>
+                {form.tipo_produto === 'PIZZA' && (
+                  <button
+                    type="button"
+                    onClick={aplicarConfiguracaoRapidaPizza}
+                    className="w-full sm:w-auto px-3 py-2 text-xs font-semibold rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors"
+                  >
+                    Configuração rápida de pizza (Broto, Média, Grande e Família)
+                  </button>
+                )}
+                {(form.tipo_produto === 'PIZZA' ? TAMANHOS_PIZZA_PADRAO : TAMANHOS_PADRAO).map((tam) => {
                   const idx = indiceVariacaoPorNome(tam)
                   const ativo = idx >= 0
                   const precoAtual = ativo ? variacoes[idx].preco : 0
+                  const labelTam = form.tipo_produto === 'PIZZA' ? (TAMANHOS_PIZZA_LABEL[tam] || tam) : tam
                   return (
                     <div key={tam} className="flex items-center gap-2">
                       <button
@@ -539,7 +704,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                             : 'bg-white border-stone-300 text-stone-600 hover:border-amber-400'
                           }`}
                       >
-                        {tam}
+                        {labelTam}
                       </button>
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">R$</span>
@@ -551,7 +716,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                           disabled={!ativo}
                           onFocus={() => { if (!ativo) toggleTamanhoPadrao(tam) }}
                           onChange={(e) => setPrecoTamanhoPadrao(tam, e.target.value)}
-                          placeholder={`Preço ${tam}`}
+                          placeholder={`Preço ${labelTam}`}
                           className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-amber-500 ${ativo ? 'border-stone-300 bg-white' : 'border-stone-200 bg-stone-100 text-stone-400'
                             }`}
                         />
@@ -559,6 +724,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                     </div>
                   )
                 })}
+                {form.tipo_produto !== 'PIZZA' && (
                 <div className="pt-1">
                   <p className="text-xs font-medium text-stone-600 mb-2">Tamanhos rápidos em ml</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -601,6 +767,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                     })}
                   </div>
                 </div>
+                )}
                 <p className="text-[11px] text-stone-400">
                   Toque no tamanho para ativar/desativar. Com os tamanhos ativos, cada um usa seu próprio preço.
                 </p>
@@ -647,6 +814,40 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <button type="button" onClick={addVariacao} className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium">
                 <FiPlus /> Adicionar tamanho personalizado
               </button>
+              {form.tipo_produto === 'PIZZA' && variacoes.length > 0 && (
+                <div className="border border-amber-200 bg-amber-50 rounded-xl p-3 space-y-2">
+                  <p className="text-xs font-semibold text-amber-800">Regras por tamanho da pizza</p>
+                  {variacoes.map((v, i) => (
+                    <div key={`${v.nome}-${i}`} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        value={v.nome}
+                        onChange={(e) => handleVariacaoChange(i, 'nome', e.target.value)}
+                        placeholder="Tamanho"
+                        className="px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        value={v.fatias || 0}
+                        onChange={(e) => handleVariacaoChange(i, 'fatias', e.target.value)}
+                        placeholder="Fatias"
+                        className="px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white"
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        value={v.max_sabores || 1}
+                        onChange={(e) => handleVariacaoChange(i, 'max_sabores', e.target.value)}
+                        placeholder="Máx. sabores"
+                        className="px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white"
+                      />
+                    </div>
+                  ))}
+                  <p className="text-[11px] text-amber-700">
+                    Exemplo recomendado: Broto 1 sabor, Média 2, Grande 2, Família 3.
+                  </p>
+                </div>
+              )}
             </>
           )}
 
@@ -656,6 +857,11 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <p className="text-xs text-stone-400">
                 Separe os complementos por tipo e defina as regras de escolha (mínimo/máximo) por grupo.
               </p>
+              {form.tipo_produto === 'PIZZA' && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                  Marque como <strong>Sabor</strong> os itens do grupo "Escolha os sabores". O limite máximo será definido automaticamente pelo tamanho selecionado.
+                </p>
+              )}
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
@@ -664,6 +870,15 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                 >
                   <FiPlus /> Usar ingredientes como adicionais
                 </button>
+                {form.tipo_produto === 'PIZZA' && (
+                  <button
+                    type="button"
+                    onClick={aplicarGrupoSaboresPizza}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 border border-amber-400 bg-amber-100 text-amber-900 rounded-lg text-xs font-semibold hover:bg-amber-200 transition-colors"
+                  >
+                    <FiPlus /> Configuração rápida de sabores (pizza)
+                  </button>
+                )}
                 <span className="text-[11px] text-stone-400">
                   Adiciona os ingredientes no primeiro grupo.
                 </span>
@@ -715,6 +930,17 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                               className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
                             />
                           </div>
+                          {form.tipo_produto === 'PIZZA' && (
+                            <label className="inline-flex items-center gap-1.5 text-xs text-stone-700 px-2 py-1 rounded-md bg-white border border-stone-200">
+                              <input
+                                type="checkbox"
+                                checked={!!item.is_sabor}
+                                onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'is_sabor', e.target.checked)}
+                                className="rounded text-amber-600 focus:ring-amber-500"
+                              />
+                              Sabor
+                            </label>
+                          )}
                           <button type="button" onClick={() => removeItemGrupo(idxGrupo, idxItem)} className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                             <FiTrash2 className="text-sm" />
                           </button>

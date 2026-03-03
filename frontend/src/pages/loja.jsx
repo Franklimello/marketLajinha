@@ -83,6 +83,36 @@ function getPrecoProduto(produto, variacao = null) {
   return Number(produto?.preco || 0)
 }
 
+function isProdutoPizza(produto) {
+  return String(produto?.tipo_produto || '').toUpperCase() === 'PIZZA'
+}
+
+function getMaxSaboresVariacao(variacao) {
+  return Math.max(1, Number(variacao?.max_sabores || 1))
+}
+
+function calcularPrecoSaboresPizza(produto, sabores = []) {
+  if (!sabores.length) return 0
+  const estrategia = String(produto?.pizza_preco_sabores || 'MAIOR').toUpperCase()
+  const precos = sabores.map((s) => Number(s.preco || 0))
+  if (estrategia === 'MEDIA' || estrategia === 'SOMA_PROPORCIONAL') {
+    return precos.reduce((acc, p) => acc + p, 0) / sabores.length
+  }
+  return Math.max(...precos)
+}
+
+function calcularPrecoConfiguracao(produto, variacao, adicionais = []) {
+  const precoBase = getPrecoProduto(produto, variacao)
+  if (!isProdutoPizza(produto)) {
+    return precoBase + adicionais.reduce((s, a) => s + Number(a.preco), 0)
+  }
+  const sabores = adicionais.filter((a) => !!a.is_sabor)
+  const extras = adicionais.filter((a) => !a.is_sabor)
+  return precoBase
+    + calcularPrecoSaboresPizza(produto, sabores)
+    + extras.reduce((s, a) => s + Number(a.preco), 0)
+}
+
 const ComboImageStrip = memo(function ComboImageStrip({ combo }) {
   const imagens = getComboImages(combo)
   if (!imagens.length) return null
@@ -137,13 +167,11 @@ function restaurarCarrinho(snapshot, produtos, combos) {
     if (!produto) continue
     const variacao = (produto.variacoes || []).find((v) => v.id === row.variacaoId) || null
     const adicionais = (produto.adicionais || []).filter((a) => (row.adicionaisIds || []).includes(a.id))
-    const precoBase = getPrecoProduto(produto, variacao)
-    const precoAdds = adicionais.reduce((s, a) => s + Number(a.preco), 0)
     result[row.key] = {
       produto,
       variacao,
       adicionais,
-      precoUnit: precoBase + precoAdds,
+      precoUnit: calcularPrecoConfiguracao(produto, variacao, adicionais),
       obs: '',
       qtd: Number(row.qtd || 1),
     }
@@ -665,6 +693,7 @@ export default function LojaPage() {
 
   function addItemConfigurado(e) {
     const p = produtoDetalhe
+    const ehPizza = isProdutoPizza(p)
     const jaNoCarrinho = Object.values(carrinho).reduce((sum, item) => {
       if (item?.produto?.id !== p.id || item?.isCombo) return sum
       return sum + Number(item?.qtd || 0)
@@ -673,20 +702,24 @@ export default function LojaPage() {
       alert(`Estoque insuficiente. Disponível: ${p.estoque}.`)
       return
     }
+    const variacao = p.variacoes?.find((v) => v.id === variacaoSel) || null
+    if (ehPizza && !variacao) {
+      alert('Selecione um tamanho para a pizza.')
+      return
+    }
     const grupos = agruparAdicionaisProduto(p.adicionais || [])
     for (const grupo of grupos) {
-      if (!grupo.min) continue
+      const grupoSaborPizza = ehPizza && grupo.itens.some((it) => !!it.is_sabor)
+      const minGrupo = grupoSaborPizza ? 1 : Number(grupo.min || 0)
+      const maxGrupo = grupoSaborPizza ? getMaxSaboresVariacao(variacao) : Number(grupo.max || 99)
       const selecionadosNoGrupo = grupo.itens.filter((a) => adicionaisSel.includes(a.id)).length
-      if (selecionadosNoGrupo < grupo.min) {
-        alert(`No grupo "${grupo.nome}" selecione no mínimo ${grupo.min} opção(ões).`)
+      if (selecionadosNoGrupo < minGrupo || selecionadosNoGrupo > maxGrupo) {
+        alert(`No grupo "${grupo.nome}" selecione de ${minGrupo} até ${maxGrupo} opção(ões).`)
         return
       }
     }
-    const variacao = p.variacoes?.find((v) => v.id === variacaoSel) || null
     const adds = p.adicionais?.filter((a) => adicionaisSel.includes(a.id)) || []
-    const precoBase = getPrecoProduto(p, variacao)
-    const precoAdds = adds.reduce((s, a) => s + Number(a.preco), 0)
-    const precoUnit = precoBase + precoAdds
+    const precoUnit = calcularPrecoConfiguracao(p, variacao, adds)
 
     const chave = gerarChaveCarrinho(p.id, variacao?.id, adicionaisSel)
     setCarrinho((prev) => ({
@@ -1741,13 +1774,13 @@ export default function LojaPage() {
     const controlaEstoque = !!p.controla_estoque
     const estoqueDisponivel = Number(p.estoque || 0)
     const semEstoque = controlaEstoque && estoqueDisponivel <= 0
+    const ehPizza = isProdutoPizza(p)
     const temVariacoes = p.variacoes?.length > 0
     const temAdicionais = p.adicionais?.length > 0
     const gruposAdicionais = agruparAdicionaisProduto(p.adicionais || [])
     const varSel = p.variacoes?.find((v) => v.id === variacaoSel)
-    const precoBase = getPrecoProduto(p, varSel)
-    const precoAdds = (p.adicionais || []).filter((a) => adicionaisSel.includes(a.id)).reduce((s, a) => s + Number(a.preco), 0)
-    const precoUnitario = precoBase + precoAdds
+    const adicionaisSelecionados = (p.adicionais || []).filter((a) => adicionaisSel.includes(a.id))
+    const precoUnitario = calcularPrecoConfiguracao(p, varSel, adicionaisSelecionados)
     const precoTotal = precoUnitario * qtdDetalhe
 
     function toggleAdicionalComRegra(adicional, grupo, acao) {
@@ -1755,6 +1788,9 @@ export default function LojaPage() {
         const selectedSet = new Set(prev)
         const isSelected = selectedSet.has(adicional.id)
         const countGrupo = grupo.itens.filter((it) => selectedSet.has(it.id)).length
+        const maxGrupo = (ehPizza && grupo.itens.some((it) => !!it.is_sabor) && varSel)
+          ? getMaxSaboresVariacao(varSel)
+          : Number(grupo.max || 99)
 
         if (acao === 'remover') {
           if (isSelected) selectedSet.delete(adicional.id)
@@ -1762,7 +1798,7 @@ export default function LojaPage() {
         }
 
         if (isSelected) return [...selectedSet]
-        if (countGrupo >= grupo.max) return prev
+        if (countGrupo >= maxGrupo) return prev
         selectedSet.add(adicional.id)
         return [...selectedSet]
       })
@@ -1813,7 +1849,10 @@ export default function LojaPage() {
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${sel ? 'border-emerald-500 bg-emerald-500' : 'border-stone-300'}`}>
                       {sel && <FiCheck className="text-white text-[10px]" />}
                     </div>
-                    <span className="text-sm text-stone-800">{v.nome}</span>
+                    <span className="text-sm text-stone-800">
+                      {v.nome}
+                      {ehPizza && Number(v.fatias || 0) > 0 ? ` • ${Number(v.fatias)} fatias` : ''}
+                    </span>
                   </div>
                   <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(v.preco).toFixed(2).replace('.', ',')}</span>
                 </button>
@@ -1829,15 +1868,18 @@ export default function LojaPage() {
             <p className="text-xs text-stone-400 mb-3">escolha os complementos de cada grupo</p>
             {gruposAdicionais.map((grupo) => {
               const countGrupo = grupo.itens.filter((it) => adicionaisSel.includes(it.id)).length
+              const grupoSaborPizza = ehPizza && grupo.itens.some((it) => !!it.is_sabor) && !!varSel
+              const minGrupo = grupoSaborPizza ? 1 : Number(grupo.min || 0)
+              const maxGrupo = grupoSaborPizza ? getMaxSaboresVariacao(varSel) : Number(grupo.max || 99)
               return (
                 <div key={grupo.nome} className="mb-4">
                   <p className="text-sm font-bold text-stone-800 mb-2">
-                    {grupo.nome} (escolha de {grupo.min} a {grupo.max})
+                    {grupo.nome} (escolha de {minGrupo} a {maxGrupo})
                   </p>
                   {grupo.itens.map((a) => {
                     const sel = adicionaisSel.includes(a.id)
                     const countItem = sel ? 1 : 0
-                    const podeAdicionar = countGrupo < grupo.max
+                    const podeAdicionar = countGrupo < maxGrupo
                     return (
                       <div key={a.id} className="flex items-center justify-between py-3 border-b border-stone-100">
                         <div className="flex items-center gap-2">
@@ -1863,7 +1905,7 @@ export default function LojaPage() {
                     )
                   })}
                   <p className="text-[11px] text-stone-500 mt-1">
-                    Selecionados: {countGrupo}/{grupo.max}
+                    Selecionados: {countGrupo}/{maxGrupo}
                   </p>
                 </div>
               )
@@ -1910,7 +1952,7 @@ export default function LojaPage() {
         <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-3">
           <button
             onClick={addItemConfigurado}
-            disabled={(temVariacoes && !variacaoSel) || semEstoque}
+            disabled={(temVariacoes && !variacaoSel) || semEstoque || (ehPizza && !varSel)}
             className="w-full max-w-lg mx-auto block bg-red-600 text-white py-3.5 rounded-xl shadow-lg hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all font-semibold text-sm"
           >
             {semEstoque ? 'Produto indisponível' : `põe no ticket - R$ ${precoTotal.toFixed(2).replace('.', ',')}`}
