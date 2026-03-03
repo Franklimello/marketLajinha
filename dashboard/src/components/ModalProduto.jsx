@@ -20,6 +20,17 @@ const ESTRATEGIAS_PRECO_SABORES = [
   { id: 'MEDIA', label: 'Cobrar média dos sabores' },
   { id: 'SOMA_PROPORCIONAL', label: 'Cobrar soma proporcional dos sabores' },
 ]
+const TIPOS_PRODUTO_UI = [
+  { id: 'NORMAL', label: 'Normal' },
+  { id: 'PIZZA', label: 'Pizza' },
+  { id: 'HAMBURGUER', label: 'Hambúrguer' },
+  { id: 'ROUPA', label: 'Roupa' },
+  { id: 'FARMACIA', label: 'Farmácia' },
+  { id: 'MERCEARIA', label: 'Mercearia' },
+  { id: 'ACAI', label: 'Açaí' },
+  { id: 'MARMITA', label: 'Marmita' },
+  { id: 'BEBIDAS', label: 'Bebidas' },
+]
 
 function getPresetPizza(nome) {
   const normalizado = String(nome || '').trim().toUpperCase()
@@ -89,6 +100,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   const [carregando, setCarregando] = useState(false)
   const [novaCategoria, setNovaCategoria] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState('info')
+  const [tipoProdutoUi, setTipoProdutoUi] = useState('NORMAL')
   const [ingredientes, setIngredientes] = useState([])
   const [novoIngrediente, setNovoIngrediente] = useState('')
   const fileInputRef = useRef(null)
@@ -109,6 +121,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         tipo_produto: produto.tipo_produto || 'NORMAL',
         pizza_preco_sabores: produto.pizza_preco_sabores || 'MAIOR',
       })
+      setTipoProdutoUi(produto.tipo_produto || 'NORMAL')
       setVariacoes((produto.variacoes || []).map((v) => ({
         nome: v.nome,
         preco: Number(v.preco),
@@ -129,6 +142,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         tipo_produto: 'NORMAL',
         pizza_preco_sabores: 'MAIOR',
       })
+      setTipoProdutoUi('NORMAL')
       setVariacoes([])
       setGruposAdicionais([])
       setIngredientes([])
@@ -139,6 +153,18 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target
+    if (name === 'tipo_produto') {
+      setTipoProdutoUi(value)
+      if (value === 'PIZZA') {
+        setForm((prev) => ({ ...prev, tipo_produto: 'PIZZA' }))
+      } else if (value === 'NORMAL') {
+        setForm((prev) => ({ ...prev, tipo_produto: 'NORMAL' }))
+      } else {
+        // Templates específicos continuam salvando como NORMAL no backend.
+        aplicarTemplateSegmento(value)
+      }
+      return
+    }
     setForm((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : ['preco', 'estoque'].includes(name) ? (parseFloat(value) || 0) : value,
@@ -245,6 +271,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     const baseGrupo = (nome, min, max, ordem_grupo, itens) => ({ nome, min, max, ordem_grupo, itens })
 
     setForm((prev) => ({ ...prev, tipo_produto: 'NORMAL' }))
+    setTipoProdutoUi(templateId)
     setErro('')
 
     if (templateId === 'HAMBURGUER') {
@@ -703,15 +730,16 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                   <label className="block text-sm font-medium text-stone-700 mb-1">Tipo de produto *</label>
                   <select
                     name="tipo_produto"
-                    value={form.tipo_produto}
+                    value={tipoProdutoUi}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
                   >
-                    <option value="NORMAL">Normal</option>
-                    <option value="PIZZA">Pizza</option>
+                    {TIPOS_PRODUTO_UI.map((op) => (
+                      <option key={op.id} value={op.id}>{op.label}</option>
+                    ))}
                   </select>
                 </div>
-                {form.tipo_produto === 'PIZZA' && (
+                {tipoProdutoUi === 'PIZZA' && (
                   <div>
                     <label className="block text-sm font-medium text-stone-700 mb-1">Preço dos sabores</label>
                     <select
@@ -1004,6 +1032,13 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                 </p>
               </div>
               <div className="space-y-2">
+                {variacoesCustomizadas.length > 0 && (
+                  <div className="hidden sm:grid sm:grid-cols-[1fr_7rem_2rem] gap-2 px-1">
+                    <span className="text-[11px] font-semibold text-stone-600">Tamanho / Variação</span>
+                    <span className="text-[11px] font-semibold text-stone-600">Preço (R$)</span>
+                    <span className="text-[11px] font-semibold text-stone-600 text-center">Ação</span>
+                  </div>
+                )}
                 {variacoesCustomizadas.map((v, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <input
@@ -1048,12 +1083,18 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               {form.tipo_produto === 'PIZZA' && variacoes.length > 0 && (
                 <div className="border border-amber-200 bg-amber-50 rounded-xl p-3 space-y-2">
                   <p className="text-xs font-semibold text-amber-800">Regras por tamanho da pizza</p>
+                  <div className="hidden sm:grid sm:grid-cols-3 gap-2 px-1">
+                    <span className="text-[11px] font-semibold text-amber-900">Tamanho</span>
+                    <span className="text-[11px] font-semibold text-amber-900">Fatias</span>
+                    <span className="text-[11px] font-semibold text-amber-900">Máx. sabores</span>
+                  </div>
                   {variacoes.map((v, i) => (
                     <div key={`${v.nome}-${i}`} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <input
                         value={v.nome}
                         onChange={(e) => handleVariacaoChange(i, 'nome', e.target.value)}
                         placeholder="Tamanho"
+                        aria-label="Tamanho da pizza"
                         className="px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white"
                       />
                       <input
@@ -1062,6 +1103,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                         value={v.fatias || 0}
                         onChange={(e) => handleVariacaoChange(i, 'fatias', e.target.value)}
                         placeholder="Fatias"
+                        aria-label="Quantidade de fatias"
                         className="px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white"
                       />
                       <input
@@ -1070,6 +1112,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                         value={v.max_sabores || 1}
                         onChange={(e) => handleVariacaoChange(i, 'max_sabores', e.target.value)}
                         placeholder="Máx. sabores"
+                        aria-label="Máximo de sabores permitido"
                         className="px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white"
                       />
                     </div>
@@ -1117,6 +1160,11 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
               <div className="space-y-3">
                 {gruposAdicionais.map((grupo, idxGrupo) => (
                   <div key={idxGrupo} className="border border-stone-200 rounded-xl p-3 bg-stone-50">
+                    <div className="hidden sm:grid sm:grid-cols-4 gap-2 px-1 mb-1">
+                      <span className="sm:col-span-2 text-[11px] font-semibold text-stone-600">Nome do grupo</span>
+                      <span className="text-[11px] font-semibold text-stone-600">Mínimo</span>
+                      <span className="text-[11px] font-semibold text-stone-600">Máximo</span>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2">
                       <input
                         value={grupo.nome}
@@ -1142,6 +1190,14 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                       />
                     </div>
                     <div className="space-y-2">
+                      {(grupo.itens?.length || 0) > 0 && (
+                        <div className={`hidden sm:grid gap-2 px-1 ${form.tipo_produto === 'PIZZA' ? 'sm:grid-cols-[1fr_7rem_6rem_2rem]' : 'sm:grid-cols-[1fr_7rem_2rem]'}`}>
+                          <span className="text-[11px] font-semibold text-stone-600">Item</span>
+                          <span className="text-[11px] font-semibold text-stone-600">Preço (R$)</span>
+                          {form.tipo_produto === 'PIZZA' && <span className="text-[11px] font-semibold text-stone-600">Tipo</span>}
+                          <span className="text-[11px] font-semibold text-stone-600 text-center">Ação</span>
+                        </div>
+                      )}
                       {grupo.itens.map((item, idxItem) => (
                         <div key={idxItem} className="flex items-center gap-2">
                           <input
