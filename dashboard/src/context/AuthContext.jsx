@@ -83,8 +83,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true)
       setUser(firebaseUser)
       if (firebaseUser) {
+        setLoja(null)
+        setIsSuperAdmin(false)
         let idToken = null
         try {
           idToken = await firebaseUser.getIdToken()

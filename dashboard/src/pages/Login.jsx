@@ -29,7 +29,6 @@ export default function Login() {
     setCarregando(true)
     try {
       await login(email, senha)
-      navigate('/pedidos')
     } catch (err) {
       setErro(err.code === 'auth/invalid-credential' ? 'E-mail ou senha incorretos.' : err.message)
     } finally {
