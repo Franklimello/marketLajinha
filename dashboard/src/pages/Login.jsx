@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { FcGoogle } from 'react-icons/fc'
@@ -9,8 +9,21 @@ export default function Login() {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [carregandoGoogle, setCarregandoGoogle] = useState(false)
-  const { login, loginGoogle } = useAuth()
+  const { user, loja, loading, isSuperAdmin, login, loginGoogle } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (loading || !user) return
+    if (loja) {
+      navigate('/pedidos', { replace: true })
+      return
+    }
+    if (isSuperAdmin) {
+      navigate('/admin', { replace: true })
+      return
+    }
+    navigate('/cadastro-loja', { replace: true })
+  }, [loading, user, loja, isSuperAdmin, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
