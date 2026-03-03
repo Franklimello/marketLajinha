@@ -10,12 +10,18 @@ const schemaVariacao = z.object({
 const schemaAdicional = z.object({
   nome: z.string().min(1, 'Nome do adicional é obrigatório'),
   preco: z.coerce.number().min(0, 'Preço deve ser >= 0'),
+  descricao: z.string().optional().default(''),
+  ativo: z.boolean().optional().default(true),
   grupo_nome: z.string().min(1).optional().default('Complementos'),
   grupo_min: z.coerce.number().int().min(0).optional().default(0),
   grupo_max: z.coerce.number().int().min(0).optional().default(99),
   ordem_grupo: z.coerce.number().int().min(0).optional().default(0),
   ordem_item: z.coerce.number().int().min(0).optional().default(0),
   is_sabor: z.boolean().optional().default(false),
+  precos_variacoes: z.array(z.object({
+    variacao_nome: z.string().min(1, 'Nome da variação é obrigatório para preço do sabor'),
+    preco: z.coerce.number().min(0, 'Preço deve ser >= 0'),
+  })).optional().default([]),
 });
 
 const schemaProdutos = z.object({

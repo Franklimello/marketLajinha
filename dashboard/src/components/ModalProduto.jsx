@@ -66,6 +66,16 @@ function agruparAdicionais(adicionais = []) {
       nome: a.nome || '',
       preco: Number(a.preco || 0),
       is_sabor: !!a.is_sabor,
+      descricao: a.descricao || '',
+      ativo: a.ativo !== false,
+      precos_variacoes: Object.fromEntries(
+        (Array.isArray(a.precos_variacoes) ? a.precos_variacoes : [])
+          .filter((pv) => String(pv?.variacao?.nome || '').trim())
+          .map((pv) => [
+            String(pv?.variacao?.nome || '').trim().toUpperCase(),
+            Number(pv?.preco || 0),
+          ])
+      ),
       ordem_item: Number.isFinite(a.ordem_item) ? Number(a.ordem_item) : g.itens.length,
     })
   })
@@ -274,7 +284,15 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       if (idx !== idxGrupo) return g
       return {
         ...g,
-        itens: [...g.itens, { nome: '', preco: 0, ordem_item: g.itens.length, is_sabor: false }],
+        itens: [...g.itens, {
+          nome: '',
+          preco: 0,
+          descricao: '',
+          ativo: true,
+          ordem_item: g.itens.length,
+          is_sabor: false,
+          precos_variacoes: {},
+        }],
       }
     }))
   }
@@ -304,7 +322,30 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                 ? (parseInt(value || 0, 10) || 0)
                 : field === 'is_sabor'
                   ? !!value
+                : field === 'ativo'
+                  ? !!value
                 : value,
+          }
+        }),
+      }
+    }))
+  }
+
+  function setPrecoVariacaoItem(idxGrupo, idxItem, variacaoNome, valor) {
+    const key = String(variacaoNome || '').trim().toUpperCase()
+    const preco = parseFloat(valor) || 0
+    setGruposAdicionais((prev) => prev.map((g, idx) => {
+      if (idx !== idxGrupo) return g
+      return {
+        ...g,
+        itens: g.itens.map((it, i) => {
+          if (i !== idxItem) return it
+          return {
+            ...it,
+            precos_variacoes: {
+              ...(it.precos_variacoes || {}),
+              [key]: preco,
+            },
           }
         }),
       }
@@ -341,7 +382,15 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       const existentes = new Set(primeiro.itens.map((a) => String(a.nome || '').trim().toLowerCase()))
       const novos = ingredientes
         .filter((ing) => !existentes.has(String(ing || '').trim().toLowerCase()))
-        .map((ing, idx) => ({ nome: ing, preco: 0, ordem_item: primeiro.itens.length + idx }))
+        .map((ing, idx) => ({
+          nome: ing,
+          preco: 0,
+          descricao: '',
+          ativo: true,
+          is_sabor: false,
+          precos_variacoes: {},
+          ordem_item: primeiro.itens.length + idx,
+        }))
       base[0] = { ...primeiro, itens: [...primeiro.itens, ...novos], max: Math.max(primeiro.max || 0, primeiro.itens.length + novos.length) }
       return base
     })
@@ -361,8 +410,11 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       const itensPadrao = saboresBase.map((nome, idx) => ({
         nome,
         preco: 0,
+        descricao: '',
+        ativo: true,
         ordem_item: idx,
         is_sabor: true,
+        precos_variacoes: {},
       }))
 
       if (idxExistente >= 0) {
@@ -409,7 +461,15 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         min: 0,
         max: ingredientes.length,
         ordem_grupo: 0,
-        itens: ingredientes.map((ing, idx) => ({ nome: ing, preco: 0, ordem_item: idx })),
+        itens: ingredientes.map((ing, idx) => ({
+          nome: ing,
+          preco: 0,
+          descricao: '',
+          ativo: true,
+          is_sabor: false,
+          precos_variacoes: {},
+          ordem_item: idx,
+        })),
       }]))
     autoAdicionaisRef.current = true
   }, [produto, ingredientes])
@@ -446,12 +506,20 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           .map(({ item, idxItem }) => ({
             nome: String(item.nome || '').trim(),
             preco: Number(item.preco || 0),
+            descricao: String(item.descricao || '').trim(),
+            ativo: item.ativo !== false,
             is_sabor: !!item.is_sabor,
             grupo_nome: nomeGrupo,
             grupo_min: min,
             grupo_max: max,
             ordem_grupo: Number.isFinite(grupo.ordem_grupo) ? Number(grupo.ordem_grupo) : idxGrupo,
             ordem_item: Number.isFinite(item.ordem_item) ? Number(item.ordem_item) : idxItem,
+            precos_variacoes: Object.entries(item.precos_variacoes || {})
+              .filter(([variacao_nome]) => String(variacao_nome || '').trim())
+              .map(([variacao_nome, precoVariacao]) => ({
+                variacao_nome: String(variacao_nome || '').trim().toUpperCase(),
+                preco: Number(precoVariacao || 0),
+              })),
           }))
       })
       if (form.tipo_produto === 'PIZZA') {
@@ -972,38 +1040,68 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                         </div>
                       )}
                       {grupo.itens.map((item, idxItem) => (
-                        <div key={idxItem} className="flex items-center gap-2">
-                          <input
-                            value={item.nome}
-                            onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'nome', e.target.value)}
-                            placeholder="Nome do item (ex: Morango)"
-                            className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
-                          />
-                          <div className="relative w-28">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">R$</span>
+                        <div key={idxItem} className="space-y-2">
+                          <div className="flex items-center gap-2">
                             <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={item.preco}
-                              onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'preco', e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                              value={item.nome}
+                              onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'nome', e.target.value)}
+                              placeholder="Nome do item (ex: Morango)"
+                              className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
                             />
-                          </div>
-                          {form.tipo_produto === 'PIZZA' && (
-                            <label className="inline-flex items-center gap-1.5 text-xs text-stone-700 px-2 py-1 rounded-md bg-white border border-stone-200">
+                            <div className="relative w-28">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">R$</span>
                               <input
-                                type="checkbox"
-                                checked={!!item.is_sabor}
-                                onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'is_sabor', e.target.checked)}
-                                className="rounded text-amber-600 focus:ring-amber-500"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={item.preco}
+                                onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'preco', e.target.value)}
+                                className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
                               />
-                              Sabor
-                            </label>
+                            </div>
+                            {form.tipo_produto === 'PIZZA' && (
+                              <label className="inline-flex items-center gap-1.5 text-xs text-stone-700 px-2 py-1 rounded-md bg-white border border-stone-200">
+                                <input
+                                  type="checkbox"
+                                  checked={!!item.is_sabor}
+                                  onChange={(e) => updateItemGrupo(idxGrupo, idxItem, 'is_sabor', e.target.checked)}
+                                  className="rounded text-amber-600 focus:ring-amber-500"
+                                />
+                                Sabor
+                              </label>
+                            )}
+                            <button type="button" onClick={() => removeItemGrupo(idxGrupo, idxItem)} className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                              <FiTrash2 className="text-sm" />
+                            </button>
+                          </div>
+                          {form.tipo_produto === 'PIZZA' && item.is_sabor && variacoes.length > 0 && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                              <p className="text-[11px] font-semibold text-amber-800 mb-2">
+                                Preço por tamanho deste sabor
+                              </p>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {variacoes.map((v, idxVar) => {
+                                  const nomeVariacao = String(v.nome || '').trim().toUpperCase()
+                                  return (
+                                    <label key={`${nomeVariacao}-${idxVar}`} className="text-[11px] text-amber-900">
+                                      <span className="block mb-1 font-semibold">{nomeVariacao}</span>
+                                      <div className="relative">
+                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-stone-400">R$</span>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          value={Number(item?.precos_variacoes?.[nomeVariacao] || 0)}
+                                          onChange={(e) => setPrecoVariacaoItem(idxGrupo, idxItem, nomeVariacao, e.target.value)}
+                                          className="w-full pl-7 pr-2 py-1.5 border border-amber-200 rounded-md text-xs bg-white focus:ring-2 focus:ring-amber-400"
+                                        />
+                                      </div>
+                                    </label>
+                                  )
+                                })}
+                              </div>
+                            </div>
                           )}
-                          <button type="button" onClick={() => removeItemGrupo(idxGrupo, idxItem)} className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <FiTrash2 className="text-sm" />
-                          </button>
                         </div>
                       ))}
                     </div>

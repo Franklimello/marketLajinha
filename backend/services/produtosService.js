@@ -7,6 +7,12 @@ const CACHE_TTL_SECONDS = 300;
 const INCLUDE_COMPLETO = {
   variacoes: { orderBy: { preco: 'asc' } },
   adicionais: {
+    include: {
+      precos_variacoes: {
+        include: { variacao: { select: { id: true, nome: true } } },
+        orderBy: { variacao_id: 'asc' },
+      },
+    },
     orderBy: [
       { ordem_grupo: 'asc' },
       { grupo_nome: 'asc' },
@@ -15,6 +21,10 @@ const INCLUDE_COMPLETO = {
     ],
   },
 };
+
+function normalizarNomeVariacao(valor) {
+  return String(valor || '').trim().toUpperCase();
+}
 
 async function listar(filtros = {}, pagina = 1, limite) {
   const { loja_id, ativo, categoria } = filtros;
@@ -84,9 +94,10 @@ async function criar(data) {
     include: INCLUDE_COMPLETO,
   });
 
+  const variacaoMap = new Map();
   if (variacoes?.length) {
     for (const v of variacoes) {
-      await prisma.variacaoProduto.create({
+      const criada = await prisma.variacaoProduto.create({
         data: {
           nome: v.nome,
           preco: v.preco,
@@ -95,14 +106,17 @@ async function criar(data) {
           max_sabores: Number.isFinite(v.max_sabores) ? Math.max(1, v.max_sabores) : 1,
         },
       });
+      variacaoMap.set(normalizarNomeVariacao(v.nome), criada.id);
     }
   }
   if (adicionais?.length) {
     for (const [idx, a] of adicionais.entries()) {
-      await prisma.adicionalProduto.create({
+      const adicionalCriado = await prisma.adicionalProduto.create({
         data: {
           nome: a.nome,
           preco: a.preco,
+          descricao: a.descricao || '',
+          ativo: a.ativo !== undefined ? !!a.ativo : true,
           produto_id: produto.id,
           grupo_nome: a.grupo_nome || 'Complementos',
           grupo_min: Number.isFinite(a.grupo_min) ? a.grupo_min : 0,
@@ -112,6 +126,19 @@ async function criar(data) {
           is_sabor: !!a.is_sabor,
         },
       });
+      if (Array.isArray(a.precos_variacoes) && a.precos_variacoes.length > 0) {
+        for (const pv of a.precos_variacoes) {
+          const variacaoId = variacaoMap.get(normalizarNomeVariacao(pv.variacao_nome));
+          if (!variacaoId) continue;
+          await prisma.adicionalPrecoVariacao.create({
+            data: {
+              adicional_id: adicionalCriado.id,
+              variacao_id: variacaoId,
+              preco: Number(pv.preco || 0),
+            },
+          });
+        }
+      }
     }
   }
 
@@ -132,10 +159,11 @@ async function atualizar(id, data) {
   const { variacoes, adicionais, ...produtoData } = data;
 
   const resultado = await prisma.$transaction(async (tx) => {
+    const variacaoMap = new Map();
     if (variacoes !== undefined) {
       await tx.variacaoProduto.deleteMany({ where: { produto_id: id } });
       for (const v of variacoes) {
-        await tx.variacaoProduto.create({
+        const criada = await tx.variacaoProduto.create({
           data: {
             nome: v.nome,
             preco: v.preco,
@@ -144,16 +172,28 @@ async function atualizar(id, data) {
             max_sabores: Number.isFinite(v.max_sabores) ? Math.max(1, v.max_sabores) : 1,
           },
         });
+        variacaoMap.set(normalizarNomeVariacao(v.nome), criada.id);
+      }
+    }
+    if (variacoes === undefined && adicionais !== undefined) {
+      const existentes = await tx.variacaoProduto.findMany({
+        where: { produto_id: id },
+        select: { id: true, nome: true },
+      });
+      for (const v of existentes) {
+        variacaoMap.set(normalizarNomeVariacao(v.nome), v.id);
       }
     }
 
     if (adicionais !== undefined) {
       await tx.adicionalProduto.deleteMany({ where: { produto_id: id } });
       for (const [idx, a] of adicionais.entries()) {
-        await tx.adicionalProduto.create({
+        const adicionalCriado = await tx.adicionalProduto.create({
           data: {
             nome: a.nome,
             preco: a.preco,
+            descricao: a.descricao || '',
+            ativo: a.ativo !== undefined ? !!a.ativo : true,
             produto_id: id,
             grupo_nome: a.grupo_nome || 'Complementos',
             grupo_min: Number.isFinite(a.grupo_min) ? a.grupo_min : 0,
@@ -163,6 +203,19 @@ async function atualizar(id, data) {
             is_sabor: !!a.is_sabor,
           },
         });
+        if (Array.isArray(a.precos_variacoes) && a.precos_variacoes.length > 0) {
+          for (const pv of a.precos_variacoes) {
+            const variacaoId = variacaoMap.get(normalizarNomeVariacao(pv.variacao_nome));
+            if (!variacaoId) continue;
+            await tx.adicionalPrecoVariacao.create({
+              data: {
+                adicional_id: adicionalCriado.id,
+                variacao_id: variacaoId,
+                preco: Number(pv.preco || 0),
+              },
+            });
+          }
+        }
       }
     }
 

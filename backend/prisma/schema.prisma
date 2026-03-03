@@ -152,6 +152,7 @@ model VariacaoProduto {
   max_sabores Int    @default(1)
 
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+  precos_adicionais AdicionalPrecoVariacao[]
 
   @@index([produto_id])
 }
@@ -167,11 +168,28 @@ model AdicionalProduto {
   ordem_grupo Int    @default(0)
   ordem_item Int     @default(0)
   is_sabor   Boolean @default(false)
+  descricao  String  @default("")
+  ativo      Boolean @default(true)
 
   produto Produtos @relation(fields: [produto_id], references: [id], onDelete: Cascade)
+  precos_variacoes AdicionalPrecoVariacao[]
 
   @@index([produto_id])
   @@index([produto_id, grupo_nome, ordem_item])
+}
+
+model AdicionalPrecoVariacao {
+  id          String @id @default(cuid())
+  adicional_id String
+  variacao_id String
+  preco       Decimal
+
+  adicional AdicionalProduto @relation(fields: [adicional_id], references: [id], onDelete: Cascade)
+  variacao VariacaoProduto @relation(fields: [variacao_id], references: [id], onDelete: Cascade)
+
+  @@unique([adicional_id, variacao_id])
+  @@index([adicional_id])
+  @@index([variacao_id])
 }
 
 model Clientes {

@@ -28,6 +28,14 @@ function calcularPrecoSaboresPizza(estrategia, sabores = []) {
   return Math.max(...precos);
 }
 
+function getPrecoAdicionalPorVariacao(adicional, variacaoId) {
+  const precos = Array.isArray(adicional?.precos_variacoes) ? adicional.precos_variacoes : [];
+  if (!variacaoId || precos.length === 0) return Number(adicional?.preco || 0);
+  const match = precos.find((p) => p.variacao_id === variacaoId);
+  if (!match) return Number(adicional?.preco || 0);
+  return Number(match.preco || 0);
+}
+
 function agruparAdicionaisPorGrupo(adicionais = []) {
   const map = new Map();
   for (const adicional of adicionais) {
@@ -167,7 +175,7 @@ async function criar(data) {
   const produtoIds = [...new Set(itens.map((i) => i.produto_id))];
   const produtos = await prisma.produtos.findMany({
     where: { id: { in: produtoIds }, loja_id: data.loja_id, ativo: true },
-    include: { variacoes: true, adicionais: true },
+    include: { variacoes: true, adicionais: { include: { precos_variacoes: true } } },
   });
   const produtoMap = new Map(produtos.map((p) => [p.id, p]));
 
@@ -203,14 +211,15 @@ async function criar(data) {
       throw err;
     }
 
+    const adicionaisAtivos = (produto.adicionais || []).filter((a) => a.ativo !== false);
     let adicionaisSelecionados = [];
     if (item.adicionais_ids?.length) {
-      adicionaisSelecionados = produto.adicionais.filter((a) =>
+      adicionaisSelecionados = adicionaisAtivos.filter((a) =>
         item.adicionais_ids.includes(a.id)
       );
     }
 
-    const grupos = agruparAdicionaisPorGrupo(produto.adicionais || []);
+    const grupos = agruparAdicionaisPorGrupo(adicionaisAtivos);
     for (const grupo of grupos) {
       const selecionadosNoGrupo = adicionaisSelecionados.filter((a) => a.grupo_nome === grupo.nome).length;
       const min = Number(grupo.min || 0);
@@ -234,10 +243,14 @@ async function criar(data) {
         err.status = 400;
         throw err;
       }
-      precoAdicionais = calcularPrecoSaboresPizza(normalizarEstrategiaPizza(produto), sabores)
-        + extras.reduce((s, a) => s + Number(a.preco), 0);
+      const saboresComPrecoVariacao = sabores.map((a) => ({
+        ...a,
+        preco: getPrecoAdicionalPorVariacao(a, variacao?.id),
+      }));
+      precoAdicionais = calcularPrecoSaboresPizza(normalizarEstrategiaPizza(produto), saboresComPrecoVariacao)
+        + extras.reduce((s, a) => s + getPrecoAdicionalPorVariacao(a, variacao?.id), 0);
     } else {
-      precoAdicionais = adicionaisSelecionados.reduce((s, a) => s + Number(a.preco), 0);
+      precoAdicionais = adicionaisSelecionados.reduce((s, a) => s + getPrecoAdicionalPorVariacao(a, variacao?.id), 0);
     }
 
     const precoUnitario = precoBase + precoAdicionais;
@@ -249,7 +262,11 @@ async function criar(data) {
       variacao_nome: variacaoNome,
       variacao_preco: variacaoPreco,
       adicionais_json: JSON.stringify(
-        adicionaisSelecionados.map((a) => ({ nome: a.nome, preco: Number(a.preco), is_sabor: !!a.is_sabor }))
+        adicionaisSelecionados.map((a) => ({
+          nome: a.nome,
+          preco: getPrecoAdicionalPorVariacao(a, variacao?.id),
+          is_sabor: !!a.is_sabor,
+        }))
       ),
     };
   });

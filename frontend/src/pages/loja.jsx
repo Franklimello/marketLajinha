@@ -43,7 +43,7 @@ function formatDateTimeLocalValue(date) {
 
 function agruparAdicionaisProduto(adicionais = []) {
   const map = new Map()
-  for (const adicional of adicionais) {
+  for (const adicional of adicionais.filter((a) => a?.ativo !== false)) {
     const groupName = String(adicional?.grupo_nome || 'Complementos').trim() || 'Complementos'
     if (!map.has(groupName)) {
       map.set(groupName, {
@@ -59,6 +59,10 @@ function agruparAdicionaisProduto(adicionais = []) {
   return [...map.values()]
     .map((g) => ({ ...g, max: Math.max(g.min, g.max) }))
     .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, 'pt-BR'))
+}
+
+function getAdicionaisAtivos(produto) {
+  return (produto?.adicionais || []).filter((a) => a?.ativo !== false)
 }
 
 function sanitizeImageUrls(urls) {
@@ -91,6 +95,14 @@ function getMaxSaboresVariacao(variacao) {
   return Math.max(1, Number(variacao?.max_sabores || 1))
 }
 
+function getPrecoAdicionalPorVariacao(adicional, variacao = null) {
+  const precos = Array.isArray(adicional?.precos_variacoes) ? adicional.precos_variacoes : []
+  if (!variacao || precos.length === 0) return Number(adicional?.preco || 0)
+  const match = precos.find((p) => p.variacao_id === variacao.id || p?.variacao?.id === variacao.id)
+  if (!match) return Number(adicional?.preco || 0)
+  return Number(match.preco || 0)
+}
+
 function calcularPrecoSaboresPizza(produto, sabores = []) {
   if (!sabores.length) return 0
   const estrategia = String(produto?.pizza_preco_sabores || 'MAIOR').toUpperCase()
@@ -104,13 +116,15 @@ function calcularPrecoSaboresPizza(produto, sabores = []) {
 function calcularPrecoConfiguracao(produto, variacao, adicionais = []) {
   const precoBase = getPrecoProduto(produto, variacao)
   if (!isProdutoPizza(produto)) {
-    return precoBase + adicionais.reduce((s, a) => s + Number(a.preco), 0)
+    return precoBase + adicionais.reduce((s, a) => s + getPrecoAdicionalPorVariacao(a, variacao), 0)
   }
-  const sabores = adicionais.filter((a) => !!a.is_sabor)
+  const sabores = adicionais
+    .filter((a) => !!a.is_sabor)
+    .map((a) => ({ ...a, preco: getPrecoAdicionalPorVariacao(a, variacao) }))
   const extras = adicionais.filter((a) => !a.is_sabor)
   return precoBase
     + calcularPrecoSaboresPizza(produto, sabores)
-    + extras.reduce((s, a) => s + Number(a.preco), 0)
+    + extras.reduce((s, a) => s + getPrecoAdicionalPorVariacao(a, variacao), 0)
 }
 
 const ComboImageStrip = memo(function ComboImageStrip({ combo }) {
@@ -166,7 +180,7 @@ function restaurarCarrinho(snapshot, produtos, combos) {
     const produto = byId[row.produtoId]
     if (!produto) continue
     const variacao = (produto.variacoes || []).find((v) => v.id === row.variacaoId) || null
-    const adicionais = (produto.adicionais || []).filter((a) => (row.adicionaisIds || []).includes(a.id))
+    const adicionais = getAdicionaisAtivos(produto).filter((a) => (row.adicionaisIds || []).includes(a.id))
     result[row.key] = {
       produto,
       variacao,
@@ -336,6 +350,7 @@ export default function LojaPage() {
 
   const [produtoDetalhe, setProdutoDetalhe] = useState(null)
   const [variacaoSel, setVariacaoSel] = useState(null)
+  const [pizzaQtdSabores, setPizzaQtdSabores] = useState(1)
   const [adicionaisSel, setAdicionaisSel] = useState([])
   const [qtdDetalhe, setQtdDetalhe] = useState(1)
   const [obsDetalhe, setObsDetalhe] = useState('')
@@ -675,6 +690,7 @@ export default function LojaPage() {
     }
     setProdutoDetalhe(produto)
     setVariacaoSel(produto.variacoes?.[0]?.id || null)
+    setPizzaQtdSabores(1)
     setAdicionaisSel([])
     setQtdDetalhe(1)
     setObsDetalhe('')
@@ -702,23 +718,29 @@ export default function LojaPage() {
       alert(`Estoque insuficiente. Disponível: ${p.estoque}.`)
       return
     }
-    const variacao = p.variacoes?.find((v) => v.id === variacaoSel) || null
+    const variacoesDisponiveis = ehPizza
+      ? (p.variacoes || []).filter((v) => getMaxSaboresVariacao(v) >= pizzaQtdSabores)
+      : (p.variacoes || [])
+    const variacao = variacoesDisponiveis.find((v) => v.id === variacaoSel) || variacoesDisponiveis[0] || null
     if (ehPizza && !variacao) {
       alert('Selecione um tamanho para a pizza.')
       return
     }
-    const grupos = agruparAdicionaisProduto(p.adicionais || [])
+    const adicionaisAtivos = getAdicionaisAtivos(p)
+    const grupos = agruparAdicionaisProduto(adicionaisAtivos)
     for (const grupo of grupos) {
       const grupoSaborPizza = ehPizza && grupo.itens.some((it) => !!it.is_sabor)
-      const minGrupo = grupoSaborPizza ? 1 : Number(grupo.min || 0)
-      const maxGrupo = grupoSaborPizza ? getMaxSaboresVariacao(variacao) : Number(grupo.max || 99)
+      const minGrupo = grupoSaborPizza ? pizzaQtdSabores : Number(grupo.min || 0)
+      const maxGrupo = grupoSaborPizza
+        ? Math.min(getMaxSaboresVariacao(variacao), pizzaQtdSabores)
+        : Number(grupo.max || 99)
       const selecionadosNoGrupo = grupo.itens.filter((a) => adicionaisSel.includes(a.id)).length
       if (selecionadosNoGrupo < minGrupo || selecionadosNoGrupo > maxGrupo) {
         alert(`No grupo "${grupo.nome}" selecione de ${minGrupo} até ${maxGrupo} opção(ões).`)
         return
       }
     }
-    const adds = p.adicionais?.filter((a) => adicionaisSel.includes(a.id)) || []
+    const adds = adicionaisAtivos.filter((a) => adicionaisSel.includes(a.id))
     const precoUnit = calcularPrecoConfiguracao(p, variacao, adds)
 
     const chave = gerarChaveCarrinho(p.id, variacao?.id, adicionaisSel)
@@ -1777,9 +1799,14 @@ export default function LojaPage() {
     const ehPizza = isProdutoPizza(p)
     const temVariacoes = p.variacoes?.length > 0
     const temAdicionais = p.adicionais?.length > 0
-    const gruposAdicionais = agruparAdicionaisProduto(p.adicionais || [])
-    const varSel = p.variacoes?.find((v) => v.id === variacaoSel)
-    const adicionaisSelecionados = (p.adicionais || []).filter((a) => adicionaisSel.includes(a.id))
+    const adicionaisAtivos = getAdicionaisAtivos(p)
+    const gruposAdicionais = agruparAdicionaisProduto(adicionaisAtivos)
+    const possuiGrupoSabores = gruposAdicionais.some((g) => g.itens.some((it) => !!it.is_sabor))
+    const variacoesFiltradas = ehPizza
+      ? (p.variacoes || []).filter((v) => getMaxSaboresVariacao(v) >= pizzaQtdSabores)
+      : (p.variacoes || [])
+    const varSel = variacoesFiltradas.find((v) => v.id === variacaoSel) || variacoesFiltradas[0] || null
+    const adicionaisSelecionados = adicionaisAtivos.filter((a) => adicionaisSel.includes(a.id))
     const precoUnitario = calcularPrecoConfiguracao(p, varSel, adicionaisSelecionados)
     const precoTotal = precoUnitario * qtdDetalhe
 
@@ -1789,7 +1816,7 @@ export default function LojaPage() {
         const isSelected = selectedSet.has(adicional.id)
         const countGrupo = grupo.itens.filter((it) => selectedSet.has(it.id)).length
         const maxGrupo = (ehPizza && grupo.itens.some((it) => !!it.is_sabor) && varSel)
-          ? getMaxSaboresVariacao(varSel)
+          ? Math.min(getMaxSaboresVariacao(varSel), pizzaQtdSabores)
           : Number(grupo.max || 99)
 
         if (acao === 'remover') {
@@ -1838,11 +1865,49 @@ export default function LojaPage() {
         )}
 
         {/* Tamanhos */}
+        {ehPizza && possuiGrupoSabores && (
+          <div className="px-4 pt-4 pb-1">
+            <p className="text-base font-bold text-stone-900 mb-3">quantos sabores?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[1, 2].map((qtd) => (
+                <button
+                  key={qtd}
+                  type="button"
+                  onClick={() => {
+                    setPizzaQtdSabores(qtd)
+                    setAdicionaisSel((prev) => {
+                      const flavorIds = new Set(adicionaisAtivos.filter((a) => !!a.is_sabor).map((a) => a.id))
+                      const nonFlavors = prev.filter((id) => !flavorIds.has(id))
+                      const chosenFlavors = prev.filter((id) => flavorIds.has(id)).slice(0, qtd)
+                      return [...nonFlavors, ...chosenFlavors]
+                    })
+                    const candidatas = (p.variacoes || []).filter((v) => getMaxSaboresVariacao(v) >= qtd)
+                    if (candidatas.length > 0 && !candidatas.some((v) => v.id === variacaoSel)) {
+                      setVariacaoSel(candidatas[0].id)
+                    }
+                  }}
+                  className={`py-2.5 rounded-lg border text-sm font-semibold ${pizzaQtdSabores === qtd
+                      ? 'border-red-500 bg-red-50 text-red-700'
+                      : 'border-stone-300 bg-white text-stone-700'
+                    }`}
+                >
+                  {qtd} sabor{qtd > 1 ? 'es' : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {temVariacoes && (
           <div className="px-4 pt-4 pb-2">
             <p className="text-base font-bold text-stone-900 mb-3">qual tamanho?</p>
-            {p.variacoes.map((v) => {
-              const sel = variacaoSel === v.id
+            {variacoesFiltradas.length === 0 && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
+                Nenhum tamanho disponível para {pizzaQtdSabores} sabor{pizzaQtdSabores > 1 ? 'es' : ''}.
+              </p>
+            )}
+            {variacoesFiltradas.map((v) => {
+              const sel = varSel?.id === v.id
               return (
                 <button key={v.id} onClick={() => setVariacaoSel(v.id)} className="w-full flex items-center justify-between py-3.5 border-b border-stone-100">
                   <div className="flex items-center gap-3">
@@ -1869,8 +1934,10 @@ export default function LojaPage() {
             {gruposAdicionais.map((grupo) => {
               const countGrupo = grupo.itens.filter((it) => adicionaisSel.includes(it.id)).length
               const grupoSaborPizza = ehPizza && grupo.itens.some((it) => !!it.is_sabor) && !!varSel
-              const minGrupo = grupoSaborPizza ? 1 : Number(grupo.min || 0)
-              const maxGrupo = grupoSaborPizza ? getMaxSaboresVariacao(varSel) : Number(grupo.max || 99)
+              const minGrupo = grupoSaborPizza ? pizzaQtdSabores : Number(grupo.min || 0)
+              const maxGrupo = grupoSaborPizza
+                ? Math.min(getMaxSaboresVariacao(varSel), pizzaQtdSabores)
+                : Number(grupo.max || 99)
               return (
                 <div key={grupo.nome} className="mb-4">
                   <p className="text-sm font-bold text-stone-800 mb-2">
@@ -1900,7 +1967,7 @@ export default function LojaPage() {
                           </button>
                           <span className="text-sm text-stone-800">{a.nome}</span>
                         </div>
-                        <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(a.preco).toFixed(2).replace('.', ',')}</span>
+                        <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {getPrecoAdicionalPorVariacao(a, varSel).toFixed(2).replace('.', ',')}</span>
                       </div>
                     )
                   })}
