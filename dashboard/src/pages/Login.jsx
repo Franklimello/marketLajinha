@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { FcGoogle } from 'react-icons/fc'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const [carregandoGoogle, setCarregandoGoogle] = useState(false)
-  const { user, loja, loading, isSuperAdmin, login, loginGoogle } = useAuth()
+  const { user, loja, loading, isSuperAdmin, login } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -39,39 +37,10 @@ export default function Login() {
     }
   }
 
-  async function handleGoogleLogin() {
-    setErro('')
-    setCarregandoGoogle(true)
-    try {
-      const resultado = await loginGoogle()
-      if (resultado?.redirect) return
-      navigate('/pedidos')
-    } catch (err) {
-      setErro(err?.message || 'Não foi possível entrar com Google.')
-    } finally {
-      setCarregandoGoogle(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
         <h1 className="text-2xl font-bold text-stone-900 mb-6">Entrar</h1>
-
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={carregandoGoogle || carregando}
-          className="w-full mb-4 py-2.5 border border-stone-300 text-stone-700 font-medium rounded-lg hover:bg-stone-50 disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          <FcGoogle className="text-lg" />
-          {carregandoGoogle ? 'Entrando com Google...' : 'Entrar com Google'}
-        </button>
-
-        <div className="relative mb-4">
-          <div className="h-px bg-stone-200" />
-          <span className="absolute inset-x-0 -top-2 mx-auto w-fit bg-white px-2 text-xs text-stone-400">ou</span>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
