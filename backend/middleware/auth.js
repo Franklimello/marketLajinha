@@ -34,10 +34,29 @@ async function authMiddleware(req, res, next) {
       decoded = await firebaseAuth.verifySessionCookie(token, true);
     }
     req.firebaseDecoded = decoded;
-    const usuario = await prisma.usuarios.findUnique({
+    let usuario = await prisma.usuarios.findUnique({
       where: { firebase_uid: decoded.uid },
       select: { id: true, loja_id: true, role: true, firebase_uid: true },
     });
+    // Fallback para login social: se o UID mudou, tenta vincular pelo e-mail já cadastrado.
+    if (!usuario && decoded?.email && decoded?.email_verified === true) {
+      const candidatos = await prisma.usuarios.findMany({
+        where: { email: { equals: String(decoded.email), mode: 'insensitive' } },
+        select: { id: true, loja_id: true, role: true, firebase_uid: true },
+        take: 2,
+      });
+      if (candidatos.length === 1) {
+        try {
+          usuario = await prisma.usuarios.update({
+            where: { id: candidatos[0].id },
+            data: { firebase_uid: decoded.uid },
+            select: { id: true, loja_id: true, role: true, firebase_uid: true },
+          });
+        } catch {
+          // Se o UID já estiver em uso ou houver concorrência, mantém fluxo sem quebrar requisição.
+        }
+      }
+    }
     if (usuario) req.user = usuario;
   } catch (err) {
     if (err.code === 'auth/id-token-expired') {
