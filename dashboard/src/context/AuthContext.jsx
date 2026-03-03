@@ -84,21 +84,34 @@ export function AuthProvider({ children }) {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
       if (firebaseUser) {
+        let idToken = null
         try {
-          const idToken = await firebaseUser.getIdToken()
-          await createSessionCookie(idToken)
+          idToken = await firebaseUser.getIdToken()
+          // Evita corrida no primeiro request autenticado logo após login social.
+          if (idToken) {
+            setTokenGetter(async () => idToken)
+            await createSessionCookie(idToken)
+          }
         } catch {}
+
+        let minhaLoja = null
         try {
-          const minhaLoja = await api.lojas.minha()
+          minhaLoja = await api.lojas.minha()
           setLoja(minhaLoja)
           if (minhaLoja) registrarPushLoja()
         } catch {
           setLoja(null)
         }
-        try {
-          await api.admin.stats()
-          setIsSuperAdmin(true)
-        } catch {
+
+        // Só verifica admin quando não existe loja vinculada.
+        if (!minhaLoja) {
+          try {
+            await api.admin.stats()
+            setIsSuperAdmin(true)
+          } catch {
+            setIsSuperAdmin(false)
+          }
+        } else {
           setIsSuperAdmin(false)
         }
       } else {
@@ -130,6 +143,7 @@ export function AuthProvider({ children }) {
     const timer = setInterval(async () => {
       try {
         const refreshed = await user.getIdToken(true)
+        setTokenGetter(async () => refreshed)
         await refreshSessionCookie(refreshed)
       } catch {}
     }, 1000 * 60 * 20)

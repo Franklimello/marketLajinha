@@ -173,13 +173,18 @@ export function AuthProvider({ children }) {
     const unsub = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user || null)
       if (user) {
-        const t = await user.getIdToken()
-        setToken(t)
-        createSessionCookie(t).catch(() => { })
+        let t = null
         try {
-          const c = await apiFetch('/clientes/me', t)
+          t = await user.getIdToken()
+        } catch {
+          t = null
+        }
+        setToken(t)
+        if (t) createSessionCookie(t).catch(() => { })
+        try {
+          const c = t ? await apiFetch('/clientes/me', t) : null
           setCliente(c)
-          if (c) {
+          if (c && t) {
             // messagingEnv pode ainda ser null aqui; o useEffect acima cobre esse caso
             registrarPush(t)
             contarPedidosAtivos(t)
@@ -245,6 +250,7 @@ export function AuthProvider({ children }) {
     const timer = setInterval(async () => {
       try {
         const refreshed = await firebaseUser.getIdToken(true)
+        setToken(refreshed)
         await refreshSessionCookie(refreshed)
       } catch {
         // noop
