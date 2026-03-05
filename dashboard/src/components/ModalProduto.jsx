@@ -628,7 +628,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         </div>
 
         {/* Abas */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-stone-200 px-3 sm:px-5 py-2 gap-1 shrink-0 bg-stone-50/70">
+        <div className="flex gap-2 overflow-x-auto border-b border-stone-200 px-3 sm:px-5 py-2 shrink-0 bg-stone-50/70">
           {abas.map((aba, idx) => {
             const ativa = abaAtiva === aba.id
             const concluida = statusAbas[aba.id]
@@ -637,7 +637,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                 key={aba.id}
                 type="button"
                 onClick={() => irParaAba(aba.id)}
-                className={`px-3 py-2.5 rounded-lg text-left text-xs font-medium border transition-colors ${ativa
+                className={`min-w-[190px] sm:min-w-0 sm:flex-1 px-3 py-2.5 rounded-lg text-left text-xs font-medium border transition-colors ${ativa
                   ? 'border-amber-300 bg-amber-50 text-amber-800'
                   : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
                   }`}
@@ -656,7 +656,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           })}
         </div>
 
-        <div className="px-5 py-3 border-b border-stone-200 bg-white shrink-0">
+        <div className="hidden sm:block px-5 py-3 border-b border-stone-200 bg-white shrink-0">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2">
               <p className="text-stone-500">Foto</p>
@@ -677,7 +677,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 pb-24 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 pb-8 sm:pb-24 space-y-4">
           {/* ABA INFO */}
           {abaAtiva === 'info' && (
             <>
@@ -1229,7 +1229,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
 
           {erro && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{erro}</p>}
 
-          <div className="-mx-5 mt-2 sticky bottom-0 border-t border-stone-200 bg-white/95 backdrop-blur px-5 py-3">
+          <div className="-mx-5 mt-2 border-t border-stone-200 bg-white/95 backdrop-blur px-5 py-3 sm:sticky sm:bottom-0 sm:z-10">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold text-stone-700">
