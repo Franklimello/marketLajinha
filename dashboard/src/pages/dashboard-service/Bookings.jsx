@@ -1,38 +1,71 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿import { createElement, useEffect, useMemo, useState } from 'react'
+import {
+  FiCalendar,
+  FiCheckCircle,
+  FiClock,
+  FiRefreshCcw,
+  FiRotateCw,
+  FiSlash,
+} from 'react-icons/fi'
 import { api } from '../../api/client'
 import BookingRequestCard from '../../components/booking-request-card/BookingRequestCard'
 
 const FILTERS = [
-  { value: '', label: 'Todos' },
+  { value: 'all', label: 'Todos' },
   { value: 'pending', label: 'Pendentes' },
   { value: 'counter_offer', label: 'Contraproposta' },
   { value: 'accepted', label: 'Aceitos' },
   { value: 'confirmed', label: 'Confirmados' },
+  { value: 'rejected', label: 'Recusados' },
 ]
+
+function statusCounts(bookings) {
+  return {
+    all: bookings.length,
+    pending: bookings.filter((item) => item.status === 'pending').length,
+    counter_offer: bookings.filter((item) => item.status === 'counter_offer').length,
+    accepted: bookings.filter((item) => item.status === 'accepted').length,
+    confirmed: bookings.filter((item) => item.status === 'confirmed').length,
+    rejected: bookings.filter((item) => item.status === 'rejected' || item.status === 'cancelled').length,
+  }
+}
+
+function StatCard({ icon, label, value, helper, tone }) {
+  return (
+    <article className={`border p-3 ${tone}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs uppercase tracking-wide">{label}</p>
+        {icon ? createElement(icon, { size: 14 }) : null}
+      </div>
+      <p className="text-2xl font-semibold mt-1 font-numeric">{value}</p>
+      <p className="text-xs mt-1 opacity-80">{helper}</p>
+    </article>
+  )
+}
 
 export default function ServiceBookingsPage() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filter, setFilter] = useState('')
+  const [filter, setFilter] = useState('all')
   const [busyId, setBusyId] = useState('')
 
-  async function loadBookings(nextFilter = filter) {
+  async function loadBookings() {
     setLoading(true)
     setError('')
     try {
-      const res = await api.appointments.provider(nextFilter)
+      const res = await api.appointments.provider()
       setBookings(Array.isArray(res) ? res : [])
     } catch (err) {
-      setError(err.message || 'Não foi possível carregar os agendamentos.')
+      setError(err.message || 'Nao foi possivel carregar os agendamentos.')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadBookings(filter)
-  }, [filter])
+    loadBookings()
+  }, [])
 
   async function runAction(id, payload) {
     setBusyId(id)
@@ -41,47 +74,120 @@ export default function ServiceBookingsPage() {
       const updated = await api.appointments.providerAction(id, payload)
       setBookings((prev) => prev.map((item) => (item.id === id ? updated : item)))
     } catch (err) {
-      setError(err.message || 'Não foi possível atualizar este agendamento.')
+      setError(err.message || 'Nao foi possivel atualizar este agendamento.')
     } finally {
       setBusyId('')
     }
   }
 
+  const counts = useMemo(() => statusCounts(bookings), [bookings])
+
+  const metrics = useMemo(() => {
+    return [
+      {
+        label: 'Pendentes',
+        value: counts.pending,
+        helper: 'Aguardando retorno',
+        icon: FiClock,
+        tone: 'border-blue-200 bg-blue-50 text-blue-800',
+      },
+      {
+        label: 'Confirmados',
+        value: counts.confirmed + counts.accepted,
+        helper: 'Com horario definido',
+        icon: FiCheckCircle,
+        tone: 'border-green-200 bg-green-50 text-green-800',
+      },
+      {
+        label: 'Negociacao',
+        value: counts.counter_offer,
+        helper: 'Com contraproposta',
+        icon: FiRotateCw,
+        tone: 'border-amber-200 bg-amber-50 text-amber-800',
+      },
+      {
+        label: 'Recusados',
+        value: counts.rejected,
+        helper: 'Recusas e cancelamentos',
+        icon: FiSlash,
+        tone: 'border-red-200 bg-red-50 text-red-800',
+      },
+    ]
+  }, [counts])
+
   const orderedBookings = useMemo(() => {
-    return [...bookings].sort((a, b) => {
-      if (a.date !== b.date) return String(a.date).localeCompare(String(b.date))
-      return String(a.effective_time || '').localeCompare(String(b.effective_time || ''))
-    })
-  }, [bookings])
+    return [...bookings]
+      .filter((booking) => filter === 'all' || booking.status === filter || (filter === 'rejected' && ['rejected', 'cancelled'].includes(booking.status)))
+      .sort((a, b) => {
+        if (a.date !== b.date) return String(a.date).localeCompare(String(b.date))
+        return String(a.effective_time || a.time || '').localeCompare(String(b.effective_time || b.time || ''))
+      })
+  }, [bookings, filter])
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-stone-900">Bookings</h2>
-          <p className="text-sm text-stone-500">Gerencie solicitações com aceitar, recusar ou sugerir novo horário.</p>
+      <section className="border border-stone-300 bg-gradient-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Central de solicitacoes</p>
+            <h2 className="text-2xl font-semibold mt-1">Agendamentos</h2>
+            <p className="text-sm text-stone-200 mt-2 max-w-2xl">
+              Responda pedidos rapidamente para manter agenda ocupada e reduzir perda de conversao.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadBookings}
+            className="inline-flex items-center gap-1.5 border border-white/30 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
+          >
+            <FiRefreshCcw size={14} /> Atualizar
+          </button>
+        </div>
+      </section>
+
+      <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        {metrics.map((item) => (
+          <StatCard key={item.label} {...item} />
+        ))}
+      </section>
+
+      <section className="border border-stone-200 bg-white p-3 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
+            <FiCalendar size={14} /> Filtros de status
+          </p>
+          <span className="text-xs text-stone-500">
+            {orderedBookings.length} de {counts.all} exibidos
+          </span>
         </div>
 
-        <div>
-          <label className="block text-xs text-stone-500 mb-1">Filtro</label>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="border border-stone-300 px-3 py-2 text-sm"
-          >
-            {FILTERS.map((item) => (
-              <option key={item.value || 'all'} value={item.value}>{item.label}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setFilter(item.value)}
+              className={`border px-3 py-1.5 text-xs font-semibold ${
+                filter === item.value
+                  ? 'border-amber-500 bg-amber-50 text-amber-800'
+                  : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
+              }`}
+            >
+              {item.label} ({counts[item.value] || 0})
+            </button>
+          ))}
         </div>
-      </div>
+      </section>
 
       {error && <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {loading ? (
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Carregando agendamentos...</div>
       ) : orderedBookings.length === 0 ? (
-        <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Nenhuma solicitação encontrada.</div>
+        <div className="border border-stone-200 bg-white p-5 text-sm text-stone-500">
+          Nenhuma solicitacao encontrada neste filtro.
+        </div>
       ) : (
         <div className="space-y-3">
           {orderedBookings.map((booking) => (
@@ -99,3 +205,4 @@ export default function ServiceBookingsPage() {
     </div>
   )
 }
+

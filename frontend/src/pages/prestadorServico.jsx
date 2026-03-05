@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { FiArrowLeft, FiCalendar, FiClock } from 'react-icons/fi'
+import { FiArrowLeft, FiAtSign, FiCalendar, FiClock, FiMapPin, FiMessageCircle, FiPhone } from 'react-icons/fi'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { getItem as getLocalItem } from '../storage/localStorageService'
@@ -13,6 +13,22 @@ function cityFromCliente(cliente) {
   const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
   const padrao = enderecos.find((item) => item?.padrao) || enderecos[0]
   return String(padrao?.cidade || '').trim()
+}
+
+function normalizeText(value) {
+  return String(value || '').trim()
+}
+
+function whatsappHref(value) {
+  const digits = normalizeText(value).replace(/\D/g, '')
+  if (!digits) return ''
+  return `https://wa.me/${digits}`
+}
+
+function instagramHref(value) {
+  const username = normalizeText(value).replace(/^@/, '')
+  if (!username) return ''
+  return `https://instagram.com/${username}`
 }
 
 export default function PrestadorServicoPage() {
@@ -124,9 +140,67 @@ export default function PrestadorServicoPage() {
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Prestador não encontrado.</div>
       ) : (
         <>
-          <section className="border border-stone-200 bg-white p-4">
-            <h1 className="text-xl font-bold text-stone-900">{profile.name}</h1>
-            <p className="text-sm text-stone-500 mt-1">{profile.city}</p>
+          <section className="border border-stone-200 bg-white p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              {profile.profile_image_url ? (
+                <img src={profile.profile_image_url} alt={profile.name} className="w-20 h-20 object-cover border border-stone-300 shrink-0" />
+              ) : (
+                <div className="w-20 h-20 border border-dashed border-stone-300 text-xs text-stone-400 flex items-center justify-center text-center p-2 shrink-0">
+                  Sem foto
+                </div>
+              )}
+
+              <div>
+                <h1 className="text-xl font-bold text-stone-900">{profile.name}</h1>
+                <p className="text-sm text-stone-500 mt-1 inline-flex items-center gap-1">
+                  <FiMapPin size={13} /> {profile.city}
+                </p>
+                {normalizeText(profile.business_hours) && (
+                  <p className="text-xs text-stone-500 mt-2 inline-flex items-center gap-1">
+                    <FiClock size={12} /> {profile.business_hours}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {normalizeText(profile.about) && (
+              <p className="text-sm text-stone-700 leading-relaxed">{profile.about}</p>
+            )}
+
+            {(normalizeText(profile.phone) || normalizeText(profile.whatsapp) || normalizeText(profile.instagram) || normalizeText(profile.address)) && (
+              <div className="grid sm:grid-cols-2 gap-2 text-xs text-stone-600">
+                {normalizeText(profile.phone) && (
+                  <p className="border border-stone-200 bg-stone-50 px-2 py-2 inline-flex items-center gap-1.5">
+                    <FiPhone size={12} /> {profile.phone}
+                  </p>
+                )}
+                {normalizeText(profile.whatsapp) && whatsappHref(profile.whatsapp) && (
+                  <a
+                    href={whatsappHref(profile.whatsapp)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="border border-stone-200 bg-stone-50 px-2 py-2 inline-flex items-center gap-1.5 hover:border-green-300"
+                  >
+                    <FiMessageCircle size={12} /> WhatsApp
+                  </a>
+                )}
+                {normalizeText(profile.instagram) && instagramHref(profile.instagram) && (
+                  <a
+                    href={instagramHref(profile.instagram)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="border border-stone-200 bg-stone-50 px-2 py-2 inline-flex items-center gap-1.5 hover:border-amber-300"
+                  >
+                    <FiAtSign size={12} /> {profile.instagram}
+                  </a>
+                )}
+                {normalizeText(profile.address) && (
+                  <p className="border border-stone-200 bg-stone-50 px-2 py-2 inline-flex items-center gap-1.5">
+                    <FiMapPin size={12} /> {profile.address}
+                  </p>
+                )}
+              </div>
+            )}
           </section>
 
           <section className="space-y-3">

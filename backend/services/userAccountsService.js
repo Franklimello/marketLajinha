@@ -74,6 +74,13 @@ async function updateMyProfile(firebaseDecoded, payload = {}) {
 
   if (payload.name !== undefined) data.name = cleanText(payload.name);
   if (payload.city !== undefined) data.city = cleanText(payload.city);
+  if (payload.profile_image_url !== undefined) data.profile_image_url = cleanText(payload.profile_image_url);
+  if (payload.about !== undefined) data.about = cleanText(payload.about);
+  if (payload.phone !== undefined) data.phone = cleanText(payload.phone);
+  if (payload.whatsapp !== undefined) data.whatsapp = cleanText(payload.whatsapp);
+  if (payload.instagram !== undefined) data.instagram = cleanText(payload.instagram);
+  if (payload.address !== undefined) data.address = cleanText(payload.address);
+  if (payload.business_hours !== undefined) data.business_hours = cleanText(payload.business_hours);
 
   if (payload.accountType !== undefined) {
     data.account_type = normalizeAccountType(payload.accountType);
@@ -106,6 +113,13 @@ function toPublicAccount(account) {
     email: account.email,
     accountType: account.account_type,
     city: account.city,
+    profile_image_url: account.profile_image_url || '',
+    about: account.about || '',
+    phone: account.phone || '',
+    whatsapp: account.whatsapp || '',
+    instagram: account.instagram || '',
+    address: account.address || '',
+    business_hours: account.business_hours || '',
     created_at: account.created_at,
     updated_at: account.updated_at,
   };

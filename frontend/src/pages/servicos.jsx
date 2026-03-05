@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FiArrowLeft, FiMapPin } from 'react-icons/fi'
+import { FiArrowLeft, FiMapPin, FiMessageCircle, FiPhone } from 'react-icons/fi'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { getItem as getLocalItem } from '../storage/localStorageService'
@@ -12,6 +12,13 @@ function cityFromCliente(cliente) {
   const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
   const padrao = enderecos.find((item) => item?.padrao) || enderecos[0]
   return String(padrao?.cidade || '').trim()
+}
+
+function excerpt(text, max = 120) {
+  const value = String(text || '').trim()
+  if (!value) return ''
+  if (value.length <= max) return value
+  return `${value.slice(0, max - 1)}...`
 }
 
 export default function ServicosPage() {
@@ -91,8 +98,31 @@ export default function ServicosPage() {
               to={`/servicos/profissional/${provider.id}`}
               className="border border-stone-200 bg-white p-4 block hover:border-red-300"
             >
-              <p className="text-sm font-semibold text-stone-900">{provider.name}</p>
-              <p className="text-xs text-stone-500 mt-1">{provider.city} • {provider.services_count} serviço(s)</p>
+              <div className="flex items-start gap-3">
+                {provider.profile_image_url ? (
+                  <img src={provider.profile_image_url} alt={provider.name} className="w-14 h-14 object-cover border border-stone-300 shrink-0" />
+                ) : (
+                  <div className="w-14 h-14 border border-dashed border-stone-300 text-xs text-stone-400 flex items-center justify-center shrink-0">
+                    Sem foto
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-stone-900">{provider.name}</p>
+                  <p className="text-xs text-stone-500 mt-1">{provider.city} • {provider.services_count} serviço(s)</p>
+
+                  {provider.about && (
+                    <p className="text-xs text-stone-600 mt-2 leading-relaxed">{excerpt(provider.about)}</p>
+                  )}
+
+                  {(provider.phone || provider.whatsapp) && (
+                    <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-stone-500">
+                      {provider.phone && <span className="inline-flex items-center gap-1"><FiPhone size={11} /> Telefone</span>}
+                      {provider.whatsapp && <span className="inline-flex items-center gap-1"><FiMessageCircle size={11} /> WhatsApp</span>}
+                    </div>
+                  )}
+                </div>
+              </div>
             </Link>
           ))}
         </div>

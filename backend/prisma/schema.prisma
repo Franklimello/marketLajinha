@@ -664,6 +664,13 @@ model UserAccount {
   name         String   @default("")
   account_type String   @default("store")
   city         String   @default("")
+  profile_image_url String @default("")
+  about        String   @default("")
+  phone        String   @default("")
+  whatsapp     String   @default("")
+  instagram    String   @default("")
+  address      String   @default("")
+  business_hours String @default("")
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 

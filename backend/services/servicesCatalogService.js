@@ -24,6 +24,7 @@ function serviceToJson(service) {
         id: service.provider.id,
         name: service.provider.name,
         city: service.provider.city,
+        profile_image_url: service.provider.profile_image_url || '',
       }
       : undefined,
   };
@@ -43,6 +44,11 @@ async function listProvidersByCity(city) {
       id: true,
       name: true,
       city: true,
+      profile_image_url: true,
+      about: true,
+      phone: true,
+      whatsapp: true,
+      instagram: true,
       created_at: true,
       _count: { select: { services: true } },
     },
@@ -53,6 +59,11 @@ async function listProvidersByCity(city) {
     id: provider.id,
     name: provider.name,
     city: provider.city,
+    profile_image_url: provider.profile_image_url || '',
+    about: provider.about || '',
+    phone: provider.phone || '',
+    whatsapp: provider.whatsapp || '',
+    instagram: provider.instagram || '',
     services_count: Number(provider._count?.services || 0),
     created_at: provider.created_at,
   }));
@@ -72,6 +83,13 @@ async function getProviderProfile(providerId, city) {
       id: true,
       name: true,
       city: true,
+      profile_image_url: true,
+      about: true,
+      phone: true,
+      whatsapp: true,
+      instagram: true,
+      address: true,
+      business_hours: true,
       created_at: true,
       services: {
         orderBy: { created_at: 'desc' },
@@ -95,6 +113,13 @@ async function getProviderProfile(providerId, city) {
     id: provider.id,
     name: provider.name,
     city: provider.city,
+    profile_image_url: provider.profile_image_url || '',
+    about: provider.about || '',
+    phone: provider.phone || '',
+    whatsapp: provider.whatsapp || '',
+    instagram: provider.instagram || '',
+    address: provider.address || '',
+    business_hours: provider.business_hours || '',
     created_at: provider.created_at,
     services: provider.services.map((service) => serviceToJson(service)),
   };
@@ -106,7 +131,7 @@ async function listMyServices(providerId) {
     orderBy: { created_at: 'desc' },
     include: {
       provider: {
-        select: { id: true, name: true, city: true },
+        select: { id: true, name: true, city: true, profile_image_url: true },
       },
     },
   });
@@ -133,7 +158,7 @@ async function createService(providerAccount, payload) {
     },
     include: {
       provider: {
-        select: { id: true, name: true, city: true },
+        select: { id: true, name: true, city: true, profile_image_url: true },
       },
     },
   });
@@ -169,7 +194,7 @@ async function updateService(providerId, serviceId, payload) {
     data,
     include: {
       provider: {
-        select: { id: true, name: true, city: true },
+        select: { id: true, name: true, city: true, profile_image_url: true },
       },
     },
   });

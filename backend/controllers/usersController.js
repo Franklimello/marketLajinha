@@ -40,6 +40,13 @@ async function updateMe(req, res, next) {
       name: req.validated.name,
       city: req.validated.city,
       accountType: req.validated.accountType,
+      profile_image_url: req.validated.profile_image_url,
+      about: req.validated.about,
+      phone: req.validated.phone,
+      whatsapp: req.validated.whatsapp,
+      instagram: req.validated.instagram,
+      address: req.validated.address,
+      business_hours: req.validated.business_hours,
     });
     res.json(userAccountsService.toPublicAccount(account));
   } catch (e) {

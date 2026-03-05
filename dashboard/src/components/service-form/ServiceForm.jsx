@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react'
+import { FiClock, FiDollarSign, FiFileText, FiScissors } from 'react-icons/fi'
 
 const initialForm = {
   name: '',
@@ -6,6 +7,8 @@ const initialForm = {
   price: '',
   duration_minutes: '30',
 }
+
+const PRESET_DURATIONS = [15, 30, 45, 60, 90]
 
 export default function ServiceForm({ onSubmit, loading = false }) {
   const [form, setForm] = useState(initialForm)
@@ -51,36 +54,48 @@ export default function ServiceForm({ onSubmit, loading = false }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border border-stone-200 bg-white p-4 space-y-3">
-      <h3 className="text-base font-semibold text-stone-900">Novo serviço</h3>
+    <form onSubmit={handleSubmit} className="border border-stone-200 bg-white p-4 space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-stone-900">Criar serviço</h3>
+          <p className="text-xs text-stone-500 mt-1">Preencha os dados para publicar no catálogo da sua cidade.</p>
+        </div>
+        <span className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">Novo</span>
+      </div>
 
-      <div>
-        <label className="block text-xs font-medium text-stone-600 mb-1">Nome</label>
+      <label className="block space-y-1.5">
+        <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
+          <FiScissors size={13} /> Nome do serviço
+        </span>
         <input
           name="name"
           value={form.name}
           onChange={handleChange}
-          placeholder="Ex.: Corte masculino"
-          className="w-full border border-stone-300 px-3 py-2 text-sm"
+          placeholder="Ex.: Corte masculino premium"
+          className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
           required
         />
-      </div>
+      </label>
 
-      <div>
-        <label className="block text-xs font-medium text-stone-600 mb-1">Descrição</label>
+      <label className="block space-y-1.5">
+        <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
+          <FiFileText size={13} /> Descrição
+        </span>
         <textarea
           name="description"
           value={form.description}
           onChange={handleChange}
           rows={3}
-          placeholder="Detalhes rápidos do serviço"
-          className="w-full border border-stone-300 px-3 py-2 text-sm resize-none"
+          placeholder="Detalhes, benefícios e observações do atendimento"
+          className="w-full border border-stone-300 px-3 py-2 text-sm resize-none focus:outline-none focus:border-amber-500"
         />
-      </div>
+      </label>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-stone-600 mb-1">Preço (R$)</label>
+        <label className="space-y-1.5">
+          <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
+            <FiDollarSign size={13} /> Preço (R$)
+          </span>
           <input
             name="price"
             type="number"
@@ -88,13 +103,15 @@ export default function ServiceForm({ onSubmit, loading = false }) {
             step="0.01"
             value={form.price}
             onChange={handleChange}
-            className="w-full border border-stone-300 px-3 py-2 text-sm"
+            className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             required
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="block text-xs font-medium text-stone-600 mb-1">Duração (min)</label>
+        <label className="space-y-1.5">
+          <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
+            <FiClock size={13} /> Duração (min)
+          </span>
           <input
             name="duration_minutes"
             type="number"
@@ -102,10 +119,27 @@ export default function ServiceForm({ onSubmit, loading = false }) {
             step="5"
             value={form.duration_minutes}
             onChange={handleChange}
-            className="w-full border border-stone-300 px-3 py-2 text-sm"
+            className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             required
           />
-        </div>
+        </label>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {PRESET_DURATIONS.map((duration) => (
+          <button
+            key={duration}
+            type="button"
+            onClick={() => setForm((prev) => ({ ...prev, duration_minutes: String(duration) }))}
+            className={`border px-2.5 py-1 text-xs ${
+              String(form.duration_minutes) === String(duration)
+                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                : 'border-stone-300 text-stone-600 hover:border-stone-400'
+            }`}
+          >
+            {duration} min
+          </button>
+        ))}
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -113,7 +147,7 @@ export default function ServiceForm({ onSubmit, loading = false }) {
       <button
         type="submit"
         disabled={loading}
-        className="bg-amber-600 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+        className="bg-amber-600 text-white px-4 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
       >
         {loading ? 'Salvando...' : 'Salvar serviço'}
       </button>
