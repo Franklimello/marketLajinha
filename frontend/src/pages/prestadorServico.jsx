@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { FiArrowLeft, FiAtSign, FiCalendar, FiClock, FiMapPin, FiMessageCircle, FiPhone } from 'react-icons/fi'
 import { api } from '../api/client'
@@ -167,32 +167,34 @@ export default function PrestadorServicoPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
       <SEO title="Perfil do prestador" description="Veja serviços disponíveis e solicite um horário." noIndex />
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/65 to-transparent" />
+      <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
 
-      <div className="flex items-center justify-between">
-        <Link to="/servicos" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700">
+      <div className="pt-4 flex items-center justify-between">
+        <Link to="/servicos" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 font-medium">
           <FiArrowLeft /> Voltar
         </Link>
-        <Link to="/meus-agendamentos" className="text-xs text-red-600 hover:underline">
+        <Link to="/meus-agendamentos" className="text-xs text-red-600 hover:underline font-semibold">
           Meus agendamentos
         </Link>
       </div>
 
       {loading ? (
-        <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Carregando perfil...</div>
+        <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] mt-4">Carregando perfil...</div>
       ) : error ? (
-        <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700 rounded-xl mt-4">{error}</div>
       ) : !profile ? (
-        <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Prestador não encontrado.</div>
+        <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl mt-4">Prestador não encontrado.</div>
       ) : (
         <>
-          <section className="border border-stone-200 bg-white p-4 space-y-3">
+          <section className="mt-4 border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)]">
             <div className="flex items-start gap-3">
               {profile.profile_image_url ? (
-                <img src={profile.profile_image_url} alt={profile.name} className="w-20 h-20 object-cover border border-stone-300 shrink-0" />
+                <img src={profile.profile_image_url} alt={profile.name} className="w-20 h-20 object-cover border border-stone-300 rounded-2xl shrink-0" />
               ) : (
-                <div className="w-20 h-20 border border-dashed border-stone-300 text-xs text-stone-400 flex items-center justify-center text-center p-2 shrink-0">
+                <div className="w-20 h-20 border border-dashed border-stone-300 text-xs text-stone-400 flex items-center justify-center text-center p-2 rounded-2xl shrink-0">
                   Sem foto
                 </div>
               )}
@@ -251,7 +253,7 @@ export default function PrestadorServicoPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-semibold text-stone-900">Serviços</h2>
+            <h2 className="text-base font-black text-stone-900">Serviços</h2>
             {Array.isArray(profile.services) && profile.services.length > 0 ? (
               profile.services.map((service) => (
                 <ServiceCard
@@ -262,12 +264,12 @@ export default function PrestadorServicoPage() {
                 />
               ))
             ) : (
-              <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Sem serviços disponíveis.</div>
+              <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl">Sem serviços disponíveis.</div>
             )}
           </section>
 
-          <form onSubmit={handleBook} className="border border-stone-200 bg-white p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-stone-900">Solicitar agendamento</h3>
+          <form onSubmit={handleBook} className="border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)]">
+            <h3 className="text-sm font-black text-stone-900">Solicitar agendamento</h3>
             <p className="text-xs text-stone-500">
               Serviço selecionado: {selectedService?.name || 'nenhum serviço'}
             </p>
@@ -278,7 +280,7 @@ export default function PrestadorServicoPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-stone-300 px-2 py-2 text-sm"
+                className="w-full border border-stone-300 rounded-xl px-2.5 py-2 text-sm"
                 required
               />
             </label>
@@ -301,7 +303,7 @@ export default function PrestadorServicoPage() {
                       key={slot}
                       type="button"
                       onClick={() => setTime(slot)}
-                      className={`border px-2.5 py-1.5 text-xs font-semibold ${
+                      className={`border px-2.5 py-1.5 text-xs font-semibold rounded-lg ${
                         time === slot
                           ? 'border-green-600 bg-green-50 text-green-700'
                           : 'border-green-300 bg-white text-green-700 hover:border-green-500'
@@ -327,7 +329,7 @@ export default function PrestadorServicoPage() {
             <button
               type="submit"
               disabled={booking || !selectedService}
-              className="border border-red-600 text-red-700 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+              className="border border-red-600 text-red-700 px-4 py-2 text-sm font-semibold rounded-xl hover:bg-red-50 disabled:opacity-50"
             >
               {booking ? 'Enviando...' : 'Solicitar horário'}
             </button>
