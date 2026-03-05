@@ -330,7 +330,7 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen">
+    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
       <SEO title="Minha conta" noIndex />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/65 to-transparent" />
       <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
@@ -487,11 +487,11 @@ export default function PerfilPage() {
         <FiLogOut /> Sair da conta
       </button>
       {(modalCupons || modalAtendimento || modalDados || modalEnderecos || modalConfig || modalCidade) && (
-        <div className="fixed inset-0 z-120 bg-stone-950/55 backdrop-blur-[2px] p-3 sm:p-4 flex items-center justify-center">
+        <div className="fixed inset-0 z-120 bg-stone-950/55 backdrop-blur-[2px] p-3 sm:p-4 flex items-center justify-center overflow-y-auto overflow-x-hidden">
           <div className="absolute inset-0" onClick={() => {
             setModalCupons(false); setModalAtendimento(false); setModalDados(false); setModalEnderecos(false); setModalConfig(false); setModalCidade(false)
           }} />
-          <div className="relative z-10 bg-white/95 border border-stone-200 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 shadow-[0_42px_90px_-50px_rgba(15,23,42,0.7)] backdrop-blur">
+          <div className="relative z-10 bg-white/95 border border-stone-200 rounded-3xl w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 shadow-[0_42px_90px_-50px_rgba(15,23,42,0.7)] backdrop-blur break-words">
             {modalCupons && (
               <>
                 <div className="flex items-center justify-between mb-3">
