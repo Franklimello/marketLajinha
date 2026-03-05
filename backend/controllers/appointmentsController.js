@@ -1,4 +1,4 @@
-﻿const appointmentsService = require('../services/appointmentsService');
+const appointmentsService = require('../services/appointmentsService');
 const userAccountsService = require('../services/userAccountsService');
 const { schemaAvailableSlotsQuery } = require('../schemas/appointmentsSchema');
 
@@ -69,6 +69,19 @@ async function clienteResposta(req, res, next) {
   }
 }
 
+async function clienteCancelar(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const appointment = await appointmentsService.clientCancel(req.firebaseDecoded, req.params.id, req.validated);
+    res.json(appointment);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
 async function prestadorAgenda(req, res, next) {
   try {
     if (!req.firebaseDecoded) {
@@ -101,6 +114,20 @@ async function prestadorAtualizarSlot(req, res, next) {
   }
 }
 
+async function prestadorCancelar(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
+    const appointment = await appointmentsService.providerCancel(providerAccount, req.params.id, req.validated);
+    res.json(appointment);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
 async function horariosDisponiveis(req, res, next) {
   try {
     const parsed = schemaAvailableSlotsQuery.safeParse(req.query || {});
@@ -124,7 +151,9 @@ module.exports = {
   prestadorListar,
   prestadorAcao,
   clienteResposta,
+  clienteCancelar,
   prestadorAgenda,
   prestadorAtualizarSlot,
+  prestadorCancelar,
   horariosDisponiveis,
 };

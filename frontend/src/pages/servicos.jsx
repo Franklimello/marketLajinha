@@ -68,9 +68,17 @@ export default function ServicosPage() {
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 font-medium">
           <FiArrowLeft /> Voltar
         </Link>
-        <span className="inline-flex items-center gap-1 text-xs text-stone-500 bg-white/80 border border-stone-200 rounded-full px-2.5 py-1">
-          <FiMapPin /> {city || 'Cidade não definida'}
-        </span>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/meus-agendamentos"
+            className="text-xs font-semibold text-red-700 border border-red-200 bg-red-50 rounded-full px-2.5 py-1 hover:bg-red-100"
+          >
+            Meus agendamentos
+          </Link>
+          <span className="inline-flex items-center gap-1 text-xs text-stone-500 bg-white/80 border border-stone-200 rounded-full px-2.5 py-1">
+            <FiMapPin /> {city || 'Cidade não definida'}
+          </span>
+        </div>
       </div>
 
       <section className="mt-3 mb-4 overflow-hidden rounded-3xl border border-stone-200/90 bg-white/90 shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur">

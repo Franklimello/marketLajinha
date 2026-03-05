@@ -158,6 +158,8 @@ export const api = {
     me: () => request('/users/me'),
     registerAccountType: (data) => request('/users/register-account-type', { method: 'POST', body: JSON.stringify(data) }),
     atualizarMe: (data) => request('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
+    salvarFcmToken: (token) => request('/users/me/fcm-token', { method: 'POST', body: JSON.stringify({ token }) }),
+    removerFcmToken: (token) => request('/users/me/fcm-token', { method: 'DELETE', body: JSON.stringify({ token }) }),
   },
   services: {
     providers: (city) => request(`/services/providers?city=${encodeURIComponent(String(city || ''))}`),
@@ -175,6 +177,8 @@ export const api = {
       request(`/appointments/provider${status ? `?status=${encodeURIComponent(status)}` : ''}`),
     providerAction: (id, data) =>
       request(`/appointments/${id}/provider-action`, { method: 'PATCH', body: JSON.stringify(data) }),
+    providerCancel: (id, data = {}) =>
+      request(`/appointments/${id}/provider-cancel`, { method: 'PATCH', body: JSON.stringify(data) }),
     clientResponse: (id, data) =>
       request(`/appointments/${id}/client-response`, { method: 'PATCH', body: JSON.stringify(data) }),
     providerSchedule: (dateFrom, dateTo) => {

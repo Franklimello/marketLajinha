@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiUser } from 'react-icons/fi'
 
 function statusLabel(status) {
@@ -21,13 +21,21 @@ function statusClass(status) {
   return 'border-stone-200 bg-stone-50 text-stone-600'
 }
 
-export default function BookingRequestCard({ appointment, onAccept, onReject, onSuggestTime, busy = false }) {
+export default function BookingRequestCard({
+  appointment,
+  onAccept,
+  onReject,
+  onSuggestTime,
+  onCancelAppointment,
+  busy = false,
+}) {
   const [counterTime, setCounterTime] = useState('')
   const [showRejectOptions, setShowRejectOptions] = useState(false)
 
   if (!appointment) return null
 
   const canManage = appointment.status === 'pending' || appointment.status === 'counter_offer'
+  const canCancel = ['pending', 'counter_offer', 'accepted', 'confirmed'].includes(appointment.status)
 
   async function handleSuggest() {
     const time = String(counterTime || '').trim()
@@ -92,6 +100,17 @@ export default function BookingRequestCard({ appointment, onAccept, onReject, on
             Recusar
           </button>
         </div>
+      )}
+
+      {canCancel && (
+        <button
+          type="button"
+          onClick={onCancelAppointment}
+          disabled={busy}
+          className="w-full border border-red-300 text-red-700 text-xs py-2 font-semibold bg-red-50 hover:bg-red-100 disabled:opacity-50"
+        >
+          Cancelar agendamento
+        </button>
       )}
 
       {canManage && showRejectOptions && (

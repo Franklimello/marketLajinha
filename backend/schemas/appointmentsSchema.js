@@ -1,4 +1,4 @@
-﻿const { z } = require('zod');
+const { z } = require('zod');
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -22,6 +22,10 @@ const schemaClientResponse = z.object({
   action: z.enum(['accept', 'reject']),
 });
 
+const schemaCancelAppointment = z.object({
+  reason: z.string().trim().max(240, 'Motivo deve ter até 240 caracteres.').optional(),
+});
+
 const schemaProviderSlotUpdate = z.object({
   date: z.string().regex(dateRegex, 'Data inválida. Use YYYY-MM-DD.'),
   time: z.string().regex(timeRegex, 'Hora inválida. Use HH:mm.'),
@@ -37,6 +41,7 @@ module.exports = {
   schemaCreateAppointment,
   schemaProviderAction,
   schemaClientResponse,
+  schemaCancelAppointment,
   schemaProviderSlotUpdate,
   schemaAvailableSlotsQuery,
 };

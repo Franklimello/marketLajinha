@@ -176,9 +176,6 @@ export default function PrestadorServicoPage() {
         <Link to="/servicos" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 font-medium">
           <FiArrowLeft /> Voltar
         </Link>
-        <Link to="/meus-agendamentos" className="text-xs text-red-600 hover:underline font-semibold">
-          Meus agendamentos
-        </Link>
       </div>
 
       {loading ? (

@@ -155,6 +155,8 @@ export const api = {
       request(`/appointments/available-slots?service_id=${encodeURIComponent(String(serviceId || ''))}&date=${encodeURIComponent(String(date || ''))}`),
     clientResponse: (id, data) =>
       request(`/appointments/${id}/client-response`, { method: 'PATCH', body: JSON.stringify(data) }),
+    clientCancel: (id, data = {}) =>
+      request(`/appointments/${id}/client-cancel`, { method: 'PATCH', body: JSON.stringify(data) }),
   },
   pedidos: {
     criar: (data) => request('/pedidos', { method: 'POST', body: JSON.stringify(data) }),

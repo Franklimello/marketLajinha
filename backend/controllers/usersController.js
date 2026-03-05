@@ -1,4 +1,5 @@
-﻿const userAccountsService = require('../services/userAccountsService');
+const userAccountsService = require('../services/userAccountsService');
+const { salvarTokenPrestador, removerTokenPrestador } = require('../services/notificacaoService');
 
 async function me(req, res, next) {
   try {
@@ -54,8 +55,35 @@ async function updateMe(req, res, next) {
   }
 }
 
+async function saveMyFcmToken(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const token = String(req.body?.token || '').trim();
+    if (!token) return res.status(400).json({ erro: 'Token FCM obrigatório.' });
+    const account = await userAccountsService.getOrCreateFromFirebase(req.firebaseDecoded);
+    await salvarTokenPrestador(account.id, token);
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function removeMyFcmToken(req, res, next) {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (token) await removerTokenPrestador(token);
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+}
+
 module.exports = {
   me,
   registerAccountType,
   updateMe,
+  saveMyFcmToken,
+  removeMyFcmToken,
 };

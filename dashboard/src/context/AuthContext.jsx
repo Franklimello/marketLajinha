@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
     getMessagingCompat().then((mod) => setMessagingEnv(mod || null))
   }, [])
 
-  const registrarPushLoja = useCallback(async () => {
+  const registrarPushConta = useCallback(async (accountType = 'store') => {
     if (!messagingEnv || !('serviceWorker' in navigator) || !('Notification' in window)) return
     try {
       const permission = await Notification.requestPermission()
@@ -53,7 +53,11 @@ export function AuthProvider({ children }) {
 
       const fcmToken = await messagingEnv.getToken(messagingEnv.messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
       if (fcmToken) {
-        await api.usuarios.salvarFcmToken(fcmToken)
+        if (accountType === 'service') {
+          await api.users.salvarFcmToken(fcmToken)
+        } else {
+          await api.usuarios.salvarFcmToken(fcmToken)
+        }
       }
     } catch (e) {
       console.warn('Push loja registration failed:', e.message)
@@ -111,6 +115,7 @@ export function AuthProvider({ children }) {
 
         const tipoConta = String(conta?.accountType || 'store')
         if (tipoConta === 'service') {
+          registrarPushConta('service')
           setLoja(null)
           setIsSuperAdmin(false)
           setLoading(false)
@@ -121,7 +126,7 @@ export function AuthProvider({ children }) {
         try {
           minhaLoja = await api.lojas.minha()
           setLoja(minhaLoja)
-          if (minhaLoja) registrarPushLoja()
+          if (minhaLoja) registrarPushConta('store')
         } catch {
           setLoja(null)
         }
@@ -142,7 +147,7 @@ export function AuthProvider({ children }) {
       setLoading(false)
     })
     return () => unsub()
-  }, [registrarPushLoja])
+  }, [registrarPushConta])
 
   const login = (email, senha) =>
     signInWithEmailAndPassword(auth, email, senha)

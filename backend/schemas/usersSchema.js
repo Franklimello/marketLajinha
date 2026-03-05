@@ -1,4 +1,4 @@
-﻿const { z } = require('zod');
+const { z } = require('zod');
 
 const accountTypeEnum = z.enum(['store', 'service']);
 
@@ -12,7 +12,7 @@ const schemaUpdateMe = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   city: z.string().trim().max(120).optional(),
   accountType: accountTypeEnum.optional(),
-  profile_image_url: z.string().trim().max(500).optional(),
+  profile_image_url: z.string().trim().max(2048).optional(),
   about: z.string().trim().max(1500).optional(),
   phone: z.string().trim().max(40).optional(),
   whatsapp: z.string().trim().max(40).optional(),

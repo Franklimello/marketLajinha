@@ -1,7 +1,7 @@
-﻿import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FiCalendar, FiClock } from 'react-icons/fi'
 
-function buildSlots(startHour = 8, endHour = 20, stepMinutes = 30) {
+function buildSlots(startHour = 6, endHour = 22, stepMinutes = 30) {
   const slots = []
   for (let minutes = startHour * 60; minutes <= endHour * 60; minutes += stepMinutes) {
     const h = String(Math.floor(minutes / 60)).padStart(2, '0')
@@ -48,6 +48,7 @@ export default function BookingCalendar({
   busySlotKey = '',
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [mapModalOpen, setMapModalOpen] = useState(false)
 
   const dayAppointments = useMemo(() => {
     return appointments
@@ -119,6 +120,46 @@ export default function BookingCalendar({
     })
   }
 
+  function renderSlotsMap() {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {slots.map((slot) => {
+          const meta = slotMeta.get(slot)
+          const appointment = meta?.appointment
+          const isAppointmentBusy = !!meta
+          const isManualBlocked = manualBlockedSet.has(keyOf(selectedDate, slot))
+          const isBusy = isAppointmentBusy || isManualBlocked
+          const slotBusyKey = keyOf(selectedDate, slot)
+          const isUpdating = busySlotKey === slotBusyKey
+
+          const tone = isBusy
+            ? 'border-red-300 bg-red-50 text-red-800'
+            : 'border-green-300 bg-green-50 text-green-800'
+
+          return (
+            <button
+              key={slot}
+              type="button"
+              onClick={() => handleSlotClick(slot, isAppointmentBusy, isManualBlocked)}
+              disabled={!onToggleSlot || isAppointmentBusy || isUpdating}
+              className={`border p-2 min-h-16 text-left ${tone} ${!isAppointmentBusy ? 'hover:opacity-85 cursor-pointer' : 'cursor-not-allowed'} disabled:opacity-60`}
+              title={isAppointmentBusy ? 'Horario ocupado por agendamento' : 'Clique para alternar ocupacao'}
+            >
+              <p className="text-xs font-semibold font-numeric">{slot}</p>
+              <p className="text-[11px] mt-1 leading-tight">
+                {isUpdating
+                  ? 'Atualizando...'
+                  : (isAppointmentBusy
+                    ? `${appointment?.client?.nome || 'Cliente'} • ${appointment?.service?.name || 'Servico'}`
+                    : (isManualBlocked ? 'Ocupado (manual)' : 'Livre'))}
+              </p>
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <section className="border border-stone-200 bg-white p-4 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -174,44 +215,38 @@ export default function BookingCalendar({
 
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-stone-900">Mapa de horarios (clicavel)</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {slots.map((slot) => {
-              const meta = slotMeta.get(slot)
-              const appointment = meta?.appointment
-              const isAppointmentBusy = !!meta
-              const isManualBlocked = manualBlockedSet.has(keyOf(selectedDate, slot))
-              const isBusy = isAppointmentBusy || isManualBlocked
-              const slotBusyKey = keyOf(selectedDate, slot)
-              const isUpdating = busySlotKey === slotBusyKey
-
-              const tone = isBusy
-                ? 'border-red-300 bg-red-50 text-red-800'
-                : 'border-green-300 bg-green-50 text-green-800'
-
-              return (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => handleSlotClick(slot, isAppointmentBusy, isManualBlocked)}
-                  disabled={!onToggleSlot || isAppointmentBusy || isUpdating}
-                  className={`border p-2 min-h-16 text-left ${tone} ${!isAppointmentBusy ? 'hover:opacity-85 cursor-pointer' : 'cursor-not-allowed'} disabled:opacity-60`}
-                  title={isAppointmentBusy ? 'Horario ocupado por agendamento' : 'Clique para alternar ocupacao'}
-                >
-                  <p className="text-xs font-semibold font-numeric">{slot}</p>
-                  <p className="text-[11px] mt-1 leading-tight">
-                    {isUpdating
-                      ? 'Atualizando...'
-                      : (isAppointmentBusy
-                        ? `${appointment?.client?.nome || 'Cliente'} • ${appointment?.service?.name || 'Servico'}`
-                        : (isManualBlocked ? 'Ocupado (manual)' : 'Livre'))}
-                  </p>
-                </button>
-              )
-            })}
-          </div>
+          <button
+            type="button"
+            onClick={() => setMapModalOpen(true)}
+            className="w-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100"
+          >
+            Abrir mapa de horários
+          </button>
           <p className="text-[11px] text-stone-500">Livre = verde. Ocupado = vermelho.</p>
         </div>
       </div>
+
+      {mapModalOpen && (
+        <div className="fixed inset-0 z-120 bg-black/50 p-4 flex items-center justify-center">
+          <div className="absolute inset-0" onClick={() => setMapModalOpen(false)} />
+          <div className="relative z-10 bg-white border border-stone-200 w-full max-w-3xl max-h-[85vh] overflow-y-auto p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-sm font-semibold text-stone-900">
+                Mapa de horários ({formatDate(selectedDate)})
+              </h4>
+              <button
+                type="button"
+                onClick={() => setMapModalOpen(false)}
+                className="border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50"
+              >
+                Fechar
+              </button>
+            </div>
+            {renderSlotsMap()}
+            <p className="text-[11px] text-stone-500">Livre = verde. Ocupado = vermelho.</p>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

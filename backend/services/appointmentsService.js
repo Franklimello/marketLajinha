@@ -1,4 +1,8 @@
-﻿const { prisma } = require('../config/database');
+const { prisma } = require('../config/database');
+const {
+  notificarClienteAgendamento,
+  notificarPrestadorAgendamento,
+} = require('./notificacaoService');
 
 const STATUS = {
   PENDING: 'pending',
@@ -16,8 +20,8 @@ const BLOCKING_STATUSES = [
   STATUS.CONFIRMED,
 ];
 
-const SLOT_START_HOUR = 8;
-const SLOT_END_HOUR = 20;
+const SLOT_START_HOUR = 6;
+const SLOT_END_HOUR = 22;
 const SLOT_STEP_MINUTES = 30;
 
 function cleanText(value) {
@@ -154,6 +158,16 @@ function mapBlockedSlot(slot) {
     time: slot.time,
     created_at: slot.created_at,
   };
+}
+
+function canCancelStatus(status) {
+  return [STATUS.PENDING, STATUS.ACCEPTED, STATUS.COUNTER_OFFER, STATUS.CONFIRMED].includes(status);
+}
+
+function safePush(promise) {
+  return Promise.resolve(promise).catch((err) => {
+    console.warn('[Appointments][Push] Falha ao enviar notificação:', err?.message || err);
+  });
 }
 
 async function ensureClientFromFirebase(firebaseUid) {
@@ -321,6 +335,12 @@ async function createAppointment(firebaseDecoded, payload) {
     },
   });
 
+  await safePush(notificarPrestadorAgendamento(created.provider_id, {
+    title: 'Novo agendamento solicitado',
+    body: `${created.client?.nome || 'Cliente'} solicitou ${created.service?.name || 'um serviço'} em ${formatDateToKey(created.date)} às ${created.time}.`,
+    appointmentId: created.id,
+  }));
+
   return mapAppointment(created);
 }
 
@@ -417,6 +437,12 @@ async function providerAction(providerAccount, appointmentId, payload) {
         provider: { select: { id: true, name: true, city: true } },
       },
     });
+    await safePush(notificarClienteAgendamento(updated.client_id, {
+      title: 'Agendamento aceito',
+      body: `${updated.provider?.name || 'Prestador'} aceitou seu agendamento de ${formatDateToKey(updated.date)} às ${updated.time}.`,
+      appointmentId: updated.id,
+      url: '/meus-agendamentos',
+    }));
     return mapAppointment(updated);
   }
 
@@ -433,6 +459,12 @@ async function providerAction(providerAccount, appointmentId, payload) {
         provider: { select: { id: true, name: true, city: true } },
       },
     });
+    await safePush(notificarClienteAgendamento(updated.client_id, {
+      title: 'Agendamento recusado',
+      body: `${updated.provider?.name || 'Prestador'} recusou sua solicitação de agendamento.`,
+      appointmentId: updated.id,
+      url: '/meus-agendamentos',
+    }));
     return mapAppointment(updated);
   }
 
@@ -463,6 +495,13 @@ async function providerAction(providerAccount, appointmentId, payload) {
       provider: { select: { id: true, name: true, city: true } },
     },
   });
+
+  await safePush(notificarClienteAgendamento(updated.client_id, {
+    title: 'Nova contraproposta de horário',
+    body: `${updated.provider?.name || 'Prestador'} sugeriu ${updated.counter_proposed_time}.`,
+    appointmentId: updated.id,
+    url: '/meus-agendamentos',
+  }));
 
   return mapAppointment(updated);
 }
@@ -517,6 +556,11 @@ async function clientResponse(firebaseDecoded, appointmentId, payload) {
         provider: { select: { id: true, name: true, city: true } },
       },
     });
+    await safePush(notificarPrestadorAgendamento(updated.provider_id, {
+      title: 'Contraproposta recusada',
+      body: `${updated.client?.nome || 'Cliente'} recusou a contraproposta de horário.`,
+      appointmentId: updated.id,
+    }));
     return mapAppointment(updated);
   }
 
@@ -548,6 +592,116 @@ async function clientResponse(firebaseDecoded, appointmentId, payload) {
       provider: { select: { id: true, name: true, city: true } },
     },
   });
+
+  await safePush(notificarPrestadorAgendamento(updated.provider_id, {
+    title: 'Agendamento confirmado pelo cliente',
+    body: `${updated.client?.nome || 'Cliente'} confirmou o horário ${updated.time} em ${formatDateToKey(updated.date)}.`,
+    appointmentId: updated.id,
+  }));
+
+  return mapAppointment(updated);
+}
+
+async function clientCancel(firebaseDecoded, appointmentId, payload = {}) {
+  const cliente = await ensureClientFromFirebase(firebaseDecoded.uid);
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    include: {
+      service: true,
+      client: { select: { id: true, nome: true, email: true, telefone: true } },
+      provider: { select: { id: true, name: true, city: true } },
+    },
+  });
+
+  if (!appointment) {
+    const err = new Error('Agendamento não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+
+  if (appointment.client_id !== cliente.id) {
+    const err = new Error('Você não pode cancelar este agendamento.');
+    err.status = 403;
+    throw err;
+  }
+
+  if (!canCancelStatus(appointment.status)) {
+    const err = new Error('Este agendamento não pode mais ser cancelado.');
+    err.status = 400;
+    throw err;
+  }
+
+  const reason = cleanText(payload.reason);
+  const updated = await prisma.appointment.update({
+    where: { id: appointment.id },
+    data: {
+      status: STATUS.CANCELLED,
+      counter_proposed_time: '',
+    },
+    include: {
+      service: true,
+      client: { select: { id: true, nome: true, email: true, telefone: true } },
+      provider: { select: { id: true, name: true, city: true } },
+    },
+  });
+
+  await safePush(notificarPrestadorAgendamento(updated.provider_id, {
+    title: 'Agendamento cancelado pelo cliente',
+    body: `${updated.client?.nome || 'Cliente'} cancelou ${updated.service?.name || 'o agendamento'}${reason ? ` (${reason})` : ''}.`,
+    appointmentId: updated.id,
+  }));
+
+  return mapAppointment(updated);
+}
+
+async function providerCancel(providerAccount, appointmentId, payload = {}) {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    include: {
+      service: true,
+      client: { select: { id: true, nome: true, email: true, telefone: true } },
+      provider: { select: { id: true, name: true, city: true } },
+    },
+  });
+
+  if (!appointment) {
+    const err = new Error('Agendamento não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+
+  if (appointment.provider_id !== providerAccount.id) {
+    const err = new Error('Você não pode cancelar este agendamento.');
+    err.status = 403;
+    throw err;
+  }
+
+  if (!canCancelStatus(appointment.status)) {
+    const err = new Error('Este agendamento não pode mais ser cancelado.');
+    err.status = 400;
+    throw err;
+  }
+
+  const reason = cleanText(payload.reason);
+  const updated = await prisma.appointment.update({
+    where: { id: appointment.id },
+    data: {
+      status: STATUS.CANCELLED,
+      counter_proposed_time: '',
+    },
+    include: {
+      service: true,
+      client: { select: { id: true, nome: true, email: true, telefone: true } },
+      provider: { select: { id: true, name: true, city: true } },
+    },
+  });
+
+  await safePush(notificarClienteAgendamento(updated.client_id, {
+    title: 'Agendamento cancelado pelo prestador',
+    body: `${updated.provider?.name || 'Prestador'} cancelou ${updated.service?.name || 'seu agendamento'}${reason ? ` (${reason})` : ''}.`,
+    appointmentId: updated.id,
+    url: '/meus-agendamentos',
+  }));
 
   return mapAppointment(updated);
 }
@@ -747,6 +901,8 @@ module.exports = {
   listProviderAppointments,
   providerAction,
   clientResponse,
+  clientCancel,
+  providerCancel,
   listProviderSchedule,
   setProviderSlotOccupancy,
   listAvailableSlotsForService,

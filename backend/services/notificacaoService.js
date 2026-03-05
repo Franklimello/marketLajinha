@@ -10,6 +10,24 @@ const STATUS_MENSAGENS = {
   CANCELLED: { titulo: 'Pedido cancelado', corpo: 'Infelizmente seu pedido foi cancelado.' },
 };
 
+let providerTokenTableReady = false;
+
+async function ensureProviderTokenTable() {
+  if (providerTokenTableReady) return;
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS user_account_fcm_tokens (
+      id TEXT PRIMARY KEY,
+      user_account_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await prisma.$executeRawUnsafe(
+    'CREATE INDEX IF NOT EXISTS idx_user_account_fcm_tokens_user_account_id ON user_account_fcm_tokens(user_account_id);'
+  );
+  providerTokenTableReady = true;
+}
+
 async function salvarToken(clienteId, token) {
   return prisma.fcmToken.upsert({
     where: { token },
@@ -106,6 +124,28 @@ async function salvarTokenLoja(usuarioId, token) {
 
 async function removerTokenLoja(token) {
   return prisma.fcmTokenLoja.deleteMany({ where: { token } });
+}
+
+function makeSimpleId() {
+  return `tok_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function salvarTokenPrestador(userAccountId, token) {
+  await ensureProviderTokenTable();
+  if (!userAccountId || !token) return { ok: false };
+  await prisma.$executeRaw`
+    INSERT INTO user_account_fcm_tokens (id, user_account_id, token)
+    VALUES (${makeSimpleId()}, ${String(userAccountId)}, ${String(token)})
+    ON CONFLICT (token) DO UPDATE SET user_account_id = EXCLUDED.user_account_id
+  `;
+  return { ok: true };
+}
+
+async function removerTokenPrestador(token) {
+  await ensureProviderTokenTable();
+  if (!token) return { ok: false };
+  await prisma.$executeRaw`DELETE FROM user_account_fcm_tokens WHERE token = ${String(token)}`;
+  return { ok: true };
 }
 
 async function notificarLoja(lojaId, titulo, corpo, dados = {}) {
@@ -334,6 +374,96 @@ async function notificarTodosClientesNovoCupom({ lojaId, codigoCupom, valorDesco
   }
 }
 
+async function notificarClienteAgendamento(clienteId, { title, body, appointmentId, url = '/meus-agendamentos' } = {}) {
+  if (!isFirebaseInitialized()) return;
+  const tokens = await prisma.fcmToken.findMany({
+    where: { cliente_id: clienteId },
+    select: { token: true },
+  });
+  if (!tokens.length) return;
+
+  const tokensInvalidos = [];
+  for (const { token } of tokens) {
+    try {
+      await admin.messaging().send({
+        token,
+        notification: {
+          title: title || 'Atualização de agendamento',
+          body: body || 'Seu agendamento foi atualizado.',
+        },
+        data: {
+          tipo: 'appointment',
+          appointmentId: String(appointmentId || ''),
+          url: String(url || '/meus-agendamentos'),
+        },
+        webpush: {
+          headers: { Urgency: 'high' },
+          fcmOptions: { link: String(url || '/meus-agendamentos') },
+        },
+      });
+    } catch (err) {
+      if (
+        err.code === 'messaging/registration-token-not-registered' ||
+        err.code === 'messaging/invalid-registration-token'
+      ) {
+        tokensInvalidos.push(token);
+      }
+    }
+  }
+
+  if (tokensInvalidos.length > 0) {
+    await prisma.fcmToken.deleteMany({ where: { token: { in: tokensInvalidos } } });
+  }
+}
+
+async function notificarPrestadorAgendamento(userAccountId, { title, body, appointmentId, url = '/dashboard-service/bookings' } = {}) {
+  if (!isFirebaseInitialized()) return;
+  await ensureProviderTokenTable();
+  const tokens = await prisma.$queryRaw`
+    SELECT token
+    FROM user_account_fcm_tokens
+    WHERE user_account_id = ${String(userAccountId || '')}
+  `;
+  if (!Array.isArray(tokens) || !tokens.length) return;
+
+  const tokensInvalidos = [];
+  for (const item of tokens) {
+    const token = String(item?.token || '');
+    if (!token) continue;
+    try {
+      await admin.messaging().send({
+        token,
+        notification: {
+          title: title || 'Atualização de agendamento',
+          body: body || 'Você recebeu uma atualização de agendamento.',
+        },
+        data: {
+          tipo: 'appointment',
+          appointmentId: String(appointmentId || ''),
+          url: String(url || '/dashboard-service/bookings'),
+        },
+        webpush: {
+          headers: { Urgency: 'high' },
+          fcmOptions: { link: String(url || '/dashboard-service/bookings') },
+        },
+      });
+    } catch (err) {
+      if (
+        err.code === 'messaging/registration-token-not-registered' ||
+        err.code === 'messaging/invalid-registration-token'
+      ) {
+        tokensInvalidos.push(token);
+      }
+    }
+  }
+
+  if (tokensInvalidos.length > 0) {
+    for (const token of tokensInvalidos) {
+      await prisma.$executeRaw`DELETE FROM user_account_fcm_tokens WHERE token = ${token}`;
+    }
+  }
+}
+
 module.exports = {
   salvarToken,
   removerToken,
@@ -344,4 +474,8 @@ module.exports = {
   notificarClienteChat,
   notificarLojaChat,
   notificarTodosClientesNovoCupom,
+  salvarTokenPrestador,
+  removerTokenPrestador,
+  notificarClienteAgendamento,
+  notificarPrestadorAgendamento,
 };

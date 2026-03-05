@@ -34,6 +34,13 @@ function slugArquivo(valor, fallback = 'sabor') {
   return texto || fallback
 }
 
+function normalizarImagemUrl(valor) {
+  const raw = String(valor || '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw)) return raw
+  return ''
+}
+
 function limparBlobUrl(url) {
   if (typeof url === 'string' && url.startsWith('blob:')) {
     URL.revokeObjectURL(url)
@@ -60,7 +67,7 @@ function mapProdutoParaPizza(produto) {
       return {
         nome: a.nome || '',
         descricao: a.descricao || '',
-        imagem_url: a.imagem_url || '',
+        imagem_url: normalizarImagemUrl(a.imagem_url),
         imagemFile: null,
         imagemPreview: '',
         precos,
@@ -129,6 +136,10 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
 
   function adicionarTamanho() {
     setErro('')
+    if (!lojaId) {
+      setErro('Loja não identificada para salvar a pizza. Recarregue a página.')
+      return
+    }
     const nome = normalizarNomeTamanho(novoTamanho)
     if (!nome) return
     if (pizza.tamanhos.some((t) => normalizarNomeTamanho(t.nome).toLowerCase() === nome.toLowerCase())) {
@@ -333,7 +344,7 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
     setSalvando(true)
     try {
       for (const [idx, sabor] of pizza.sabores.entries()) {
-        let imagemUrl = String(sabor.imagem_url || '').trim()
+        let imagemUrl = normalizarImagemUrl(sabor.imagem_url)
         if (sabor.imagemFile) {
           const nomeArquivo = `${Date.now()}-${idx}-${slugArquivo(sabor.nome || `sabor-${idx + 1}`)}.jpg`
           const path = `produtos/${lojaId}/pizzas/sabores/${produto?.id || 'novo'}/${nomeArquivo}`

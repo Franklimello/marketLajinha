@@ -1,4 +1,4 @@
-﻿import { createElement, useEffect, useMemo, useState } from 'react'
+import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   FiCalendar,
   FiCheckCircle,
@@ -75,6 +75,19 @@ export default function ServiceBookingsPage() {
       setBookings((prev) => prev.map((item) => (item.id === id ? updated : item)))
     } catch (err) {
       setError(err.message || 'Nao foi possivel atualizar este agendamento.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  async function cancelBooking(id) {
+    setBusyId(id)
+    setError('')
+    try {
+      const updated = await api.appointments.providerCancel(id, {})
+      setBookings((prev) => prev.map((item) => (item.id === id ? updated : item)))
+    } catch (err) {
+      setError(err.message || 'Nao foi possivel cancelar este agendamento.')
     } finally {
       setBusyId('')
     }
@@ -198,6 +211,7 @@ export default function ServiceBookingsPage() {
               onAccept={() => runAction(booking.id, { action: 'accept' })}
               onReject={() => runAction(booking.id, { action: 'reject' })}
               onSuggestTime={(time) => runAction(booking.id, { action: 'counter_offer', new_time: time })}
+              onCancelAppointment={() => cancelBooking(booking.id)}
             />
           ))}
         </div>
