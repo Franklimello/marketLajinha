@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, getCachedData } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import SEO from '../componentes/SEO'
-import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift, FiStar, FiCalendar, FiSearch } from 'react-icons/fi'
+import { FiClock, FiMinus, FiPlus, FiShoppingBag, FiChevronLeft, FiCopy, FiCheck, FiChevronRight, FiInfo, FiTruck, FiDollarSign, FiMapPin, FiTag, FiGift, FiStar, FiCalendar, FiSearch, FiX } from 'react-icons/fi'
 import { getItem as getLocalItem, setItem as setLocalItem, removeItem as removeLocalItem } from '../storage/localStorageService'
 import { getItem as getSessionItem, setItem as setSessionItem, removeItem as removeSessionItem } from '../storage/sessionStorageService'
 import { addLocalOrderHistory, enqueuePendingOrder, setupAutoSync } from '../storage/offlineDatabase'
@@ -2158,12 +2158,12 @@ export default function LojaPage() {
         {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
-      <div className="mx-4 -mt-6 mb-4 relative z-20">
+      <div className="mx-4 mt-3 mb-4 relative z-20">
         <button
           type="button"
           onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)}
           disabled={notaMedia.total === 0}
-          className={`absolute left-3 top-0 -translate-y-1/2 inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-sm font-bold shadow-[0_14px_24px_-16px_rgba(15,23,42,0.45)] ${
+          className={`absolute left-3 top-2 inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-sm font-bold shadow-[0_14px_24px_-16px_rgba(15,23,42,0.45)] ${
             notaMedia.total > 0
               ? 'bg-amber-400 text-white'
               : 'bg-stone-200 text-stone-500'
@@ -2175,18 +2175,18 @@ export default function LojaPage() {
         </button>
 
         <div className="relative rounded-[2rem] border border-white/80 bg-white/94 px-4 pt-5 pb-4 shadow-[0_30px_52px_-40px_rgba(15,23,42,0.95)]">
-          <div className="absolute -top-9 right-4 w-28 h-28 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-[0_22px_36px_-22px_rgba(15,23,42,0.8)] md:hidden">
+          <div className="absolute -top-6 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-[0_22px_36px_-22px_rgba(15,23,42,0.8)] md:hidden">
             <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
             <div className="w-full h-full items-center justify-center text-xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
           </div>
 
-          <h1 className="pr-28 md:pr-0 text-[clamp(2rem,8vw,2.8rem)] font-black text-stone-900 leading-[1.02] tracking-tight line-clamp-2">{loja.nome}</h1>
-          <p className="pr-28 md:pr-0 mt-1 text-[11px] font-medium text-stone-500">
+          <h1 className="pr-24 md:pr-0 text-[clamp(1.55rem,6.2vw,2.2rem)] font-black text-stone-900 leading-[1.05] tracking-tight break-words">{loja.nome}</h1>
+          <p className="pr-24 md:pr-0 mt-1 text-[11px] font-medium text-stone-500">
             {loja.cidade ? `${loja.cidade} · ` : ''}{aceitaEntrega ? 'delivery' : 'retirada'}
           </p>
 
           <div className="mt-2 flex items-center gap-2 flex-wrap">
-            <button onClick={() => setShowInfo(!showInfo)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-600 px-2.5 py-1 rounded-lg border border-stone-200 bg-white/90 hover:text-stone-800 hover:bg-white transition-colors"><FiInfo className="text-[10px]" /> infos da loja <FiChevronRight className={`text-[10px] transition-transform ${showInfo ? 'rotate-90' : ''}`} /></button>
+            <button onClick={() => setShowInfo(true)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-600 px-2.5 py-1 rounded-lg border border-stone-200 bg-white/90 hover:text-stone-800 hover:bg-white transition-colors"><FiInfo className="text-[10px]" /> infos da loja <FiChevronRight className="text-[10px]" /></button>
             {horaFecha && aberta && (
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
                 <FiClock className="text-[11px]" />
@@ -2194,30 +2194,6 @@ export default function LojaPage() {
               </span>
             )}
           </div>
-
-          {showInfo && (
-            <div className="mt-2.5 bg-white/90 backdrop-blur-sm rounded-xl border border-stone-200 p-2.5 text-[11px] text-stone-500 space-y-1 shadow-[0_14px_24px_-20px_rgba(15,23,42,0.9)] animate-fade-in-up">
-              <p><strong>Categoria:</strong> {loja.categoria_negocio}</p>
-              <p><strong>Cidade:</strong> {loja.cidade}</p>
-              {loja.endereco && <p><strong>Endereço:</strong> {loja.endereco}</p>}
-              {loja.telefone && <p><strong>Telefone:</strong> {loja.telefone}</p>}
-              {temSemana ? (
-                <div>
-                  <strong>Horários:</strong>
-                  <div className="mt-1.5 space-y-1">
-                    {horariosSemana.map((h, i) => (
-                      <div key={i} className={`flex justify-between rounded-lg px-2 py-1 ${new Date().getDay() === i ? 'bg-stone-50 text-stone-800 font-semibold border border-stone-200' : ''}`}>
-                        <span>{DIAS_SEMANA_PT[i]}</span>
-                        <span>{h.aberto ? `${h.abertura} - ${h.fechamento}` : 'Fechado'}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : loja.horario_funcionamento ? (
-                <p><strong>Funcionamento:</strong> {loja.horario_funcionamento}</p>
-              ) : null}
-            </div>
-          )}
 
           <div className="mt-4 grid grid-cols-4 gap-1.5 border-t border-stone-100 pt-3">
             <div className="flex flex-col items-center text-center gap-0.5 px-1">
@@ -2627,6 +2603,52 @@ export default function LojaPage() {
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
             <span className="font-bold font-numeric">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>
           </button>
+          </div>
+        </div>
+      )}
+
+      {showInfo && (
+        <div
+          className="fixed inset-0 z-110 bg-black/45 backdrop-blur-[1px] flex items-end sm:items-center justify-center p-4"
+          onClick={() => setShowInfo(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-2xl border border-stone-200 shadow-2xl p-4 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-stone-900">Informações da loja</h3>
+              <button
+                type="button"
+                onClick={() => setShowInfo(false)}
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-stone-200 text-stone-500 hover:text-stone-800 hover:bg-stone-50"
+                aria-label="Fechar informações da loja"
+              >
+                <FiX className="text-sm" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs text-stone-600">
+              <p><strong className="text-stone-800">Categoria:</strong> {loja.categoria_negocio || 'Não informado'}</p>
+              <p><strong className="text-stone-800">Cidade:</strong> {loja.cidade || 'Não informado'}</p>
+              {loja.endereco && <p><strong className="text-stone-800">Endereço:</strong> {loja.endereco}</p>}
+              {loja.telefone && <p><strong className="text-stone-800">Telefone:</strong> {loja.telefone}</p>}
+              {temSemana ? (
+                <div>
+                  <strong className="text-stone-800">Horários:</strong>
+                  <div className="mt-2 space-y-1">
+                    {horariosSemana.map((h, i) => (
+                      <div key={i} className={`flex justify-between rounded-lg px-2 py-1 ${new Date().getDay() === i ? 'bg-stone-50 text-stone-800 font-semibold border border-stone-200' : ''}`}>
+                        <span>{DIAS_SEMANA_PT[i]}</span>
+                        <span>{h.aberto ? `${h.abertura} - ${h.fechamento}` : 'Fechado'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : loja.horario_funcionamento ? (
+                <p><strong className="text-stone-800">Funcionamento:</strong> {loja.horario_funcionamento}</p>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
