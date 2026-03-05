@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useMemo, useRef, useCallback, memo } from 'react'
+﻿import { Fragment, useEffect, useState, useMemo, useRef, useCallback, memo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, getCachedData } from '../api/client'
@@ -351,7 +351,7 @@ const HorizontalCards = memo(function HorizontalCards({ items, renderItem, cardS
             onClick={() => mover(1)}
             disabled={!canNext}
             className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 border border-white/80 text-stone-700 shadow-[0_12px_26px_-18px_rgba(15,23,42,0.95)] backdrop-blur-md disabled:opacity-35 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors hover:bg-white"
-            aria-label="Avançar no carrossel"
+            aria-label="AvanÃ§ar no carrossel"
           >
             <FiChevronRight size={16} />
           </button>
@@ -466,7 +466,7 @@ export default function LojaPage() {
     async function dispararSecundarios(lojaId) {
       try {
         setProdutosCarregando(true);
-        // 1. Busca primeira página
+        // 1. Busca primeira pÃ¡gina
         const primeira = await queryClient.fetchQuery({
           queryKey: ['loja-produtos', slug, 1],
           queryFn: () => api.lojas.produtos(slug, 1),
@@ -480,16 +480,16 @@ export default function LojaPage() {
         const total = Number(primeira?.total || base.length || 0);
         const totalPaginas = Number(primeira?.total_paginas || 1);
 
-        // 2. Renderiza logo a primeira página
+        // 2. Renderiza logo a primeira pÃ¡gina
         setProdutos({ dados: base, total });
         setProdutosCarregando(false);
 
         if (totalPaginas > 1) {
-          // 3. Busca demais páginas em paralelo (limite de 4 por vez)
+          // 3. Busca demais pÃ¡ginas em paralelo (limite de 4 por vez)
           let acumulado = [...base];
           const paginasRestantes = Array.from({ length: totalPaginas - 1 }, (_, i) => i + 2);
 
-          // Função para buscar páginas em chunks para não sobrecarregar
+          // FunÃ§Ã£o para buscar pÃ¡ginas em chunks para nÃ£o sobrecarregar
           const chunk = 4;
           for (let i = 0; i < paginasRestantes.length; i += chunk) {
             const batch = paginasRestantes.slice(i, i + chunk);
@@ -525,7 +525,7 @@ export default function LojaPage() {
         }
       }
 
-      // Outros dados secundários em paralelo
+      // Outros dados secundÃ¡rios em paralelo
       Promise.allSettled([
         api.lojas.bairros(lojaId),
         api.combos.listarPorLoja(lojaId),
@@ -555,7 +555,7 @@ export default function LojaPage() {
         });
     }
 
-    // Se a loja já está em cache (prefetch rodou), dispara secundários imediatamente
+    // Se a loja jÃ¡ estÃ¡ em cache (prefetch rodou), dispara secundÃ¡rios imediatamente
     const lojaCache = getCachedData(`/lojas/slug/${slug}`)
     const lojaAtual = lojaQuery.data || lojaCache || null
 
@@ -637,7 +637,7 @@ export default function LojaPage() {
       formPedido,
       enderecoSel,
     }
-    // Mantém em session e local para persistir mesmo após fechar o app.
+    // MantÃ©m em session e local para persistir mesmo apÃ³s fechar o app.
     setSessionItem(checkoutStorageKey, checkoutDraft)
     setLocalItem(checkoutPersistentKey, checkoutDraft)
   }, [checkoutStorageKey, checkoutPersistentKey, etapa, tipoEntrega, formPedido, enderecoSel, slug])
@@ -719,7 +719,7 @@ export default function LojaPage() {
   // ---- Carrinho ----
   const addItemDireto = useCallback((produto) => {
     if (produto?.controla_estoque && Number(produto?.estoque || 0) <= 0) {
-      alert('Produto indisponível no momento.')
+      alert('Produto indisponÃ­vel no momento.')
       return
     }
     setProdutoDetalhe(produto)
@@ -735,7 +735,7 @@ export default function LojaPage() {
     if (!produtoId) return
     const produto = (produtos?.dados || []).find((p) => p.id === produtoId)
     if (!produto) {
-      alert('Produto da promoção não disponível no momento.')
+      alert('Produto da promoÃ§Ã£o nÃ£o disponÃ­vel no momento.')
       return
     }
     addItemDireto(produto)
@@ -749,7 +749,7 @@ export default function LojaPage() {
       return sum + Number(item?.qtd || 0)
     }, 0)
     if (p.controla_estoque && (jaNoCarrinho + qtdDetalhe) > Number(p.estoque || 0)) {
-      alert(`Estoque insuficiente. Disponível: ${p.estoque}.`)
+      alert(`Estoque insuficiente. DisponÃ­vel: ${p.estoque}.`)
       return
     }
     const variacoesDisponiveis = ehPizza
@@ -770,7 +770,7 @@ export default function LojaPage() {
         : Number(grupo.max || 99)
       const selecionadosNoGrupo = grupo.itens.filter((a) => adicionaisSel.includes(a.id)).length
       if (selecionadosNoGrupo < minGrupo || selecionadosNoGrupo > maxGrupo) {
-        alert(`No grupo "${grupo.nome}" selecione de ${minGrupo} até ${maxGrupo} opção(ões).`)
+        alert(`No grupo "${grupo.nome}" selecione de ${minGrupo} atÃ© ${maxGrupo} opÃ§Ã£o(Ãµes).`)
         return
       }
     }
@@ -826,7 +826,7 @@ export default function LojaPage() {
   const totalItens = itensCarrinho.reduce((s, [, i]) => s + i.qtd, 0)
   const subtotal = itensCarrinho.reduce((s, [, i]) => s + i.precoUnit * i.qtd, 0)
 
-  // Mapa id→qtd memoizado — evita O(n²) na lista de produtos
+  // Mapa idâ†’qtd memoizado â€” evita O(nÂ²) na lista de produtos
   const qtdMap = useMemo(() => {
     const m = {}
     for (const [, i] of Object.entries(carrinho)) {
@@ -835,7 +835,7 @@ export default function LojaPage() {
     return m
   }, [carrinho])
 
-  // Categorias e produtos agrupados — memoizados para evitar recálculo a cada render
+  // Categorias e produtos agrupados â€” memoizados para evitar recÃ¡lculo a cada render
   const { produtosPorCategoria, categorias } = useMemo(() => {
     const map = {}
     for (const p of produtos.dados) {
@@ -922,7 +922,7 @@ export default function LojaPage() {
 
     if (tipoEntrega === 'ENTREGA') {
       if (enderecos.length === 0) {
-        alert('Cadastre um endereço antes de finalizar o pedido.')
+        alert('Cadastre um endereÃ§o antes de finalizar o pedido.')
         navigate('/perfil')
         return
       }
@@ -1057,7 +1057,7 @@ export default function LojaPage() {
     } catch (err) {
       if (!navigator.onLine) {
         await enqueuePendingOrder(payloadPedido)
-        alert('Sem internet no momento. Seu pedido foi salvo e será reenviado automaticamente quando a conexão voltar.')
+        alert('Sem internet no momento. Seu pedido foi salvo e serÃ¡ reenviado automaticamente quando a conexÃ£o voltar.')
       } else {
         alert(err.message)
       }
@@ -1096,7 +1096,7 @@ export default function LojaPage() {
     } catch (err) {
       if (!navigator.onLine) {
         await enqueuePendingOrder(pedidoPendentePix)
-        alert('Sem internet no momento. Seu pedido foi salvo e será reenviado automaticamente quando a conexão voltar.')
+        alert('Sem internet no momento. Seu pedido foi salvo e serÃ¡ reenviado automaticamente quando a conexÃ£o voltar.')
       } else {
         alert(err.message)
       }
@@ -1139,7 +1139,7 @@ export default function LojaPage() {
       ))}
     </div>
   )
-  if (erro || !loja) return <div className={`flex flex-col items-center justify-center py-20 gap-4 transition-all duration-300 ease-out ${pageTransitionClass}`}><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
+  if (erro || !loja) return <div className={`flex flex-col items-center justify-center py-20 gap-4 transition-all duration-300 ease-out ${pageTransitionClass}`}><p className="text-red-500 text-sm">{erro || 'Loja nÃ£o encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
 
   const aberta = loja.aberta_agora ?? loja.aberta
   const modoAtendimento = String(loja.modo_atendimento || 'AMBOS')
@@ -1150,8 +1150,8 @@ export default function LojaPage() {
   const telefoneLojaWhatsapp = normalizarTelefoneWhatsapp(loja?.telefone)
   const textoComprovante = encodeURIComponent(
     numeroPedidoCurto
-      ? `Olá, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do pedido #${numeroPedidoCurto}.`
-      : `Olá, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do meu pedido.`
+      ? `OlÃ¡, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do pedido #${numeroPedidoCurto}.`
+      : `OlÃ¡, ${loja?.nome || 'loja'}! Acabei de pagar via PIX. Segue o comprovante do meu pedido.`
   )
   const linkComprovanteWhatsapp = telefoneLojaWhatsapp
     ? `https://wa.me/${telefoneLojaWhatsapp}?text=${textoComprovante}`
@@ -1160,7 +1160,7 @@ export default function LojaPage() {
 
   // ---- Confirmado ----
   if (etapa === 'confirmado') {
-    const PAGAMENTO_LABELS = { PIX: 'PIX', CREDIT: 'Cartão de Crédito', DEBIT: 'Cartão de Débito', CASH: 'Dinheiro' }
+    const PAGAMENTO_LABELS = { PIX: 'PIX', CREDIT: 'CartÃ£o de CrÃ©dito', DEBIT: 'CartÃ£o de DÃ©bito', CASH: 'Dinheiro' }
     return (
       <div className={`max-w-lg mx-auto px-4 py-8 transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <div className="text-center mb-6">
@@ -1169,13 +1169,13 @@ export default function LojaPage() {
               <FiCheck className="text-green-600 text-3xl" />
             </div>
             <div className="absolute -top-1 -right-1 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shadow">
-              <span className="text-white text-xs">🎉</span>
+              <span className="text-white text-xs">ðŸŽ‰</span>
             </div>
           </div>
           <h2 className="text-2xl font-extrabold text-stone-900">{confirmacaoViaPix ? 'Pedido enviado!' : 'Pedido confirmado!'}</h2>
           <p className="text-stone-500 text-sm mt-1">
             {tipoEntrega === 'RETIRADA'
-              ? 'Retire seu pedido no balcão da loja.'
+              ? 'Retire seu pedido no balcÃ£o da loja.'
               : pedidoCriado?.agendado_para
                 ? `Agendado para ${new Date(pedidoCriado.agendado_para).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
                 : 'Acompanhe o status em "Meus Pedidos"'}
@@ -1263,7 +1263,7 @@ export default function LojaPage() {
         {devePedirComprovantePix && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-left">
             <p className="text-xs font-semibold text-amber-800">
-              Para agilizar a confirmação, envie o comprovante do PIX para a loja.
+              Para agilizar a confirmaÃ§Ã£o, envie o comprovante do PIX para a loja.
             </p>
             <div className="mt-2 grid grid-cols-1 gap-2">
               {linkComprovanteWhatsapp && (
@@ -1288,7 +1288,7 @@ export default function LojaPage() {
 
         <div className="flex gap-3">
           <Link to="/pedidos" className="flex-1 py-3 bg-red-600 text-white font-semibold rounded-xl text-center hover:bg-red-700 text-sm">Acompanhar pedido</Link>
-          <Link to="/" className="flex-1 py-3 border-2 border-stone-200 text-stone-700 font-semibold rounded-xl text-center hover:bg-stone-50 text-sm">Voltar ao início</Link>
+          <Link to="/" className="flex-1 py-3 border-2 border-stone-200 text-stone-700 font-semibold rounded-xl text-center hover:bg-stone-50 text-sm">Voltar ao inÃ­cio</Link>
         </div>
       </div>
     )
@@ -1301,7 +1301,7 @@ export default function LojaPage() {
         <button onClick={handleVoltarCheckoutPix} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-6"><FiChevronLeft /> Voltar ao checkout</button>
         <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Pagar com PIX</h2>
-          <p className="text-stone-500 text-sm mb-4">Escaneie o QR Code ou copie o código</p>
+          <p className="text-stone-500 text-sm mb-4">Escaneie o QR Code ou copie o cÃ³digo</p>
           <div className="bg-red-50 rounded-xl px-4 py-2 mb-4 inline-block"><span className="text-2xl font-bold text-red-700 font-numeric">R$ {totalPedido.toFixed(2).replace('.', ',')}</span></div>
           {pixCarregando ? (
             <div className="py-12"><div className="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin mx-auto" /><p className="text-stone-400 text-sm mt-3">Gerando QR Code...</p></div>
@@ -1312,13 +1312,13 @@ export default function LojaPage() {
               <div className="bg-stone-50 rounded-lg p-3 mb-4">
                 <p className="text-[10px] text-stone-400 mb-1 uppercase tracking-wider font-medium">PIX Copia e Cola</p>
                 <p className="text-xs text-stone-600 font-mono break-all leading-relaxed">
-                  {String(pixData?.payload || '').slice(0, 80) || 'Código PIX indisponível no momento.'}
+                  {String(pixData?.payload || '').slice(0, 80) || 'CÃ³digo PIX indisponÃ­vel no momento.'}
                   {pixData?.payload ? '...' : ''}
                 </p>
               </div>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
                 <p className="text-xs font-semibold text-amber-800">
-                  Após pagar, envie o comprovante para a loja para agilizar a confirmação.
+                  ApÃ³s pagar, envie o comprovante para a loja para agilizar a confirmaÃ§Ã£o.
                 </p>
                 <div className="mt-2 grid grid-cols-1 gap-2">
                   {linkComprovanteWhatsapp && (
@@ -1343,37 +1343,37 @@ export default function LojaPage() {
                       type="button"
                       disabled
                       className="inline-flex items-center justify-center w-full py-2.5 bg-stone-100 border border-stone-200 text-stone-400 rounded-lg text-xs font-semibold cursor-not-allowed"
-                      title="Disponível após clicar em Já paguei"
+                      title="DisponÃ­vel apÃ³s clicar em JÃ¡ paguei"
                     >
                       Enviar dentro do sistema (chat)
                     </button>
                   )}
                 </div>
                 <p className="text-[11px] text-amber-700 mt-1.5">
-                  Você pode escolher WhatsApp agora ou chat do sistema após confirmar em "Já paguei".
+                  VocÃª pode escolher WhatsApp agora ou chat do sistema apÃ³s confirmar em "JÃ¡ paguei".
                 </p>
               </div>
-              <button onClick={copiarPayload} className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 text-sm">{copiado ? <><FiCheck /> Copiado!</> : <><FiCopy /> Copiar código PIX</>}</button>
+              <button onClick={copiarPayload} className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 text-sm">{copiado ? <><FiCheck /> Copiado!</> : <><FiCopy /> Copiar cÃ³digo PIX</>}</button>
               <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
                 <p className="text-sm text-red-700 font-semibold text-center">
-                  Para enviar o pedido confirme o pagamento clicando em já paguei
+                  Para enviar o pedido confirme o pagamento clicando em jÃ¡ paguei
                 </p>
               </div>
               <div className="mt-2 flex items-center justify-center gap-2 text-red-600 animate-pulse">
-                <span className="text-base font-bold animate-bounce">⬇</span>
-                <span className="text-xs font-semibold uppercase tracking-wide">Clique no botão abaixo</span>
-                <span className="text-base font-bold animate-bounce">⬇</span>
+                <span className="text-base font-bold animate-bounce">â¬‡</span>
+                <span className="text-xs font-semibold uppercase tracking-wide">Clique no botÃ£o abaixo</span>
+                <span className="text-base font-bold animate-bounce">â¬‡</span>
               </div>
               <button
                 onClick={handleFinalizarPix}
                 disabled={confirmandoPix}
                 className="w-full mt-2 py-3 text-white bg-red-600 font-semibold rounded-xl hover:bg-red-700 text-sm shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {confirmandoPix ? 'Enviando pedido...' : 'Já paguei'}
+                {confirmandoPix ? 'Enviando pedido...' : 'JÃ¡ paguei'}
               </button>
             </>
           ) : (
-            <div className="py-8"><p className="text-stone-400 text-sm">Não foi possível gerar o QR Code.</p><button onClick={handleVoltarCheckoutPix} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg text-sm font-medium">Voltar ao checkout</button></div>
+            <div className="py-8"><p className="text-stone-400 text-sm">NÃ£o foi possÃ­vel gerar o QR Code.</p><button onClick={handleVoltarCheckoutPix} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg text-sm font-medium">Voltar ao checkout</button></div>
           )}
         </div>
       </div>
@@ -1407,10 +1407,10 @@ export default function LojaPage() {
     const labelBotaoCheckout = enviando
       ? 'Enviando...'
       : agendado
-        ? `Agendar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+        ? `Agendar pedido â€” R$ ${totalPedido.toFixed(2).replace('.', ',')}`
         : pixOnlineCheckout
-          ? `Finalizar pagamento — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
-          : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+          ? `Finalizar pagamento â€” R$ ${totalPedido.toFixed(2).replace('.', ',')}`
+          : `Enviar pedido â€” R$ ${totalPedido.toFixed(2).replace('.', ',')}`
 
     return (
       <div className="fixed inset-0 z-110">
@@ -1478,8 +1478,8 @@ export default function LojaPage() {
               ))}
               <div className="border-t border-stone-100 mt-2 pt-2 flex justify-between text-sm"><span className="text-stone-500">Subtotal</span><span className="font-medium font-numeric">R$ {subtotal.toFixed(2).replace('.', ',')}</span></div>
               <div className="flex justify-between text-sm mt-1">
-                <span className="text-stone-500">{tipoEntrega === 'RETIRADA' ? 'Retirada no balcão' : `Entrega ${formPedido.bairro ? `(${formPedido.bairro})` : ''}`}</span>
-                <span className="font-medium font-numeric">{tipoEntrega === 'RETIRADA' ? 'Grátis' : (taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'Grátis')}</span>
+                <span className="text-stone-500">{tipoEntrega === 'RETIRADA' ? 'Retirada no balcÃ£o' : `Entrega ${formPedido.bairro ? `(${formPedido.bairro})` : ''}`}</span>
+                <span className="font-medium font-numeric">{tipoEntrega === 'RETIRADA' ? 'GrÃ¡tis' : (taxaEntrega > 0 ? `R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : 'GrÃ¡tis')}</span>
               </div>
               {descontoCupom > 0 && (
                 <div className="flex justify-between text-sm mt-1">
@@ -1509,13 +1509,13 @@ export default function LojaPage() {
                   <p className="text-sm font-semibold text-amber-800">
                     {aceitaEntrega
                       ? 'Esta loja atende somente por entrega.'
-                      : 'Esta loja atende somente retirada no balcão.'}
+                      : 'Esta loja atende somente retirada no balcÃ£o.'}
                   </p>
                 </div>
               )}
               {aceitaEntrega && tipoEntrega !== 'RETIRADA' && (
                 <p className="text-xs text-stone-500 mt-3">
-                  entrega: {loja.tempo_entrega || '40-60 min'} {taxaEntrega > 0 ? ` • R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : ' • grátis'}
+                  entrega: {loja.tempo_entrega || '40-60 min'} {taxaEntrega > 0 ? ` â€¢ R$ ${taxaEntrega.toFixed(2).replace('.', ',')}` : ' â€¢ grÃ¡tis'}
                 </p>
               )}
             </div>
@@ -1529,7 +1529,7 @@ export default function LojaPage() {
                   onClick={() => setMostrarCuponsDisponiveis((v) => !v)}
                   className="text-[11px] font-semibold text-red-600 hover:text-red-700"
                 >
-                  {mostrarCuponsDisponiveis ? 'Ocultar cupons' : 'Ver cupons disponíveis'}
+                  {mostrarCuponsDisponiveis ? 'Ocultar cupons' : 'Ver cupons disponÃ­veis'}
                 </button>
               </div>
 
@@ -1538,7 +1538,7 @@ export default function LojaPage() {
                   {cuponsDisponiveisCarregando ? (
                     <p className="text-xs text-stone-500">Carregando cupons...</p>
                   ) : cuponsDisponiveis.length === 0 ? (
-                    <p className="text-xs text-stone-500">Nenhum cupom disponível no momento.</p>
+                    <p className="text-xs text-stone-500">Nenhum cupom disponÃ­vel no momento.</p>
                   ) : (
                     cuponsDisponiveis.map((c) => (
                       <button
@@ -1549,7 +1549,7 @@ export default function LojaPage() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs font-extrabold text-red-700 font-mono">{String(c.codigo || '').toUpperCase()}</p>
-                          <span className="text-[10px] text-stone-400">válido até {formatarValidadeCupom(c.data_fim)}</span>
+                          <span className="text-[10px] text-stone-400">vÃ¡lido atÃ© {formatarValidadeCupom(c.data_fim)}</span>
                         </div>
                         <p className="text-[11px] text-stone-700 mt-0.5">
                           {c.tipo_desconto === 'PERCENTAGE'
@@ -1558,7 +1558,7 @@ export default function LojaPage() {
                         </p>
                         <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] text-stone-500">
                           <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
-                            mín. {c.valor_minimo !== null ? `R$ ${Number(c.valor_minimo).toFixed(2).replace('.', ',')}` : 'sem mínimo'}
+                            mÃ­n. {c.valor_minimo !== null ? `R$ ${Number(c.valor_minimo).toFixed(2).replace('.', ',')}` : 'sem mÃ­nimo'}
                           </span>
                           <span className="px-1.5 py-0.5 rounded-full bg-stone-100">
                             limite geral {c.max_usos !== null ? `${c.usos_restantes} restante(s)` : 'ilimitado'}
@@ -1580,7 +1580,7 @@ export default function LojaPage() {
                       {cupomAplicado.tipo_desconto === 'PERCENTAGE'
                         ? `${cupomAplicado.valor_desconto}% de desconto`
                         : `R$ ${cupomAplicado.valor_desconto.toFixed(2).replace('.', ',')} de desconto`}
-                      {' · '}Você economiza R$ {cupomAplicado.desconto.toFixed(2).replace('.', ',')}
+                      {' Â· '}VocÃª economiza R$ {cupomAplicado.desconto.toFixed(2).replace('.', ',')}
                     </p>
                   </div>
                   <button onClick={handleRemoverCupom} className="text-red-600 hover:text-red-700 text-xs font-medium">Remover</button>
@@ -1592,7 +1592,7 @@ export default function LojaPage() {
                       type="text"
                       value={codigoCupom}
                       onChange={(e) => { setCodigoCupom(e.target.value); setCupomErro('') }}
-                      placeholder="Digite o código"
+                      placeholder="Digite o cÃ³digo"
                       className="flex-1 px-3 py-2.5 border border-stone-300 rounded-lg text-sm uppercase font-mono placeholder:normal-case placeholder:font-sans focus:ring-2 focus:ring-red-500"
                     />
                     <button
@@ -1609,11 +1609,11 @@ export default function LojaPage() {
               )}
             </div>
 
-            {/* Endereço de entrega (apenas para ENTREGA) */}
+            {/* EndereÃ§o de entrega (apenas para ENTREGA) */}
             {tipoEntrega === 'ENTREGA' && (
               <div className="bg-amber-50/70 rounded-2xl border border-amber-200 p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiMapPin className="text-red-600" /> endereço de entrega</h3>
+                  <h3 className="text-sm font-semibold text-red-700 flex items-center gap-1"><FiMapPin className="text-red-600" /> endereÃ§o de entrega</h3>
                   <Link to="/perfil" className="text-[11px] text-emerald-600 font-semibold hover:underline">trocar</Link>
                 </div>
                 <div className="space-y-2">
@@ -1623,10 +1623,10 @@ export default function LojaPage() {
                       <button key={end.id} type="button" onClick={() => selecionarEndereco(end)} className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${sel ? 'border-red-500 bg-white' : 'border-amber-200 bg-white/80 hover:border-amber-300'}`}>
                         <div className="flex items-center gap-2">
                           {end.apelido && <span className="text-xs font-semibold text-stone-700">{end.apelido}</span>}
-                          {end.padrao && <span className="text-[9px] bg-amber-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">Padrão</span>}
+                          {end.padrao && <span className="text-[9px] bg-amber-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">PadrÃ£o</span>}
                         </div>
                         <p className="text-sm text-stone-800 mt-0.5">{end.rua}, {end.numero}{end.complemento ? ` - ${end.complemento}` : ''}</p>
-                        <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` · ${end.referencia}` : ''}</p>
+                        <p className="text-xs text-stone-400">{end.bairro}{end.referencia ? ` Â· ${end.referencia}` : ''}</p>
                       </button>
                     )
                   })}
@@ -1638,7 +1638,7 @@ export default function LojaPage() {
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-sm text-amber-800 flex items-start gap-2">
                 <FiInfo className="text-amber-600 mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-semibold">Retirada no balcão</p>
+                  <p className="font-semibold">Retirada no balcÃ£o</p>
                   <p className="text-xs text-amber-700 mt-0.5">Retire seu pedido diretamente na loja. Sem taxa de entrega.</p>
                 </div>
               </div>
@@ -1662,15 +1662,15 @@ export default function LojaPage() {
                       min={formatDateTimeLocalValue(new Date(Date.now() + 30 * 60 * 1000))}
                       className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                     />
-                    <p className="text-[10px] text-stone-400 mt-1">Mínimo 30 min a partir de agora. A loja receberá o pedido como agendado.</p>
+                    <p className="text-[10px] text-stone-400 mt-1">MÃ­nimo 30 min a partir de agora. A loja receberÃ¡ o pedido como agendado.</p>
                   </div>
                 )}
               </div>
 
-              {/* Observação */}
+              {/* ObservaÃ§Ã£o */}
               <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4">
-                <label className="block text-xs font-medium text-stone-600 mb-1">Observação</label>
-                <textarea name="observacao" value={formPedido.observacao} onChange={handleFormChange} rows={2} placeholder="alguma observação? • opcional" className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 resize-none" />
+                <label className="block text-xs font-medium text-stone-600 mb-1">ObservaÃ§Ã£o</label>
+                <textarea name="observacao" value={formPedido.observacao} onChange={handleFormChange} rows={2} placeholder="alguma observaÃ§Ã£o? â€¢ opcional" className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 resize-none" />
               </div>
 
               {/* Pagamento */}
@@ -1679,8 +1679,8 @@ export default function LojaPage() {
                 const aceitaPix = formasAceitas.includes('PIX')
                 const formasPresenciais = [
                   { value: 'PIX', label: 'PIX' },
-                  { value: 'CREDIT', label: 'Crédito' },
-                  { value: 'DEBIT', label: 'Débito' },
+                  { value: 'CREDIT', label: 'CrÃ©dito' },
+                  { value: 'DEBIT', label: 'DÃ©bito' },
                   { value: 'CASH', label: 'Dinheiro' },
                 ].filter((o) => formasAceitas.includes(o.value))
                 const temPixOnline = aceitaPix && loja.pix_chave
@@ -1704,7 +1704,7 @@ export default function LojaPage() {
                         {tipoPagamento === 'online' && (
                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700 flex items-center gap-2">
                             <FiCheck className="text-amber-600 shrink-0" />
-                            <span>Pagamento via <strong>PIX</strong> — você receberá o QR Code após confirmar.</span>
+                            <span>Pagamento via <strong>PIX</strong> â€” vocÃª receberÃ¡ o QR Code apÃ³s confirmar.</span>
                           </div>
                         )}
                         {tipoPagamento === 'entrega' && formasPresenciais.length > 0 && (
@@ -1742,7 +1742,7 @@ export default function LojaPage() {
                               <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
                             )}
                             {!trocoPara && (
-                              <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
+                              <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se nÃ£o precisa de troco</p>
                             )}
                           </div>
                         )}
@@ -1784,7 +1784,7 @@ export default function LojaPage() {
                               <p className="text-xs text-amber-700 mt-1.5">Valor precisa ser maior que R$ {totalPedido.toFixed(2).replace('.', ',')}</p>
                             )}
                             {!trocoPara && (
-                              <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se não precisa de troco</p>
+                              <p className="text-[10px] text-amber-700 mt-1.5">Deixe vazio se nÃ£o precisa de troco</p>
                             )}
                           </div>
                         )}
@@ -1796,7 +1796,7 @@ export default function LojaPage() {
 
               {Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
-                  <p className="text-xs text-amber-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — adicione mais R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}.</p>
+                  <p className="text-xs text-amber-700 font-medium">Pedido mÃ­nimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} â€” adicione mais R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}.</p>
                 </div>
               )}
 
@@ -1869,7 +1869,7 @@ export default function LojaPage() {
         <button
           onClick={() => setProdutoDetalhe(null)}
           className="absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 w-9 h-9 rounded-full bg-white/90 backdrop-blur border border-stone-200 text-stone-700 inline-flex items-center justify-center shadow"
-          aria-label="Voltar para o cardápio"
+          aria-label="Voltar para o cardÃ¡pio"
         >
           <FiChevronLeft className="text-xl" />
         </button>
@@ -1885,12 +1885,12 @@ export default function LojaPage() {
           <h1 className="text-2xl font-black text-stone-900 leading-tight">{p.nome}</h1>
           {controlaEstoque && (
             <p className={`text-xs mt-1 ${semEstoque ? 'text-red-600 font-semibold' : 'text-stone-500'}`}>
-              {semEstoque ? 'Indisponível no momento' : `${estoqueDisponivel} disponível(is)`}
+              {semEstoque ? 'IndisponÃ­vel no momento' : `${estoqueDisponivel} disponÃ­vel(is)`}
             </p>
           )}
         </div>
 
-        {/* Descrição */}
+        {/* DescriÃ§Ã£o */}
         {p.descricao && (
           <div className="px-4 py-3 bg-stone-50 border-b border-stone-100">
             <p className="text-sm text-stone-600">{p.descricao}</p>
@@ -1939,7 +1939,7 @@ export default function LojaPage() {
             <p className="text-base font-bold text-stone-900 mb-3">qual tamanho?</p>
             {variacoesFiltradas.length === 0 && (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
-                Nenhum tamanho disponível para {pizzaQtdSabores} sabor{pizzaQtdSabores > 1 ? 'es' : ''}.
+                Nenhum tamanho disponÃ­vel para {pizzaQtdSabores} sabor{pizzaQtdSabores > 1 ? 'es' : ''}.
               </p>
             )}
             {variacoesFiltradas.map((v) => {
@@ -1952,7 +1952,7 @@ export default function LojaPage() {
                     </div>
                     <span className="text-sm text-stone-800">
                       {v.nome}
-                      {ehPizza && Number(v.fatias || 0) > 0 ? ` • ${Number(v.fatias)} fatias` : ''}
+                      {ehPizza && Number(v.fatias || 0) > 0 ? ` â€¢ ${Number(v.fatias)} fatias` : ''}
                     </span>
                   </div>
                   <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(v.preco).toFixed(2).replace('.', ',')}</span>
@@ -2020,7 +2020,7 @@ export default function LojaPage() {
         <div className="px-4 pt-6 pb-4">
           <p className="text-base font-bold text-stone-900 mb-4">quantos?</p>
           <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-stone-500">valor unitário: <span className="font-bold text-stone-900 font-numeric">R$ {precoUnitario.toFixed(2).replace('.', ',')}</span></p>
+            <p className="text-sm text-stone-500">valor unitÃ¡rio: <span className="font-bold text-stone-900 font-numeric">R$ {precoUnitario.toFixed(2).replace('.', ',')}</span></p>
             <div className="flex items-center gap-5">
               <button onClick={() => setQtdDetalhe((q) => Math.max(1, q - 1))} className="w-10 h-10 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors">
                 <FiMinus />
@@ -2040,33 +2040,33 @@ export default function LojaPage() {
           </div>
         </div>
 
-        {/* Observação */}
+        {/* ObservaÃ§Ã£o */}
         <div className="px-4 pb-6">
           <input
             type="text"
             value={obsDetalhe}
             onChange={(e) => setObsDetalhe(e.target.value)}
-            placeholder="alguma observação?"
+            placeholder="alguma observaÃ§Ã£o?"
             className="w-full px-4 py-3 border border-stone-200 rounded-xl text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-red-500 focus:border-red-500"
           />
         </div>
 
-        {/* Botão fixo */}
+        {/* BotÃ£o fixo */}
         <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-3">
           <button
             onClick={addItemConfigurado}
             disabled={(temVariacoes && !variacaoSel) || semEstoque || (ehPizza && !varSel)}
             className="w-full max-w-lg mx-auto block bg-red-600 text-white py-3.5 rounded-xl shadow-lg hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all font-semibold text-sm"
           >
-            {semEstoque ? 'Produto indisponível' : `põe no ticket - R$ ${precoTotal.toFixed(2).replace('.', ',')}`}
+            {semEstoque ? 'Produto indisponÃ­vel' : `pÃµe no ticket - R$ ${precoTotal.toFixed(2).replace('.', ',')}`}
           </button>
         </div>
       </div>
     )
   }
 
-  // ====== CARDÁPIO ======
-  const DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+  // ====== CARDÃPIO ======
+  const DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'TerÃ§a', 'Quarta', 'Quinta', 'Sexta', 'SÃ¡bado']
   const DIAS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   let horariosSemana = []
   try { horariosSemana = JSON.parse(loja.horarios_semana || '[]') } catch { horariosSemana = [] }
@@ -2104,7 +2104,7 @@ export default function LojaPage() {
       {loja && (
         <SEO
           title={loja.nome}
-          description={`Peça no ${loja.nome}. ${loja.categoria_negocio || 'Restaurante'} em ${loja.cidade || 'sua cidade'}. Cardápio completo com entrega.`}
+          description={`PeÃ§a no ${loja.nome}. ${loja.categoria_negocio || 'Restaurante'} em ${loja.cidade || 'sua cidade'}. CardÃ¡pio completo com entrega.`}
           image={loja.logo_url}
           url={`https://marketlajinha.com.br/loja/${loja.slug}`}
           type="restaurant"
@@ -2151,15 +2151,14 @@ export default function LojaPage() {
             </span>
           )}
         </div>
-        <div className="absolute bottom-5 left-4 w-24 h-24 rounded-3xl overflow-hidden border-4 border-white/90 shadow-[0_24px_42px_-26px_rgba(15,23,42,0.95)] bg-white">
+        <div className="absolute bottom-4 left-4 w-20 h-20 md:bottom-5 md:w-24 md:h-24 rounded-[1.4rem] md:rounded-3xl overflow-hidden border-[3px] md:border-4 border-white/90 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.95)] md:shadow-[0_24px_42px_-26px_rgba(15,23,42,0.95)] bg-white">
           <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           <div className="w-full h-full items-center justify-center text-2xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
         </div>
-        {horaFecha && aberta && <span className="absolute bottom-7 right-4 bg-emerald-50/95 border border-emerald-200 backdrop-blur-sm text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">fecha às {horaFecha}</span>}
         {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
-      <div className="mx-4 -mt-12 px-4 pt-4 pb-4 relative z-20 rounded-[1.8rem] border border-white/70 bg-white/86 backdrop-blur-xl shadow-[0_30px_54px_-42px_rgba(15,23,42,0.95)]">
+      <div className="mx-4 -mt-9 md:-mt-12 px-4 pt-4 pb-4 relative z-20 rounded-[1.8rem] border border-white/70 bg-white/86 backdrop-blur-xl shadow-[0_30px_54px_-42px_rgba(15,23,42,0.95)]">
         <h1 className="text-[1.7rem] font-black text-stone-900 leading-tight tracking-tight">{loja.nome}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {loja.cidade && (
@@ -2172,17 +2171,23 @@ export default function LojaPage() {
             {aceitaEntrega ? <FiTruck className="text-[11px]" /> : <FiShoppingBag className="text-[11px]" />}
             {aceitaEntrega ? 'Entrega ativa' : 'Retirada no balcao'}
           </span>
+          {horaFecha && aberta && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/95 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+              <FiClock className="text-[11px]" />
+              fecha às {horaFecha}
+            </span>
+          )}
         </div>
         <button onClick={() => setShowInfo(!showInfo)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 mt-3 px-3 py-1.5 rounded-xl border border-stone-200 bg-white/90 hover:text-stone-800 hover:bg-white transition-colors"><FiInfo className="text-[11px]" /> infos da loja <FiChevronRight className={`text-[10px] transition-transform ${showInfo ? 'rotate-90' : ''}`} /></button>
         {showInfo && (
           <div className="mt-3 bg-white/90 backdrop-blur-sm rounded-2xl border border-stone-200 p-3 text-xs text-stone-500 space-y-1.5 shadow-[0_14px_24px_-20px_rgba(15,23,42,0.9)] animate-fade-in-up">
             <p><strong>Categoria:</strong> {loja.categoria_negocio}</p>
             <p><strong>Cidade:</strong> {loja.cidade}</p>
-            {loja.endereco && <p><strong>Endereço:</strong> {loja.endereco}</p>}
+            {loja.endereco && <p><strong>EndereÃ§o:</strong> {loja.endereco}</p>}
             {loja.telefone && <p><strong>Telefone:</strong> {loja.telefone}</p>}
             {temSemana ? (
               <div>
-                <strong>Horários:</strong>
+                <strong>HorÃ¡rios:</strong>
                 <div className="mt-1.5 space-y-1">
                   {horariosSemana.map((h, i) => (
                     <div key={i} className={`flex justify-between rounded-lg px-2 py-1 ${new Date().getDay() === i ? 'bg-stone-50 text-stone-800 font-semibold border border-stone-200' : ''}`}>
@@ -2203,15 +2208,15 @@ export default function LojaPage() {
         <div className="grid grid-cols-2 gap-2.5 rounded-3xl border border-white/70 bg-white/82 backdrop-blur-md p-2.5 shadow-[0_24px_50px_-42px_rgba(15,23,42,0.95)]">
           <button onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)} className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5 transition-colors hover:border-yellow-200 hover:bg-yellow-50/60">
             <div className="flex items-center gap-1 text-xs"><FiStar className="text-yellow-500 text-[11px]" /><span className="font-semibold text-stone-800">{notaMedia.media > 0 ? notaMedia.media.toFixed(1) : 'Novo'}</span></div>
-            <span className="text-[10px] text-stone-400">{notaMedia.total > 0 ? `${notaMedia.total} avaliação${notaMedia.total !== 1 ? 'ões' : ''}` : 'sem notas'}</span>
+            <span className="text-[10px] text-stone-400">{notaMedia.total > 0 ? `${notaMedia.total} avaliaÃ§Ã£o${notaMedia.total !== 1 ? 'Ãµes' : ''}` : 'sem notas'}</span>
           </button>
-          <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5"><div className="flex items-center gap-1 text-xs"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
-          <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
+          <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5"><div className="flex items-center gap-1 text-xs"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || 'â€”'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
+          <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mÃ­nimo</span></div>
           <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5">
             <div className="flex items-center gap-1 text-xs">
               {aceitaEntrega ? <FiTruck className="text-red-500 text-[11px]" /> : <FiShoppingBag className="text-red-500 text-[11px]" />}
               <span className="font-semibold text-stone-800">
-                {aceitaEntrega ? (taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(0)}`) : 'Balcão'}
+                {aceitaEntrega ? (taxa === 0 ? 'GrÃ¡tis' : `R$ ${taxa.toFixed(0)}`) : 'BalcÃ£o'}
               </span>
             </div>
             <span className="text-[10px] text-stone-400">{aceitaEntrega ? 'entrega' : 'retirada'}</span>
@@ -2219,12 +2224,12 @@ export default function LojaPage() {
         </div>
       </div>
 
-      {/* Avaliações */}
+      {/* AvaliaÃ§Ãµes */}
       {showAvaliacoes && avaliacoes.length > 0 && (
         <div className="px-4 pb-5">
           <div className="bg-white/92 backdrop-blur-sm rounded-2xl border border-stone-200 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.85)] p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-stone-900">Avaliações</h3>
+              <h3 className="text-sm font-bold text-stone-900">AvaliaÃ§Ãµes</h3>
               <div className="flex items-center gap-1">
                 <FiStar className="text-yellow-500 text-sm fill-yellow-500" />
                 <span className="text-sm font-bold text-stone-900">{notaMedia.media.toFixed(1)}</span>
@@ -2250,10 +2255,10 @@ export default function LojaPage() {
         </div>
       )}
 
-      {/* Pedido mínimo */}
+      {/* Pedido mÃ­nimo */}
       {Number(loja.pedido_minimo || 0) > 0 && totalItens > 0 && subtotal < Number(loja.pedido_minimo) && (
         <div className="mx-4 mb-3 bg-linear-to-r from-red-50 to-amber-50 border border-red-200 rounded-2xl p-3 text-center shadow-[0_16px_26px_-24px_rgba(220,38,38,0.9)]">
-          <p className="text-xs text-red-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — faltam R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}</p>
+          <p className="text-xs text-red-700 font-medium">Pedido mÃ­nimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} â€” faltam R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}</p>
         </div>
       )}
 
@@ -2263,15 +2268,15 @@ export default function LojaPage() {
           <p className="text-stone-400 text-xs mt-0.5">
             {(() => {
               if (temSemana) {
-                if (horarioHoje?.aberto) return `Abre hoje às ${horarioHoje.abertura}`
+                if (horarioHoje?.aberto) return `Abre hoje Ã s ${horarioHoje.abertura}`
                 const diaAtual = new Date().getDay()
                 for (let i = 1; i <= 7; i++) {
                   const prox = horariosSemana[(diaAtual + i) % 7]
-                  if (prox?.aberto) return `Abre ${DIAS_SEMANA_PT[(diaAtual + i) % 7]} às ${prox.abertura}`
+                  if (prox?.aberto) return `Abre ${DIAS_SEMANA_PT[(diaAtual + i) % 7]} Ã s ${prox.abertura}`
                 }
                 return 'Volte mais tarde'
               }
-              return loja.horario_abertura ? `Abre às ${loja.horario_abertura}` : 'Volte mais tarde'
+              return loja.horario_abertura ? `Abre Ã s ${loja.horario_abertura}` : 'Volte mais tarde'
             })()}
           </p>
         </div>
@@ -2284,7 +2289,7 @@ export default function LojaPage() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <FiTag className="text-red-500" />
-              <h2 className="text-base font-bold text-stone-900">Promoções do dia</h2>
+              <h2 className="text-base font-bold text-stone-900">PromoÃ§Ãµes do dia</h2>
               <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-red-500">flash</span>
             </div>
             <HorizontalCards
@@ -2307,7 +2312,7 @@ export default function LojaPage() {
                       />
                       <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 bg-red-600/95 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
                         <FiTag className="text-[10px]" />
-                        Promoção
+                        PromoÃ§Ã£o
                       </span>
                     </div>
                   ) : (
@@ -2330,7 +2335,7 @@ export default function LojaPage() {
                           R$ {Number(promo.preco_promocional).toFixed(2).replace('.', ',')}
                         </p>
                         <p className="text-[10px] font-semibold text-orange-600 mt-1 uppercase tracking-wide">
-                          Só hoje! Corra que vai acabar
+                          SÃ³ hoje! Corra que vai acabar
                         </p>
                       </div>
                     )}
@@ -2488,7 +2493,7 @@ export default function LojaPage() {
         ) : !produtosCarregando && categoriaSel === null ? (
           <>
             <div className="mb-3 flex items-end justify-between">
-              <h2 className="text-lg font-extrabold text-stone-900">Cardápio</h2>
+              <h2 className="text-lg font-extrabold text-stone-900">CardÃ¡pio</h2>
               <span className="text-[11px] font-semibold text-stone-400">
                 {categorias.length} categoria{categorias.length !== 1 ? 's' : ''}
               </span>
@@ -2508,7 +2513,7 @@ export default function LojaPage() {
                           <span aria-hidden="true" className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(254,202,202,0.8)]" />
                           <span className="line-clamp-2">{cat}</span>
                         </h3>
-                        <p className="text-xs text-stone-500 mt-1">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
+                        <p className="text-xs text-stone-500 mt-1">{qtdCat} {qtdCat === 1 ? 'item disponÃ­vel' : 'itens disponÃ­veis'}</p>
                       </div>
                       <div className="mt-3 flex items-center justify-between">
                         <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-1">
@@ -2524,7 +2529,7 @@ export default function LojaPage() {
           </>
         ) : (
           <>
-            <button onClick={() => setCategoriaSel(null)} className="inline-flex items-center gap-1.5 text-stone-500 hover:text-stone-800 text-sm mb-3 px-2.5 py-1.5 rounded-xl border border-stone-200 bg-white/80 transition-colors"><FiChevronLeft /> Voltar às categorias</button>
+            <button onClick={() => setCategoriaSel(null)} className="inline-flex items-center gap-1.5 text-stone-500 hover:text-stone-800 text-sm mb-3 px-2.5 py-1.5 rounded-xl border border-stone-200 bg-white/80 transition-colors"><FiChevronLeft /> Voltar Ã s categorias</button>
             <h2 className="text-base font-bold text-stone-900 mb-3 flex items-center gap-1.5 tracking-tight">
               <span aria-hidden="true" className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(254,202,202,0.8)]" />
               <span>{categoriaSel}</span>
@@ -2554,11 +2559,11 @@ export default function LojaPage() {
                               : `R$ ${precoMin.toFixed(2).replace('.', ',')}`}
                           </p>
                         </div>
-                        {temPromocao && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">promoção</span>}
+                        {temPromocao && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">promoÃ§Ã£o</span>}
                         {temConfig && <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full font-medium">personalizar</span>}
                         {p.controla_estoque && (
                           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${semEstoque ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-600'}`}>
-                            {semEstoque ? 'sem estoque' : `${p.estoque} disponível`}
+                            {semEstoque ? 'sem estoque' : `${p.estoque} disponÃ­vel`}
                           </span>
                         )}
                       </div>
@@ -2588,7 +2593,7 @@ export default function LojaPage() {
           <div className="mx-auto max-w-xl rounded-3xl border border-white/70 bg-white/55 backdrop-blur-xl p-2 shadow-[0_26px_52px_-34px_rgba(15,23,42,0.9)]">
             <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-5 py-3.5 rounded-2xl border border-red-400/40 shadow-[0_22px_48px_-30px_rgba(220,38,38,0.95)] hover:from-red-700 hover:to-red-600 transition-all">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
-            <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
+            <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `MÃ­n. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
             <span className="font-bold font-numeric">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>
           </button>
           </div>
@@ -2606,9 +2611,9 @@ export default function LojaPage() {
               />
             </div>
             <div className="space-y-2 text-sm">
-              <p className={`transition-colors ${submitStage >= 0 ? 'text-stone-800 font-semibold' : 'text-stone-400'}`}>🔄 Enviando pedido...</p>
-              <p className={`transition-colors ${submitStage >= 1 ? 'text-amber-700 font-semibold' : 'text-stone-400'}`}>🟡 Restaurante recebendo...</p>
-              <p className={`transition-colors ${submitStage >= 2 ? 'text-green-700 font-semibold' : 'text-stone-400'}`}>🟢 Confirmado!</p>
+              <p className={`transition-colors ${submitStage >= 0 ? 'text-stone-800 font-semibold' : 'text-stone-400'}`}>ðŸ”„ Enviando pedido...</p>
+              <p className={`transition-colors ${submitStage >= 1 ? 'text-amber-700 font-semibold' : 'text-stone-400'}`}>ðŸŸ¡ Restaurante recebendo...</p>
+              <p className={`transition-colors ${submitStage >= 2 ? 'text-green-700 font-semibold' : 'text-stone-400'}`}>ðŸŸ¢ Confirmado!</p>
             </div>
           </div>
         </div>
