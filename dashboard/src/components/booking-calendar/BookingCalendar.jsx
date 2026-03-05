@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiCalendar, FiClock } from 'react-icons/fi'
 
 function buildSlots(startHour = 6, endHour = 22, stepMinutes = 30) {
@@ -59,6 +59,27 @@ export default function BookingCalendar({
 }) {
   const [internalSelectedDate, setInternalSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [mapModalOpen, setMapModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (!mapModalOpen) return
+
+    const prevBodyOverflow = document.body.style.overflow
+    const prevBodyOverscroll = document.body.style.overscrollBehavior
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.overscrollBehavior = 'none'
+    document.documentElement.style.overflow = 'hidden'
+    document.documentElement.style.overscrollBehavior = 'none'
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow
+      document.body.style.overscrollBehavior = prevBodyOverscroll
+      document.documentElement.style.overflow = prevHtmlOverflow
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll
+    }
+  }, [mapModalOpen])
 
   const hasControlledDate = String(controlledSelectedDate || '').trim().length > 0
   const selectedDate = hasControlledDate ? controlledSelectedDate : internalSelectedDate
@@ -355,10 +376,10 @@ export default function BookingCalendar({
       </div>
 
       {mapModalOpen && (
-        <div className="fixed inset-0 z-130 bg-black/55 flex items-end lg:items-center justify-center lg:p-4">
+        <div className="fixed inset-0 z-130 bg-black/55 flex items-end lg:items-center justify-center lg:p-4 overscroll-contain">
           <div className="absolute inset-0" onClick={() => setMapModalOpen(false)} />
 
-          <div className="relative z-10 bg-white border border-stone-200 w-full lg:max-w-3xl max-h-[88vh] overflow-y-auto rounded-t-2xl lg:rounded-2xl p-2.5 space-y-2">
+          <div className="relative z-10 bg-white border border-stone-200 w-full lg:max-w-3xl max-h-[88vh] overflow-y-auto overscroll-contain rounded-t-2xl lg:rounded-2xl p-2.5 space-y-2">
             <div className="mx-auto h-1 w-10 rounded-full bg-stone-300 lg:hidden" />
 
             <div className="flex items-center justify-between gap-3">

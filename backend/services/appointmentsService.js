@@ -1154,24 +1154,17 @@ async function setProviderDefaultSchedule(providerAccount, payload) {
     ));
 
     if (toBlock.length > 0) {
-      await prisma.$transaction(
-        toBlock.map((time) => prisma.providerBlockedSlot.upsert({
-          where: {
-            provider_id_date_time: {
-              provider_id: providerAccount.id,
-              date,
-              time,
-            },
-          },
-          create: {
-            provider_id: providerAccount.id,
-            date,
-            time,
-          },
-          update: {},
-        }))
-      );
-      blockedUpserted += toBlock.length;
+      // createMany com skipDuplicates evita centenas de upserts por dia,
+      // reduz risco de timeout/erro de transacao em periodos maiores.
+      const created = await prisma.providerBlockedSlot.createMany({
+        data: toBlock.map((time) => ({
+          provider_id: providerAccount.id,
+          date,
+          time,
+        })),
+        skipDuplicates: true,
+      });
+      blockedUpserted += Number(created?.count || 0);
     }
 
     if (toUnblock.length > 0) {
