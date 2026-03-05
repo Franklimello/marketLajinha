@@ -273,13 +273,18 @@ export default function MinhaLoja() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Minha Loja</h1>
-          <p className="text-stone-500 text-sm mt-1">Edite as informações da sua loja</p>
+          <p className="text-stone-500 text-sm mt-1">Configure sua loja passo a passo. Tudo aqui aparece para o cliente no app.</p>
         </div>
         {loja.slug && (
           <a href={`/${loja.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700">
             <FiExternalLink /> Ver loja
           </a>
         )}
+      </div>
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+        <p className="font-semibold">Dica rápida para configurar sozinho:</p>
+        <p className="mt-1">1) Preencha dados básicos • 2) Defina horários por dia • 3) Ative pagamentos • 4) Envie logo e banner • 5) Salve no final.</p>
       </div>
 
       {/* Controle abrir/fechar */}
@@ -357,118 +362,127 @@ export default function MinhaLoja() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-stone-200 p-6 space-y-5">
-        <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3">Informações básicas</h2>
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-stone-200 p-6 space-y-6">
+        <section className="space-y-3">
+          <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3">Informações básicas da loja</h2>
+          <p className="text-xs text-stone-500">Esses dados identificam sua loja e ajudam clientes a encontrar seu negócio.</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Nome da loja *</label>
-            <input name="nome" value={form.nome} onChange={handleChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Nome da loja *</label>
+              <input name="nome" value={form.nome} onChange={handleChange} required placeholder="Ex.: Pizzaria do Centro" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+              <p className="text-[11px] text-stone-400 mt-1">Nome principal que o cliente verá no app.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Slug (URL) *</label>
+              <input name="slug" value={form.slug} onChange={handleChange} required pattern="[a-z0-9-]+" placeholder="ex.: pizzaria-do-centro" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+              <p className="text-[11px] text-stone-400 mt-1">Link da loja. Use apenas letras minúsculas, números e hífen.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Categoria *</label>
+              <div className="flex flex-wrap gap-2 rounded-lg border border-stone-300 p-3 max-h-44 overflow-y-auto">
+                {CATEGORIAS_NEGOCIO.map((cat) => {
+                  const ativo = categoriasSelecionadas().includes(cat)
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => toggleCategoria(cat)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${ativo
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                        }`}
+                    >
+                      {cat}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-stone-500 mt-1">
+                Selecionadas: {categoriasSelecionadas().join(', ') || 'nenhuma'}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Estado *</label>
+              <select name="estado" value={form.estado || ''} onChange={handleChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white">
+                <option value="">Selecione o estado</option>
+                {ESTADOS_SUPORTADOS.map((uf) => (
+                  <option key={uf.sigla} value={uf.sigla}>{uf.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Cidade *</label>
+              <select name="cidade" value={form.cidade} onChange={handleChange} required disabled={!form.estado} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white disabled:bg-stone-100">
+                <option value="">{form.estado ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
+                {form.cidade && !cidadesSugestoes.includes(form.cidade) && (
+                  <option value={form.cidade}>{form.cidade}</option>
+                )}
+                {cidadesSugestoes.map((nomeCidade) => (
+                  <option key={nomeCidade} value={nomeCidade}>{nomeCidade}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Slug (URL) *</label>
-            <input name="slug" value={form.slug} onChange={handleChange} required pattern="[a-z0-9-]+" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Categoria *</label>
-            <div className="flex flex-wrap gap-2 rounded-lg border border-stone-300 p-3 max-h-44 overflow-y-auto">
-              {CATEGORIAS_NEGOCIO.map((cat) => {
-                const ativo = categoriasSelecionadas().includes(cat)
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => toggleCategoria(cat)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${ativo
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Contato e localização</h2>
+          <p className="text-xs text-stone-500">Informações usadas para entrega, retirada e contato com o cliente.</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-stone-700 mb-1">Endereço</label>
+              <input name="endereco" value={form.endereco} onChange={handleChange} placeholder="Ex.: Rua das Flores, 120 - Centro" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Telefone</label>
+              <input name="telefone" value={form.telefone} onChange={handleChange} placeholder="Ex.: (33) 99999-9999" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Descrição do horário</label>
+              <input name="horario_funcionamento" value={form.horario_funcionamento} onChange={handleChange} placeholder="Ex.: Seg a Sex 08h às 18h" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Tempo de entrega</label>
+              <input name="tempo_entrega" value={form.tempo_entrega} onChange={handleChange} placeholder="Ex.: 30 - 50 min" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+              <p className="text-[11px] text-stone-400 mt-1">Esse tempo aparece no card da sua loja para o cliente.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">Modo de atendimento *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {[
+                  { value: 'BALCAO', label: 'Somente balcão' },
+                  { value: 'ENTREGA', label: 'Somente entrega' },
+                  { value: 'AMBOS', label: 'Balcão e entrega' },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${form.modo_atendimento === opt.value
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-stone-200 hover:border-stone-300'
                       }`}
                   >
-                    {cat}
-                  </button>
-                )
-              })}
+                    <input
+                      type="radio"
+                      name="modo_atendimento"
+                      value={opt.value}
+                      checked={form.modo_atendimento === opt.value}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-stone-500 mt-1">
-              Selecionadas: {categoriasSelecionadas().join(', ') || 'nenhuma'}
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Estado *</label>
-            <select name="estado" value={form.estado || ''} onChange={handleChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white">
-              <option value="">Selecione o estado</option>
-              {ESTADOS_SUPORTADOS.map((uf) => (
-                <option key={uf.sigla} value={uf.sigla}>{uf.nome}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Cidade *</label>
-            <select name="cidade" value={form.cidade} onChange={handleChange} required disabled={!form.estado} className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white disabled:bg-stone-100">
-              <option value="">{form.estado ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
-              {form.cidade && !cidadesSugestoes.includes(form.cidade) && (
-                <option value={form.cidade}>{form.cidade}</option>
-              )}
-              {cidadesSugestoes.map((nomeCidade) => (
-                <option key={nomeCidade} value={nomeCidade}>{nomeCidade}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Contato e localização</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-stone-700 mb-1">Endereço</label>
-            <input name="endereco" value={form.endereco} onChange={handleChange} placeholder="Rua, número, bairro" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Telefone</label>
-            <input name="telefone" value={form.telefone} onChange={handleChange} placeholder="(XX) XXXXX-XXXX" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Descrição do horário</label>
-            <input name="horario_funcionamento" value={form.horario_funcionamento} onChange={handleChange} placeholder="Seg-Sex 8h-18h" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Tempo de entrega</label>
-            <input name="tempo_entrega" value={form.tempo_entrega} onChange={handleChange} placeholder="ex: 40 - 60 min" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">Modo de atendimento *</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {[
-                { value: 'BALCAO', label: 'Somente balcão' },
-                { value: 'ENTREGA', label: 'Somente entrega' },
-                { value: 'AMBOS', label: 'Balcão e entrega' },
-              ].map((opt) => (
-                <label
-                  key={opt.value}
-                  className={`flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-colors text-center ${form.modo_atendimento === opt.value
-                      ? 'border-amber-500 bg-amber-50'
-                      : 'border-stone-200 hover:border-stone-300'
-                    }`}
-                >
-                  <input
-                    type="radio"
-                    name="modo_atendimento"
-                    value={opt.value}
-                    checked={form.modo_atendimento === opt.value}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  <span className="text-sm font-semibold text-stone-900">{opt.label}</span>
-                </label>
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Pedido mínimo (R$)</label>
+              <input name="pedido_minimo" type="number" min="0" step="0.01" value={form.pedido_minimo} onChange={handleChange} placeholder="Ex.: 25,00 (ou 0 para sem mínimo)" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+              <p className="text-[10px] text-stone-400 mt-1">Deixe 0 se não quiser valor mínimo. O cliente verá o valor no cardápio.</p>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Pedido mínimo (R$)</label>
-            <input name="pedido_minimo" type="number" min="0" step="0.01" value={form.pedido_minimo} onChange={handleChange} placeholder="0 = sem mínimo" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
-            <p className="text-[10px] text-stone-400 mt-1">Deixe 0 se não quiser valor mínimo. O cliente verá o valor no cardápio.</p>
-          </div>
-        </div>
+        </section>
 
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Horário de funcionamento por dia</h2>
         <p className="text-xs text-stone-400 mb-3">
@@ -591,6 +605,7 @@ export default function MinhaLoja() {
         </div>
 
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">PIX — Pagamento online</h2>
+        <p className="text-xs text-stone-500">Preencha seus dados para o cliente conseguir pagar por PIX direto no checkout.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -611,11 +626,11 @@ export default function MinhaLoja() {
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Chave PIX</label>
-            <input name="pix_chave" value={form.pix_chave} onChange={handleChange} placeholder="Digite sua chave PIX" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <input name="pix_chave" value={form.pix_chave} onChange={handleChange} placeholder="Ex.: seuemail@dominio.com ou chave aleatória" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Nome do titular</label>
-            <input name="pix_nome_titular" value={form.pix_nome_titular} onChange={handleChange} placeholder="Nome que aparece no PIX" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <input name="pix_nome_titular" value={form.pix_nome_titular} onChange={handleChange} placeholder="Ex.: João da Silva" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Cidade (PIX)</label>
@@ -635,6 +650,7 @@ export default function MinhaLoja() {
         </p>
 
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Logo e aparência</h2>
+        <p className="text-xs text-stone-500">Capriche nas imagens. Elas são as primeiras coisas que o cliente vê na vitrine da loja.</p>
 
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-2">Logo da loja</label>

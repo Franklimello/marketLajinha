@@ -122,6 +122,11 @@ export default function ServiceMyServicesPage() {
         Ordem recomendada: 1) Cadastre o servico, 2) confira como o card ficou, 3) repita para cada tipo de atendimento.
       </div>
 
+      <div className="rounded-2xl border border-stone-200 bg-white p-3 text-xs text-stone-600">
+        <p className="font-semibold text-stone-800">Como deixar seu catalogo intuitivo</p>
+        <p className="mt-1">Use nomes simples (ex.: "Corte feminino"), categoria correta, preco final e descricao objetiva do que esta incluso.</p>
+      </div>
+
       <div className="grid xl:grid-cols-[350px_1fr] gap-4 items-start">
         <div className="xl:sticky xl:top-4">
           <ServiceForm

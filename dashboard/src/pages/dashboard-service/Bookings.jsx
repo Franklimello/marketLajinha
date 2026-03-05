@@ -187,6 +187,11 @@ export default function ServiceBookingsPage() {
         </div>
       </section>
 
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <p className="font-semibold">Fluxo recomendado para responder rapido</p>
+        <p className="mt-1">1) Filtre por "Pendentes" • 2) aceite, recuse ou proponha horario • 3) acompanhe em "Confirmados" • 4) marque como concluido ao finalizar.</p>
+      </section>
+
       <section className="grid grid-cols-2 xl:grid-cols-5 gap-2.5 sm:gap-3">
         {metrics.map((item) => (
           <StatCard key={item.label} {...item} />
@@ -203,6 +208,9 @@ export default function ServiceBookingsPage() {
             {orderedBookings.length} de {counts.all} exibidos
           </span>
         </div>
+        <p className="text-xs text-stone-500">
+          Dica: comece por pendentes para nao perder pedidos novos. Use o filtro para focar no que precisa de acao agora.
+        </p>
 
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((item) => (

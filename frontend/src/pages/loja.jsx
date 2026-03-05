@@ -1866,11 +1866,10 @@ export default function LojaPage() {
 
     return (
       <div className={`relative max-w-lg mx-auto pb-36 overflow-x-hidden transition-all duration-300 ease-out ${pageTransitionClass}`}>
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-red-100/75 via-amber-50/65 to-transparent" />
-        <div className="pointer-events-none absolute -top-12 right-0 translate-x-1/3 -z-10 h-52 w-52 rounded-full bg-red-200/40 blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-red-100/70 via-amber-50/50 to-transparent" />
         <button
           onClick={() => setProdutoDetalhe(null)}
-          className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.8rem)] z-30 w-10 h-10 rounded-full bg-white/95 backdrop-blur border border-white text-stone-700 inline-flex items-center justify-center shadow-[0_20px_34px_-22px_rgba(15,23,42,0.85)]"
+          className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.8rem)] z-30 w-10 h-10 rounded-xl bg-white border border-stone-200 text-stone-700 inline-flex items-center justify-center"
           aria-label="Voltar para o cardápio"
         >
           <FiChevronLeft className="text-xl" />
@@ -1883,7 +1882,7 @@ export default function LojaPage() {
         )}
 
         <div className="px-4 pt-4">
-          <div className="rounded-3xl border border-white/75 bg-white/92 backdrop-blur-sm shadow-[0_26px_44px_-34px_rgba(15,23,42,0.9)] p-4">
+          <div className="rounded-2xl border border-stone-200 bg-white p-4">
             <h1 className="text-[1.75rem] font-black text-stone-900 leading-tight tracking-tight">{p.nome}</h1>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               {controlaEstoque && (
@@ -1900,7 +1899,7 @@ export default function LojaPage() {
 
         {p.descricao && (
           <div className="px-4 pt-3">
-            <div className="rounded-2xl border border-stone-200/80 bg-white/85 p-3 shadow-[0_18px_30px_-24px_rgba(15,23,42,0.7)]">
+            <div className="rounded-xl border border-stone-200 bg-white p-3">
               <p className="text-sm text-stone-600 leading-relaxed">{p.descricao}</p>
             </div>
           </div>
@@ -1909,7 +1908,7 @@ export default function LojaPage() {
         {/* Tamanhos */}
         {ehPizza && possuiGrupoSabores && (
           <div className="px-4 pt-4">
-            <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+            <div className="rounded-xl border border-stone-200 bg-white p-3">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-bold text-stone-900">Quantos sabores?</p>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-red-600">obrigatório</span>
@@ -1950,7 +1949,7 @@ export default function LojaPage() {
 
         {temVariacoes && (
           <div className="px-4 pt-4">
-            <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+            <div className="rounded-xl border border-stone-200 bg-white p-3">
               <p className="text-sm font-bold text-stone-900 mb-3">Escolha o tamanho</p>
               {variacoesFiltradas.length === 0 && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
@@ -1987,7 +1986,7 @@ export default function LojaPage() {
         {/* Adicionais / Complementos */}
         {temAdicionais && (
           <div className="px-4 pt-4">
-            <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+            <div className="rounded-xl border border-stone-200 bg-white p-3">
               <p className="text-sm font-bold text-stone-900 mb-1">Complementos</p>
               <p className="text-xs text-stone-400 mb-3">Escolha por grupo conforme as regras</p>
               {gruposAdicionais.map((grupo) => {
@@ -2057,7 +2056,7 @@ export default function LojaPage() {
 
         {/* Quantidade */}
         <div className="px-4 pt-4">
-          <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+          <div className="rounded-xl border border-stone-200 bg-white p-3">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold text-stone-900">Quantidade</p>
               <p className="text-xs text-stone-500">Unitário: <span className="font-bold text-stone-800 font-numeric">R$ {precoUnitario.toFixed(2).replace('.', ',')}</span></p>
@@ -2083,7 +2082,7 @@ export default function LojaPage() {
 
         {/* Observação */}
         <div className="px-4 pt-4 pb-6">
-          <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+          <div className="rounded-xl border border-stone-200 bg-white p-3">
             <label className="block text-xs font-semibold text-stone-700 mb-2">Observações para a loja</label>
             <textarea
               value={obsDetalhe}
@@ -2097,11 +2096,11 @@ export default function LojaPage() {
 
         {/* Botão fixo */}
         <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-3">
-          <div className="w-full max-w-lg mx-auto rounded-2xl border border-white/70 bg-white/60 backdrop-blur-xl p-2 shadow-[0_28px_48px_-34px_rgba(15,23,42,0.9)]">
+          <div className="w-full max-w-lg mx-auto rounded-xl border border-stone-200 bg-white p-2">
             <button
               onClick={addItemConfigurado}
               disabled={(temVariacoes && !variacaoSel) || semEstoque || (ehPizza && !varSel)}
-              className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-4 py-3.5 rounded-xl border border-red-400/40 shadow-[0_18px_34px_-26px_rgba(220,38,38,0.9)] hover:from-red-700 hover:to-red-600 active:scale-[0.98] disabled:opacity-50 transition-all"
+              className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-4 py-3.5 rounded-xl border border-red-400/40 hover:from-red-700 hover:to-red-600 active:scale-[0.98] disabled:opacity-50 transition-all"
             >
               {semEstoque ? (
                 <span className="font-semibold text-sm">Produto indisponível</span>

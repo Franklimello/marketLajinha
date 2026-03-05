@@ -192,6 +192,10 @@ export default function ServiceForm({
         Campos obrigatorios: Nome, Categoria, Preco e Duracao.
       </div>
 
+      <p className="text-[11px] text-stone-500 -mt-1">
+        Quanto mais claro estiver o cadastro, mais rapido o cliente decide e agenda.
+      </p>
+
       <label className="block space-y-1.5">
         <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
           <FiScissors size={13} /> Nome do servico
@@ -256,7 +260,7 @@ export default function ServiceForm({
             type="url"
             value={form.image_url_input}
             onChange={handleChange}
-            placeholder="https://site.com/imagem.jpg"
+            placeholder="Cole uma URL de imagem (https://...)"
             className="flex-1 min-w-[220px] rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
             inputMode="url"
           />
@@ -320,6 +324,7 @@ export default function ServiceForm({
             placeholder="Ex.: 90.00"
             inputMode="decimal"
           />
+          <p className="text-[11px] text-stone-500">Valor final cobrado do cliente por atendimento.</p>
         </label>
 
         <label className="space-y-1.5">
@@ -338,6 +343,7 @@ export default function ServiceForm({
             placeholder="Ex.: 60"
             inputMode="numeric"
           />
+          <p className="text-[11px] text-stone-500">Tempo total em minutos para bloquear a agenda corretamente.</p>
         </label>
       </div>
 

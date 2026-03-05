@@ -223,6 +223,13 @@ export default function ServiceSettingsPage() {
         </p>
       </section>
 
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900">
+        <p className="font-semibold">Passo a passo recomendado</p>
+        <p className="mt-1">
+          1) Nome e cidade corretos • 2) Foto profissional • 3) Contatos atualizados • 4) Endereco e horario de atendimento • 5) Salvar alteracoes
+        </p>
+      </section>
+
       <div className="grid xl:grid-cols-[1.4fr_1fr] gap-4 items-start">
         <form onSubmit={handleSubmit} className="rounded-3xl border border-stone-200 bg-white p-4 sm:p-5 space-y-4 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
           <div className="flex items-start justify-between gap-3">
@@ -310,6 +317,7 @@ export default function ServiceSettingsPage() {
                 required
                 autoComplete="address-level2"
               />
+              <p className="text-[11px] text-stone-500">Como os clientes vao te encontrar na busca.</p>
               <datalist id="service-city-list">
                 {cities.map((item) => (
                   <option key={item} value={item} />
@@ -373,6 +381,7 @@ export default function ServiceSettingsPage() {
                 inputMode="numeric"
                 autoComplete="tel"
               />
+              <p className="text-[11px] text-stone-500">Use DDI + DDD + numero para abrir conversa com um toque.</p>
             </label>
           </div>
 
@@ -388,6 +397,7 @@ export default function ServiceSettingsPage() {
                 placeholder="Ex.: @seuperfil"
                 autoComplete="off"
               />
+              <p className="text-[11px] text-stone-500">Pode preencher com @usuario ou link do perfil.</p>
             </label>
 
             <label className="block space-y-1.5">
@@ -401,6 +411,7 @@ export default function ServiceSettingsPage() {
                 className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
                 placeholder="Ex.: Seg a Sex, 08:00 as 18:00"
               />
+              <p className="text-[11px] text-stone-500">Exemplo: Seg a Sex, 08:00 as 18:00.</p>
               <datalist id="business-hours-list">
                 {BUSINESS_HOURS_SUGGESTIONS.map((item) => (
                   <option key={item} value={item} />
@@ -420,6 +431,7 @@ export default function ServiceSettingsPage() {
               placeholder="Ex.: Rua Exemplo, 123 - Centro"
               autoComplete="street-address"
             />
+            <p className="text-[11px] text-stone-500">Se voce atende em domicilio, informe a regiao de atendimento.</p>
           </label>
 
           <label className="block space-y-1.5">
@@ -434,6 +446,7 @@ export default function ServiceSettingsPage() {
               placeholder="Explique sua experiencia, especialidade, tempo de mercado e como funciona seu atendimento."
               maxLength={1200}
             />
+            <p className="text-[11px] text-stone-500">Dica: conte sua experiencia, diferencial e o que esta incluso no servico.</p>
           </label>
 
           {message && (

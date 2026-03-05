@@ -87,6 +87,11 @@ export default function ServiceClientsPage() {
         </p>
       </section>
 
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+        <p className="font-semibold">Como usar esta tela no dia a dia</p>
+        <p className="mt-1">1) Busque um cliente pelo nome • 2) veja total de atendimentos e status • 3) analise o historico recente para personalizar seu proximo contato.</p>
+      </section>
+
       <section className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3">
         <article className="rounded-2xl border border-stone-200 bg-white p-3 shadow-sm">
           <p className="text-[11px] uppercase tracking-wide text-stone-500 inline-flex items-center gap-1"><FiUsers size={12} /> Clientes</p>
@@ -114,7 +119,7 @@ export default function ServiceClientsPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por nome, email ou telefone"
+            placeholder="Ex.: Maria, maria@email.com ou (27) 99999-9999"
             className="w-full rounded-xl border border-stone-300 bg-stone-50 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
           />
         </label>
