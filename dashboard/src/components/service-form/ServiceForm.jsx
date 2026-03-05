@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FiClock, FiDollarSign, FiFileText, FiScissors } from 'react-icons/fi'
 
 const initialForm = {
@@ -10,9 +10,25 @@ const initialForm = {
 
 const PRESET_DURATIONS = [15, 30, 45, 60, 90]
 
-export default function ServiceForm({ onSubmit, loading = false }) {
+function mapServiceToForm(service) {
+  if (!service) return { ...initialForm }
+  return {
+    name: String(service.name || ''),
+    description: String(service.description || ''),
+    price: String(Number(service.price || 0)),
+    duration_minutes: String(Number(service.duration_minutes || 30)),
+  }
+}
+
+export default function ServiceForm({ onSubmit, loading = false, service = null, onCancel }) {
   const [form, setForm] = useState(initialForm)
   const [error, setError] = useState('')
+  const isEditing = !!service
+
+  useEffect(() => {
+    setForm(mapServiceToForm(service))
+    setError('')
+  }, [service])
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -47,7 +63,7 @@ export default function ServiceForm({ onSubmit, loading = false }) {
 
     try {
       await onSubmit(payload)
-      setForm(initialForm)
+      if (!isEditing) setForm(initialForm)
     } catch (err) {
       setError(err?.message || 'Não foi possível salvar o serviço.')
     }
@@ -57,10 +73,16 @@ export default function ServiceForm({ onSubmit, loading = false }) {
     <form onSubmit={handleSubmit} className="border border-stone-200 bg-white p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-stone-900">Criar serviço</h3>
-          <p className="text-xs text-stone-500 mt-1">Preencha os dados para publicar no catálogo da sua cidade.</p>
+          <h3 className="text-base font-semibold text-stone-900">{isEditing ? 'Editar serviço' : 'Criar serviço'}</h3>
+          <p className="text-xs text-stone-500 mt-1">
+            {isEditing
+              ? 'Atualize os dados do serviço selecionado.'
+              : 'Preencha os dados para publicar no catálogo da sua cidade.'}
+          </p>
         </div>
-        <span className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">Novo</span>
+        <span className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">
+          {isEditing ? 'Edição' : 'Novo'}
+        </span>
       </div>
 
       <label className="block space-y-1.5">
@@ -144,13 +166,24 @@ export default function ServiceForm({ onSubmit, loading = false }) {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="bg-amber-600 text-white px-4 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
-      >
-        {loading ? 'Salvando...' : 'Salvar serviço'}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-amber-600 text-white px-4 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+        >
+          {loading ? 'Salvando...' : (isEditing ? 'Salvar alterações' : 'Salvar serviço')}
+        </button>
+        {isEditing && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
     </form>
   )
 }

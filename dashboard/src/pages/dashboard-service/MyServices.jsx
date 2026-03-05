@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiSearch } from 'react-icons/fi'
 import { api } from '../../api/client'
 import ServiceForm from '../../components/service-form/ServiceForm'
@@ -8,6 +8,8 @@ export default function ServiceMyServicesPage() {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState('')
+  const [editingService, setEditingService] = useState(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
 
@@ -41,6 +43,31 @@ export default function ServiceMyServicesPage() {
     }
   }
 
+  async function handleUpdate(payload) {
+    if (!editingService?.id) return
+    setSaving(true)
+    try {
+      const updated = await api.services.atualizar(editingService.id, payload)
+      setServices((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+      setEditingService(null)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(service) {
+    if (!service?.id) return
+    if (!window.confirm(`Excluir o serviço "${service.name}"?`)) return
+    setDeletingId(service.id)
+    try {
+      await api.services.excluir(service.id)
+      setServices((prev) => prev.filter((item) => item.id !== service.id))
+      if (editingService?.id === service.id) setEditingService(null)
+    } finally {
+      setDeletingId('')
+    }
+  }
+
   const filteredServices = useMemo(() => {
     const text = String(query || '').trim().toLowerCase()
     if (!text) return services
@@ -60,7 +87,12 @@ export default function ServiceMyServicesPage() {
 
       <div className="grid xl:grid-cols-[350px_1fr] gap-4 items-start">
         <div className="xl:sticky xl:top-4">
-          <ServiceForm onSubmit={handleCreate} loading={saving} />
+          <ServiceForm
+            service={editingService}
+            onSubmit={editingService ? handleUpdate : handleCreate}
+            onCancel={() => setEditingService(null)}
+            loading={saving}
+          />
         </div>
 
         <section className="space-y-3">
@@ -93,7 +125,13 @@ export default function ServiceMyServicesPage() {
           ) : (
             <div className="space-y-3">
               {filteredServices.map((service) => (
-                <ServiceCard key={service.id} service={service} />
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  onEdit={setEditingService}
+                  onDelete={handleDelete}
+                  deleting={deletingId === service.id}
+                />
               ))}
             </div>
           )}

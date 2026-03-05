@@ -1,4 +1,4 @@
-﻿import { FiClock, FiMapPin, FiTag } from 'react-icons/fi'
+import { FiClock, FiEdit2, FiMapPin, FiTag, FiTrash2 } from 'react-icons/fi'
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-BR', {
@@ -14,7 +14,7 @@ function formatCreatedAt(value) {
   return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-export default function ServiceCard({ service }) {
+export default function ServiceCard({ service, onEdit, onDelete, deleting = false }) {
   if (!service) return null
 
   return (
@@ -46,6 +46,23 @@ export default function ServiceCard({ service }) {
           </p>
           <p className="text-sm font-semibold text-stone-900 mt-1 font-numeric">{service.duration_minutes} min</p>
         </div>
+      </div>
+      <div className="pt-1 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onEdit?.(service)}
+          className="inline-flex items-center gap-1.5 border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50"
+        >
+          <FiEdit2 size={12} /> Editar
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete?.(service)}
+          disabled={deleting}
+          className="inline-flex items-center gap-1.5 border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+        >
+          <FiTrash2 size={12} /> {deleting ? 'Excluindo...' : 'Excluir'}
+        </button>
       </div>
     </article>
   )

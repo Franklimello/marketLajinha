@@ -166,6 +166,7 @@ export const api = {
     mine: () => request('/services/mine'),
     criar: (data) => request('/services', { method: 'POST', body: JSON.stringify(data) }),
     atualizar: (id, data) => request(`/services/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    excluir: (id) => request(`/services/${id}`, { method: 'DELETE' }),
   },
   appointments: {
     criar: (data) => request('/appointments', { method: 'POST', body: JSON.stringify(data) }),

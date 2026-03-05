@@ -1,4 +1,4 @@
-﻿const servicesCatalogService = require('../services/servicesCatalogService');
+const servicesCatalogService = require('../services/servicesCatalogService');
 const userAccountsService = require('../services/userAccountsService');
 
 async function listarPrestadores(req, res, next) {
@@ -71,10 +71,25 @@ async function atualizarServico(req, res, next) {
   }
 }
 
+async function excluirServico(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
+    await servicesCatalogService.deleteService(providerAccount.id, req.params.id);
+    res.status(204).send();
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
 module.exports = {
   listarPrestadores,
   perfilPrestador,
   meusServicos,
   criarServico,
   atualizarServico,
+  excluirServico,
 };

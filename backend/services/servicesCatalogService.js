@@ -1,4 +1,4 @@
-﻿const { prisma } = require('../config/database');
+const { prisma } = require('../config/database');
 
 function cleanText(value) {
   return String(value || '').trim();
@@ -202,10 +202,32 @@ async function updateService(providerId, serviceId, payload) {
   return serviceToJson(updated);
 }
 
+async function deleteService(providerId, serviceId) {
+  const found = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { id: true, provider_id: true },
+  });
+
+  if (!found) {
+    const err = new Error('Serviço não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+  if (found.provider_id !== providerId) {
+    const err = new Error('Você não pode excluir este serviço.');
+    err.status = 403;
+    throw err;
+  }
+
+  await prisma.service.delete({ where: { id: serviceId } });
+  return { ok: true };
+}
+
 module.exports = {
   listProvidersByCity,
   getProviderProfile,
   listMyServices,
   createService,
   updateService,
+  deleteService,
 };
