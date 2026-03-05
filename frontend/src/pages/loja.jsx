@@ -1865,9 +1865,9 @@ export default function LojaPage() {
     }
 
     return (
-      <div className={`relative max-w-lg mx-auto pb-36 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+      <div className={`relative max-w-lg mx-auto pb-36 overflow-x-hidden transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-red-100/75 via-amber-50/65 to-transparent" />
-        <div className="pointer-events-none absolute -top-12 right-[-5rem] -z-10 h-52 w-52 rounded-full bg-red-200/40 blur-3xl" />
+        <div className="pointer-events-none absolute -top-12 right-0 translate-x-1/3 -z-10 h-52 w-52 rounded-full bg-red-200/40 blur-3xl" />
         <button
           onClick={() => setProdutoDetalhe(null)}
           className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.8rem)] z-30 w-10 h-10 rounded-full bg-white/95 backdrop-blur border border-white text-stone-700 inline-flex items-center justify-center shadow-[0_20px_34px_-22px_rgba(15,23,42,0.85)]"
