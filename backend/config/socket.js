@@ -10,7 +10,7 @@ const { upsertHeartbeat, markOffline } = require('../services/printRuntimeServic
 
 let io = null;
 const LEGACY_SOCKET_JOIN_ENABLED = String(
-  process.env.SOCKET_ALLOW_LEGACY_JOIN || (process.env.NODE_ENV !== 'production' ? 'true' : 'false')
+  process.env.SOCKET_ALLOW_LEGACY_JOIN || 'false'
 ).toLowerCase() === 'true';
 
 function parseJoinPayload(payload, idKeys = []) {

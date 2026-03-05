@@ -1,5 +1,5 @@
 const userAccountsService = require('../services/userAccountsService');
-const { salvarTokenPrestador, removerTokenPrestador } = require('../services/notificacaoService');
+const { salvarTokenPrestador, removerTokenPrestadorDoUsuario } = require('../services/notificacaoService');
 
 async function me(req, res, next) {
   try {
@@ -72,8 +72,13 @@ async function saveMyFcmToken(req, res, next) {
 
 async function removeMyFcmToken(req, res, next) {
   try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
     const token = String(req.body?.token || '').trim();
-    if (token) await removerTokenPrestador(token);
+    if (!token) return res.status(400).json({ erro: 'Token FCM obrigatório.' });
+    const account = await userAccountsService.getOrCreateFromFirebase(req.firebaseDecoded);
+    await removerTokenPrestadorDoUsuario(account.id, token);
     res.json({ ok: true });
   } catch (e) {
     next(e);

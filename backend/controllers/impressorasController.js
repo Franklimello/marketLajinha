@@ -138,10 +138,23 @@ async function testar(req, res, next) {
 
 async function imprimirPedido(req, res, next) {
   try {
+    if (!req.user?.loja_id) {
+      return res.status(403).json({ erro: 'Usuário sem loja vinculada.' });
+    }
+
     const pedido = await prisma.pedidos.findUnique({
       where: { id: req.params.pedidoId },
       select: { loja_id: true },
     });
+
+    if (!pedido) {
+      return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    }
+
+    if (String(pedido.loja_id || '') !== String(req.user.loja_id || '')) {
+      return res.status(403).json({ erro: 'Pedido pertence a outra loja.' });
+    }
+
     if (pedido?.loja_id) {
       getIO()?.to(`store_${pedido.loja_id}`).emit('order_status', {
         orderId: req.params.pedidoId,

@@ -148,6 +148,17 @@ async function removerTokenPrestador(token) {
   return { ok: true };
 }
 
+async function removerTokenPrestadorDoUsuario(userAccountId, token) {
+  await ensureProviderTokenTable();
+  if (!userAccountId || !token) return { ok: false };
+  await prisma.$executeRaw`
+    DELETE FROM user_account_fcm_tokens
+    WHERE token = ${String(token)}
+      AND user_account_id = ${String(userAccountId)}
+  `;
+  return { ok: true };
+}
+
 async function notificarLoja(lojaId, titulo, corpo, dados = {}) {
   if (!isFirebaseInitialized()) {
     console.warn('[Notificação Loja] Firebase não inicializado.');
@@ -476,6 +487,7 @@ module.exports = {
   notificarTodosClientesNovoCupom,
   salvarTokenPrestador,
   removerTokenPrestador,
+  removerTokenPrestadorDoUsuario,
   notificarClienteAgendamento,
   notificarPrestadorAgendamento,
 };
