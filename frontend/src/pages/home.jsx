@@ -2,23 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { FiStar, FiChevronLeft, FiChevronRight, FiGrid, FiList, FiX } from 'react-icons/fi'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Pizza,
-  Hamburger,
-  BowlFood,
-  Fish,
-  IceCream,
-  Cake,
-  Cookie,
-  Coffee,
-  BeerBottle,
-  ShoppingCartSimple,
-  Pill,
-  PawPrint,
-  Leaf,
-  Storefront,
-  Motorcycle,
-} from '@phosphor-icons/react'
+import { Motorcycle } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useDebounce } from '../hooks/useDebounce'
@@ -76,67 +60,6 @@ const HOME_BANNERS = [
   },
 ]
 
-const CATEGORIA_ICONES = [
-  { k: 'pizza', Icon: Pizza },
-  { k: 'hamb', Icon: Hamburger },
-  { k: 'burg', Icon: Hamburger },
-  { k: 'lanche', Icon: Hamburger },
-  { k: 'porç', Icon: BowlFood },
-  { k: 'frango', Icon: BowlFood },
-  { k: 'marmit', Icon: BowlFood },
-  { k: 'jap', Icon: Fish },
-  { k: 'sushi', Icon: Fish },
-  { k: 'aça', Icon: IceCream },
-  { k: 'acai', Icon: IceCream },
-  { k: 'doce', Icon: Cake },
-  { k: 'confeit', Icon: Cake },
-  { k: 'salgad', Icon: Cookie },
-  { k: 'padar', Icon: Cookie },
-  { k: 'café', Icon: Coffee },
-  { k: 'cafe', Icon: Coffee },
-  { k: 'sorvet', Icon: IceCream },
-  { k: 'saud', Icon: Leaf },
-  { k: 'bebid', Icon: BeerBottle },
-  { k: 'adega', Icon: BeerBottle },
-  { k: 'mercad', Icon: ShoppingCartSimple },
-  { k: 'farm', Icon: Pill },
-  { k: 'pet', Icon: PawPrint },
-  { k: 'churr', Icon: BowlFood },
-]
-
-const CATEGORIA_CORES_POR_TIPO = [
-  { k: 'adega', cor: '#7c3aed' },
-  { k: 'bebid', cor: '#2563eb' },
-  { k: 'caf', cor: '#92400e' },
-  { k: 'churr', cor: '#ea580c' },
-  { k: 'pizza', cor: '#ef4444' },
-  { k: 'hamb', cor: '#f59e0b' },
-  { k: 'burg', cor: '#f59e0b' },
-  { k: 'lanche', cor: '#f59e0b' },
-  { k: 'sushi', cor: '#0ea5e9' },
-  { k: 'jap', cor: '#0ea5e9' },
-  { k: 'doce', cor: '#ec4899' },
-  { k: 'confeit', cor: '#ec4899' },
-  { k: 'sorvet', cor: '#06b6d4' },
-  { k: 'aça', cor: '#8b5cf6' },
-  { k: 'acai', cor: '#8b5cf6' },
-  { k: 'mercad', cor: '#16a34a' },
-  { k: 'farm', cor: '#14b8a6' },
-  { k: 'pet', cor: '#f97316' },
-  { k: 'padar', cor: '#b45309' },
-  { k: 'salgad', cor: '#b45309' },
-]
-
-const CATEGORIA_CORES_FALLBACK = [
-  '#ef4444',
-  '#f59e0b',
-  '#10b981',
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
-  '#f97316',
-  '#06b6d4',
-]
 
 const MENSAGENS_BOM_DIA = [
   'Bom dia ?? Comece o dia com boas escolhas.',
@@ -281,20 +204,6 @@ function normalizeText(value) {
     .toLowerCase()
 }
 
-function corDaCategoria(nome) {
-  const key = normalizeText(nome)
-  if (!key) return CATEGORIA_CORES_FALLBACK[0]
-
-  const match = CATEGORIA_CORES_POR_TIPO.find((item) => key.includes(item.k))
-  if (match?.cor) return match.cor
-
-  let hash = 0
-  for (let i = 0; i < key.length; i += 1) {
-    hash = (hash * 31 + key.charCodeAt(i)) >>> 0
-  }
-  return CATEGORIA_CORES_FALLBACK[hash % CATEGORIA_CORES_FALLBACK.length]
-}
-
 function getStoriesSeenMap() {
   const data = getLocalItem(STORIES_SEEN_KEY, {})
   return data && typeof data === 'object' ? data : {}
@@ -317,12 +226,6 @@ function orderStoriesGroups(groups) {
     })
     return { ...group, stories: orderedStories }
   })
-}
-
-function iconCategoria(nome) {
-  const n = String(nome || '').toLowerCase()
-  const match = CATEGORIA_ICONES.find((i) => n.includes(i.k))
-  return match?.Icon || Storefront
 }
 
 function formatarTempoEntrega(tempo) {
@@ -380,39 +283,8 @@ function extrairCategorias(lojas) {
     .map((nome) => ({
       nome,
       emoji: emojiDaCategoria(nome),
-      Icon: iconCategoria(nome),
-      cor: corDaCategoria(nome),
     }))
 }
-
-const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="relative shrink-0 rounded-xl active:scale-95 transition-transform duration-150"
-    >
-      <div
-        className={`relative px-2.5 py-2.5 rounded-xl border transition-all duration-200 ${isActive
-          ? 'border-red-500'
-          : 'border-stone-200 bg-white hover:border-stone-300'
-          }`}
-      >
-        {isActive && (
-          <span className="absolute inset-0 rounded-xl bg-linear-to-br from-red-500 to-amber-500" />
-        )}
-        <div className="relative z-10 flex flex-col items-center gap-1 min-w-[70px]">
-          <span className={`text-2xl leading-none ${isActive ? 'drop-shadow-xs' : ''}`}>
-            {categoria.emoji || '🏬'}
-          </span>
-          <span className={`font-heading text-[11px] font-bold tracking-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-700'}`}>
-            {categoria.nome}
-          </span>
-        </div>
-      </div>
-    </button>
-  )
-})
 
 const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
   if (!Array.isArray(grupos) || grupos.length === 0) return null
@@ -1440,7 +1312,6 @@ export default function HomePage() {
             categoriaSel={categoriaSel}
             onToggleCategoria={setCategoriaSel}
             onClearCategoria={limparCategoria}
-            categoriaCardComponent={CategoriaCard}
           />
 
           {/* Stores */}

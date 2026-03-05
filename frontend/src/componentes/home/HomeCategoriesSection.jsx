@@ -6,9 +6,7 @@ export default function HomeCategoriesSection({
   categoriaSel,
   onToggleCategoria,
   onClearCategoria,
-  categoriaCardComponent,
 }) {
-  const CategoriaCard = categoriaCardComponent
   const categoriaAtiva = categoriasDinamicas.find((item) => item.nome === categoriaSel)
 
   return (
@@ -25,12 +23,23 @@ export default function HomeCategoriesSection({
         {categoriasDinamicas.map((cat) => {
           const ativo = categoriaSel === cat.nome
           return (
-            <CategoriaCard
+            <button
               key={cat.nome}
-              categoria={cat}
-              isActive={ativo}
-              onToggle={() => onToggleCategoria(ativo ? null : cat.nome)}
-            />
+              type="button"
+              onClick={() => onToggleCategoria(ativo ? null : cat.nome)}
+              className={`shrink-0 rounded-xl border px-3 py-2.5 min-w-[92px] transition-colors ${
+                ativo
+                  ? 'border-red-500 bg-linear-to-br from-red-500 to-amber-500 text-white'
+                  : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
+              }`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-2xl leading-none">{cat.emoji || '🏬'}</span>
+                <span className="font-heading text-[12px] font-bold tracking-tight whitespace-nowrap">
+                  {cat.nome}
+                </span>
+              </div>
+            </button>
           )
         })}
       </div>
