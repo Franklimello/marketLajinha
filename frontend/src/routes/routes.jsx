@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { Component, lazy, Suspense } from 'react'
 import App from '../App.jsx'
 import HomePage from '../pages/home.jsx'
 
@@ -13,6 +13,39 @@ const SobrePage = lazy(() => import('../pages/sobre.jsx'))
 const FeedCidadePage = lazy(() => import('../pages/feedCidade.jsx'))
 const MotoboyLogin = lazy(() => import('../pages/motoboy/MotoboyLogin.jsx'))
 const MotoboyPedidos = lazy(() => import('../pages/motoboy/MotoboyPedidos.jsx'))
+
+class RouteErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error) {
+    console.warn('Route render failed:', error?.message || error)
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children
+
+    return (
+      <div className="max-w-lg mx-auto px-4 py-10 text-center">
+        <p className="text-sm font-semibold text-stone-800">Não foi possível carregar esta tela.</p>
+        <p className="text-xs text-stone-500 mt-1">Atualize para tentar novamente.</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-4 inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+        >
+          Atualizar app
+        </button>
+      </div>
+    )
+  }
+}
 
 function LojaFallback() {
   return (
@@ -54,9 +87,11 @@ function Lazy({ children, fallback = 'default' }) {
     )
 
   return (
-    <Suspense fallback={content}>
-      {children}
-    </Suspense>
+    <RouteErrorBoundary>
+      <Suspense fallback={content}>
+        {children}
+      </Suspense>
+    </RouteErrorBoundary>
   )
 }
 

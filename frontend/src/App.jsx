@@ -148,11 +148,19 @@ export default function App() {
     }
 
     computeStandalone()
-    media.addEventListener('change', computeStandalone)
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', computeStandalone)
+    } else if (typeof media.addListener === 'function') {
+      media.addListener(computeStandalone)
+    }
     window.addEventListener('appinstalled', computeStandalone)
 
     return () => {
-      media.removeEventListener('change', computeStandalone)
+      if (typeof media.removeEventListener === 'function') {
+        media.removeEventListener('change', computeStandalone)
+      } else if (typeof media.removeListener === 'function') {
+        media.removeListener(computeStandalone)
+      }
       window.removeEventListener('appinstalled', computeStandalone)
     }
   }, [])

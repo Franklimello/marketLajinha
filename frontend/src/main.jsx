@@ -17,8 +17,42 @@ const queryClient = new QueryClient({
   },
 })
 
-registerSW({
+function safeReloadFromChunkError() {
+  try {
+    const key = 'app:chunk-reload-at'
+    const now = Date.now()
+    const last = Number(sessionStorage.getItem(key) || 0)
+    if (now - last < 10_000) return
+    sessionStorage.setItem(key, String(now))
+    window.location.reload()
+  } catch {
+    window.location.reload()
+  }
+}
+
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault()
+  safeReloadFromChunkError()
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event?.reason
+  const message = String(reason?.message || reason || '')
+  const isChunkError = message.includes('Failed to fetch dynamically imported module')
+    || message.includes('Importing a module script failed')
+    || message.includes('Loading chunk')
+    || message.includes('ChunkLoadError')
+
+  if (!isChunkError) return
+  event.preventDefault()
+  safeReloadFromChunkError()
+})
+
+const updateSW = registerSW({
   immediate: true,
+  onNeedRefresh() {
+    updateSW(true)
+  },
   onRegisterError(error) {
     console.warn('SW registration failed:', error?.message ?? error)
   },
