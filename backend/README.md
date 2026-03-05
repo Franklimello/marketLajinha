@@ -58,6 +58,13 @@ export FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"...", .
 
 Se `GOOGLE_APPLICATION_CREDENTIALS` ou `FIREBASE_SERVICE_ACCOUNT` não estiverem definidos, a API sobe normalmente, mas as rotas que exigem autenticação retornarão **401** (token não será validado).
 
+### 3. Variáveis recomendadas de segurança
+
+- `JWT_SECRET`: segredo usado para tokens de motoboy (**obrigatório em produção**).
+- `JWT_LEGACY_SECRET`: segredo legado aceito para validação durante migração de chave.
+- `ALLOW_DATABASE_URL_JWT_FALLBACK`: fallback legado para `DATABASE_URL` (`true` por padrão para compatibilidade; recomendado `false` após migração).
+- `SOCKET_ALLOW_LEGACY_JOIN`: permite entrada em salas Socket.IO sem token (`false` recomendado em produção; em desenvolvimento o default é `true`).
+
 ## Executar o servidor
 
 ```bash

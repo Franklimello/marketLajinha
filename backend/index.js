@@ -6,7 +6,7 @@
 require('dotenv').config();
 
 // ── Validação de variáveis obrigatórias ──
-const REQUIRED_ENV = ['DATABASE_URL'];
+const REQUIRED_ENV = process.env.NODE_ENV === 'test' ? [] : ['DATABASE_URL'];
 const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
 if (missing.length > 0) {
   console.error(`FATAL: Variáveis de ambiente obrigatórias não definidas: ${missing.join(', ')}`);
@@ -32,6 +32,8 @@ const { startCachePrewarmJob } = require('./jobs/cachePrewarmJob');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const IS_PROD = process.env.NODE_ENV === 'production';
+let activeServer = null;
+let shutdownHandlersBound = false;
 
 // Em produção atrás de proxy (Railway/Nginx), usa o IP real do cliente no rate limit.
 if (IS_PROD) app.set('trust proxy', 1);
@@ -132,26 +134,52 @@ app.use(routes);
 // ── Error handler ──
 app.use(errorHandler);
 
-// ── Exportar app para testes ──
-module.exports = app;
-
-// ── HTTP Server + Socket.io ──
-const server = http.createServer(app);
-initSocket(server, allowedOrigins);
-
-// ── Graceful shutdown ──
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}] (WebSocket ativo)`);
-  startWeeklyReportJob();
-  startStoriesExpirationJob();
-  startCachePrewarmJob();
-});
-
-function gracefulShutdown(signal) {
-  console.log(`${signal} recebido. Encerrando...`);
-  const r = getRedis();
-  if (r) r.quit().catch(() => { });
-  server.close(() => process.exit(0));
+function createHttpServer() {
+  const server = http.createServer(app);
+  initSocket(server, allowedOrigins);
+  return server;
 }
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+function bindShutdownHandlers() {
+  if (shutdownHandlersBound) return;
+  shutdownHandlersBound = true;
+
+  function gracefulShutdown(signal) {
+    console.log(`${signal} recebido. Encerrando...`);
+    const r = getRedis();
+    if (r) r.quit().catch(() => { });
+    if (activeServer) {
+      activeServer.close(() => process.exit(0));
+      return;
+    }
+    process.exit(0);
+  }
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}
+
+function startServer() {
+  if (activeServer) return activeServer;
+
+  const server = createHttpServer();
+  activeServer = server;
+  bindShutdownHandlers();
+
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor marcket rodando em http://0.0.0.0:${PORT} [${IS_PROD ? 'PROD' : 'DEV'}] (WebSocket ativo)`);
+    startWeeklyReportJob();
+    startStoriesExpirationJob();
+    startCachePrewarmJob();
+  });
+
+  return server;
+}
+
+module.exports = app;
+module.exports.startServer = startServer;
+module.exports.createHttpServer = createHttpServer;
+
+if (require.main === module) {
+  startServer();
+}

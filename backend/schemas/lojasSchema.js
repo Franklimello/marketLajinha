@@ -61,14 +61,8 @@ const schemaLojasPut = z.object({
   aberta: z.boolean().optional(),
   forcar_status: z.boolean().optional(),
   vencimento: z.union([z.string().datetime(), z.string()]).optional(),
-}).superRefine((data, ctx) => {
-  if (typeof data.cidade !== 'string' || !data.cidade.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['cidade'],
-      message: 'Cidade é obrigatória',
-    });
-  }
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'Informe ao menos um campo para atualização.',
 });
 
 module.exports = { schemaLojas, schemaLojasPut };

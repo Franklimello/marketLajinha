@@ -305,7 +305,7 @@ function ChatPedido({ pedidoId, socketRef }) {
 }
 
 export default function PedidosPage() {
-  const { logado, carregando: authCarregando, cliente, setPedidosAtivos } = useAuth()
+  const { logado, carregando: authCarregando, cliente, firebaseUser, setPedidosAtivos } = useAuth()
   const [pedidos, setPedidos] = useState([])
   const [carregando, setCarregando] = useState(true)
   const socketRef = useRef(null)
@@ -331,13 +331,39 @@ export default function PedidosPage() {
   useEffect(() => { carregar() }, [carregar])
 
   useEffect(() => {
+    if (authCarregando || !logado) return undefined
+    const timer = setInterval(() => { carregar() }, 15000)
+    return () => clearInterval(timer)
+  }, [authCarregando, logado, carregar])
+
+  useEffect(() => {
     if (!cliente?.id) return
 
-    const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
+    let fechado = false
+    const socket = io(API_BASE, {
+      transports: ['websocket', 'polling'],
+      autoConnect: false,
+    })
     socketRef.current = socket
 
+    async function conectarSocket() {
+      const token = await firebaseUser?.getIdToken?.().catch(() => null)
+      if (fechado) return
+      socket.auth = token ? { token } : {}
+      socket.connect()
+    }
+    conectarSocket()
+
+    socket.io.on('reconnect_attempt', () => {
+      firebaseUser?.getIdToken?.().then((token) => {
+        socket.auth = token ? { token } : {}
+      }).catch(() => {
+        socket.auth = {}
+      })
+    })
+
     socket.on('connect', () => {
-      socket.emit('join:cliente', cliente.id)
+      socket.emit('join:cliente', { clienteId: cliente.id })
     })
 
     socket.on('pedido:atualizado', (pedidoAtualizado) => {
@@ -348,8 +374,11 @@ export default function PedidosPage() {
       })
     })
 
-    return () => { socket.disconnect() }
-  }, [cliente?.id])
+    return () => {
+      fechado = true
+      socket.disconnect()
+    }
+  }, [cliente?.id, firebaseUser])
 
   if (authCarregando || carregando) {
     return (

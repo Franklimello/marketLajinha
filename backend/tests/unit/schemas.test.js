@@ -46,7 +46,7 @@ describe('Schema: Lojas', () => {
     expect(result.success).toBe(true);
   });
 
-  test('PUT schema rejeita payload sem cidade', () => {
+  test('PUT schema rejeita payload sem campos', () => {
     const result = schemaLojasPut.safeParse({});
     expect(result.success).toBe(false);
   });

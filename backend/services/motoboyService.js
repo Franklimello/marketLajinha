@@ -2,10 +2,30 @@ const { prisma } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.DATABASE_URL;
+const JWT_SECRET = String(process.env.JWT_SECRET || '').trim();
+const JWT_LEGACY_SECRET = String(process.env.JWT_LEGACY_SECRET || '').trim();
+const ALLOW_DATABASE_URL_JWT_FALLBACK = String(
+  process.env.ALLOW_DATABASE_URL_JWT_FALLBACK || 'true'
+).toLowerCase() === 'true';
+const DATABASE_URL_SECRET = String(process.env.DATABASE_URL || '').trim();
+const DATABASE_URL_FALLBACK_SECRET = ALLOW_DATABASE_URL_JWT_FALLBACK ? DATABASE_URL_SECRET : '';
+
+const SIGNING_SECRET = JWT_SECRET || JWT_LEGACY_SECRET || DATABASE_URL_FALLBACK_SECRET;
+const VERIFY_SECRETS = [...new Set([JWT_SECRET, JWT_LEGACY_SECRET, DATABASE_URL_FALLBACK_SECRET].filter(Boolean))];
 const JWT_EXPIRES = '24h';
 
 const SALT_ROUNDS = 10;
+
+if (!JWT_SECRET && DATABASE_URL_FALLBACK_SECRET) {
+  console.warn('[MOTOBOY_AUTH] JWT_SECRET não definido. Fallback em DATABASE_URL ativo (modo legado).');
+}
+
+function ensureJwtReady() {
+  if (SIGNING_SECRET) return;
+  const err = new Error('Configuração de autenticação de motoboy ausente. Defina JWT_SECRET.');
+  err.status = 503;
+  throw err;
+}
 
 async function listarPorLoja(lojaId) {
   return prisma.motoboy.findMany({
@@ -55,6 +75,8 @@ async function excluir(id) {
 }
 
 async function login(email, senha) {
+  ensureJwtReady();
+
   const motoboy = await prisma.motoboy.findFirst({
     where: { email: email.toLowerCase().trim() },
     include: { loja: { select: { id: true, nome: true, slug: true, ativa: true } } },
@@ -87,7 +109,7 @@ async function login(email, senha) {
 
   const token = jwt.sign(
     { motoboyId: motoboy.id, lojaId: motoboy.loja_id, role: 'MOTOBOY' },
-    JWT_SECRET,
+    SIGNING_SECRET,
     { expiresIn: JWT_EXPIRES }
   );
 
@@ -103,7 +125,16 @@ async function login(email, senha) {
 }
 
 function verificarToken(token) {
-  return jwt.verify(token, JWT_SECRET);
+  ensureJwtReady();
+  let lastErr = null;
+  for (const secret of VERIFY_SECRETS) {
+    try {
+      return jwt.verify(token, secret);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Token inválido.');
 }
 
 async function listarPedidos(lojaId) {

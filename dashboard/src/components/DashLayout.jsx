@@ -109,12 +109,32 @@ export default function DashLayout() {
     carregarPedidosEmBackground()
     pollingRef.current = setInterval(() => carregarPedidosEmBackground(), 5000)
 
-    const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
+    let fechado = false
+    const socket = io(API_BASE, {
+      transports: ['websocket', 'polling'],
+      autoConnect: false,
+    })
     socketPedidosRef.current = socket
+
+    async function conectarSocket() {
+      const token = await user?.getIdToken?.().catch(() => null)
+      if (fechado) return
+      socket.auth = token ? { token } : {}
+      socket.connect()
+    }
+    conectarSocket()
+
+    socket.io.on('reconnect_attempt', () => {
+      user?.getIdToken?.().then((token) => {
+        socket.auth = token ? { token } : {}
+      }).catch(() => {
+        socket.auth = {}
+      })
+    })
 
     socket.on('connect', () => {
       setWsPedidosConectado(true)
-      socket.emit('join:loja', loja.id)
+      socket.emit('join:loja', { lojaId: loja.id })
     })
     socket.on('disconnect', () => setWsPedidosConectado(false))
 
@@ -137,11 +157,12 @@ export default function DashLayout() {
     })
 
     return () => {
+      fechado = true
       clearInterval(pollingRef.current)
       socket.disconnect()
       setWsPedidosConectado(false)
     }
-  }, [loja?.id, registrarNovoPedido, carregarPedidosEmBackground])
+  }, [loja?.id, user, registrarNovoPedido, carregarPedidosEmBackground])
 
   function irParaPedidos() {
     setAlertaPedidosIds([])

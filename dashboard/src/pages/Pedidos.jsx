@@ -190,7 +190,7 @@ function getRiscoAlerta(pedido) {
 }
 
 export default function Pedidos() {
-  const { loja } = useAuth()
+  const { loja, user } = useAuth()
   const [pedidos, setPedidos] = useState([])
   const [contadores, setContadores] = useState({
     ATIVOS: 0,
@@ -300,12 +300,32 @@ export default function Pedidos() {
 
     intervaloRef.current = setInterval(() => carregarPedidos(true), 15000)
 
-    const socket = io(API_BASE, { transports: ['websocket', 'polling'] })
+    let fechado = false
+    const socket = io(API_BASE, {
+      transports: ['websocket', 'polling'],
+      autoConnect: false,
+    })
     socketRef.current = socket
+
+    async function conectarSocket() {
+      const token = await user?.getIdToken?.().catch(() => null)
+      if (fechado) return
+      socket.auth = token ? { token } : {}
+      socket.connect()
+    }
+    conectarSocket()
+
+    socket.io.on('reconnect_attempt', () => {
+      user?.getIdToken?.().then((token) => {
+        socket.auth = token ? { token } : {}
+      }).catch(() => {
+        socket.auth = {}
+      })
+    })
 
     socket.on('connect', () => {
       setWsConectado(true)
-      socket.emit('join:loja', loja.id)
+      socket.emit('join:loja', { lojaId: loja.id })
     })
 
     socket.on('disconnect', () => setWsConectado(false))
@@ -346,10 +366,11 @@ export default function Pedidos() {
     }).catch(() => {})
 
     return () => {
+      fechado = true
       clearInterval(intervaloRef.current)
       socket.disconnect()
     }
-  }, [loja, carregarPedidos])
+  }, [loja, user, carregarPedidos])
 
   useEffect(() => {
     if (!loja) return
