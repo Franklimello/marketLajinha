@@ -266,7 +266,7 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
             <button
               key={p.id}
               onClick={() => onAdd(p)}
-              className="group snap-start shrink-0 w-[132px] text-left rounded-2xl border border-white/75 bg-white/80 backdrop-blur-sm p-2 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.9)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_36px_-22px_rgba(220,38,38,0.4)]"
+              className="group snap-start shrink-0 w-[132px] text-left rounded-xl border border-stone-200 bg-white p-2 transition-all hover:-translate-y-0.5"
             >
               <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
                 <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -341,7 +341,7 @@ const HorizontalCards = memo(function HorizontalCards({ items, renderItem, cardS
             type="button"
             onClick={() => mover(-1)}
             disabled={!canPrev}
-            className="absolute left-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 border border-white/80 text-stone-700 shadow-[0_12px_26px_-18px_rgba(15,23,42,0.95)] backdrop-blur-md disabled:opacity-35 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors hover:bg-white"
+            className="absolute left-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-700 disabled:opacity-35 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors hover:bg-stone-50"
             aria-label="Voltar no carrossel"
           >
             <FiChevronLeft size={16} />
@@ -350,7 +350,7 @@ const HorizontalCards = memo(function HorizontalCards({ items, renderItem, cardS
             type="button"
             onClick={() => mover(1)}
             disabled={!canNext}
-            className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 border border-white/80 text-stone-700 shadow-[0_12px_26px_-18px_rgba(15,23,42,0.95)] backdrop-blur-md disabled:opacity-35 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors hover:bg-white"
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-700 disabled:opacity-35 disabled:cursor-not-allowed inline-flex items-center justify-center transition-colors hover:bg-stone-50"
             aria-label="Avançar no carrossel"
           >
             <FiChevronRight size={16} />
@@ -1877,7 +1877,7 @@ export default function LojaPage() {
         </button>
 
         {p.imagem_url && (
-          <div className="mx-3 mt-[calc(env(safe-area-inset-top)+0.75rem)] h-[17rem] rounded-[2rem] border border-white/80 bg-linear-to-b from-stone-100 to-stone-200 overflow-hidden flex items-center justify-center shadow-[0_24px_42px_-28px_rgba(15,23,42,0.85)]">
+          <div className="mx-3 mt-[calc(env(safe-area-inset-top)+0.75rem)] h-68 rounded-4xl border border-white/80 bg-linear-to-b from-stone-100 to-stone-200 overflow-hidden flex items-center justify-center shadow-[0_24px_42px_-28px_rgba(15,23,42,0.85)]">
             <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover" />
           </div>
         )}
@@ -2153,8 +2153,8 @@ export default function LojaPage() {
   return (
     <div className={`store-page-shell relative max-w-xl mx-auto pb-28 overflow-x-hidden transition-all duration-300 ease-out ${pageTransitionClass}`}>
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-linear-to-b from-red-100/80 via-amber-50/70 to-transparent" />
-      <div className="pointer-events-none absolute -top-14 right-[-6rem] -z-10 h-72 w-72 rounded-full bg-red-300/25 blur-3xl" />
-      <div className="pointer-events-none absolute top-44 left-[-7rem] -z-10 h-72 w-72 rounded-full bg-orange-200/25 blur-3xl" />
+      <div className="pointer-events-none absolute -top-14 -right-24 -z-10 h-72 w-72 rounded-full bg-red-300/25 blur-3xl" />
+      <div className="pointer-events-none absolute top-44 -left-28 -z-10 h-72 w-72 rounded-full bg-orange-200/25 blur-3xl" />
       {loja && (
         <SEO
           title={loja.nome}
@@ -2167,14 +2167,14 @@ export default function LojaPage() {
       )}
       <Link
         to="/"
-        className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.9rem)] z-30 w-11 h-11 bg-white/80 backdrop-blur-xl rounded-2xl border border-white/80 flex items-center justify-center shadow-[0_20px_34px_-24px_rgba(15,23,42,0.95)] text-stone-700 transition-all hover:scale-[1.03] hover:bg-white"
+        className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.9rem)] z-30 w-11 h-11 bg-white/95 rounded-xl border border-stone-200 flex items-center justify-center text-stone-700 transition-all hover:bg-white"
         aria-label="Voltar para lojas"
       >
         <FiChevronLeft />
       </Link>
 
       {/* Banner */}
-      <div className="relative w-full h-72 bg-stone-200 overflow-hidden rounded-b-[2rem] border border-white/45 shadow-[0_28px_58px_-40px_rgba(15,23,42,0.85)]">
+      <div className="relative w-full h-72 bg-stone-200 overflow-hidden rounded-b-4xl border border-white/45 shadow-[0_28px_58px_-40px_rgba(15,23,42,0.85)]">
         {String(loja.banner_url || '').trim() ? (
           <img
             src={loja.banner_url}
@@ -2217,7 +2217,7 @@ export default function LojaPage() {
           type="button"
           onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)}
           disabled={notaMedia.total === 0}
-          className={`absolute left-3 top-2 inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-sm font-bold shadow-[0_14px_24px_-16px_rgba(15,23,42,0.45)] ${
+          className={`absolute left-3 top-2 inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-sm font-bold ${
             notaMedia.total > 0
               ? 'bg-amber-400 text-white'
               : 'bg-stone-200 text-stone-500'
@@ -2228,13 +2228,13 @@ export default function LojaPage() {
           {notaMedia.total > 0 && <FiChevronRight className={`text-[12px] transition-transform ${showAvaliacoes ? 'rotate-90' : ''}`} />}
         </button>
 
-        <div className="relative rounded-[1.5rem] border border-white/80 bg-white/94 px-4 pt-4 pb-3.5 shadow-[0_30px_52px_-40px_rgba(15,23,42,0.95)]">
-          <div className="absolute -top-12 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-[0_22px_36px_-22px_rgba(15,23,42,0.8)] md:hidden">
+        <div className="relative rounded-2xl border border-stone-200 bg-white px-4 pt-4 pb-3.5">
+          <div className="absolute -top-12 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white md:hidden">
             <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
             <div className="w-full h-full items-center justify-center text-xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
           </div>
 
-          <h1 className="pr-24 md:pr-0 text-[clamp(1.55rem,6.2vw,2.2rem)] font-black text-stone-900 leading-[1.05] tracking-tight break-words">{loja.nome}</h1>
+          <h1 className="pr-24 md:pr-0 text-[clamp(1.55rem,6.2vw,2.2rem)] font-black text-stone-900 leading-[1.05] tracking-tight wrap-break-word">{loja.nome}</h1>
           <p className="pr-24 md:pr-0 mt-1 text-[11px] font-medium text-stone-500">
             {loja.cidade ? `${loja.cidade} · ` : ''}{aceitaEntrega ? 'delivery' : 'retirada'}
           </p>
@@ -2288,7 +2288,7 @@ export default function LojaPage() {
       {/* Avaliações */}
       {showAvaliacoes && avaliacoes.length > 0 && (
         <div className="px-4 pb-3">
-          <div className="bg-white/92 backdrop-blur-sm rounded-xl border border-stone-200 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.85)] p-3.5">
+          <div className="bg-white rounded-xl border border-stone-200 p-3.5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-stone-900">Avaliações</h3>
               <div className="flex items-center gap-1">
@@ -2299,7 +2299,7 @@ export default function LojaPage() {
             </div>
             <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
               {avaliacoes.map((a) => (
-                <div key={a.id} className="rounded-xl border border-stone-100 bg-stone-50/80 p-2.5 last:border-stone-100">
+                <div key={a.id} className="rounded-lg border border-stone-100 bg-stone-50/70 p-2.5 last:border-stone-100">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-stone-700">{a.cliente?.nome || 'Cliente'}</span>
                     <div className="flex gap-0.5">
@@ -2318,13 +2318,13 @@ export default function LojaPage() {
 
       {/* Pedido mínimo */}
       {Number(loja.pedido_minimo || 0) > 0 && totalItens > 0 && subtotal < Number(loja.pedido_minimo) && (
-        <div className="mx-4 mb-2.5 bg-linear-to-r from-red-50 to-amber-50 border border-red-200 rounded-xl p-2.5 text-center shadow-[0_16px_26px_-24px_rgba(220,38,38,0.9)]">
+        <div className="mx-4 mb-2.5 bg-red-50 border border-red-200 rounded-xl p-2.5 text-center">
           <p className="text-xs text-red-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — faltam R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}</p>
         </div>
       )}
 
       {!aberta && (
-        <div className="mx-4 mb-3 bg-stone-100/90 border border-stone-200 rounded-xl p-3 text-center shadow-[0_16px_26px_-24px_rgba(15,23,42,0.85)]">
+        <div className="mx-4 mb-3 bg-stone-100/90 border border-stone-200 rounded-xl p-3 text-center">
           <p className="text-stone-600 font-medium text-sm">Loja fechada no momento</p>
           <p className="text-stone-400 text-xs mt-0.5">
             {(() => {
@@ -2345,7 +2345,7 @@ export default function LojaPage() {
 
       <div className="mx-4 h-px bg-linear-to-r from-transparent via-stone-200/70 to-transparent" />
 
-      <div className={`mx-4 mt-3 rounded-[1.4rem] border border-white/75 bg-white/82 backdrop-blur-xl px-3.5 pt-3.5 pb-4 shadow-[0_28px_52px_-44px_rgba(15,23,42,0.95)] ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`mx-4 mt-3 border-t border-stone-200 px-0 pt-3.5 pb-4 ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
         {!produtosCarregando && categoriaSel === null && Array.isArray(promocoes) && promocoes.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-3">
@@ -2361,7 +2361,7 @@ export default function LojaPage() {
                   key={promo.id}
                   type="button"
                   onClick={() => abrirProdutoDaPromocao(promo)}
-                  className="group snap-start shrink-0 w-[132px] text-left rounded-2xl border border-white/75 bg-white/85 p-2 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.9)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_38px_-24px_rgba(220,38,38,0.4)]"
+                  className="group snap-start shrink-0 w-[132px] text-left rounded-xl border border-stone-200 bg-white p-2 transition-all hover:-translate-y-0.5"
                 >
                   {(promo.imagem_url || promo.produto?.imagem_url) ? (
                     <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
@@ -2411,7 +2411,7 @@ export default function LojaPage() {
           <div className="space-y-2">
             <div className="skeleton h-5 rounded w-24 mb-3" />
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white/90 rounded-2xl border border-white/85 p-3 shadow-[0_16px_26px_-24px_rgba(15,23,42,0.85)]">
+              <div key={i} className="flex items-center gap-3 bg-white rounded-xl border border-stone-200 p-3">
                 <div className="flex-1 space-y-2">
                   <div className="skeleton h-4 rounded w-3/4" />
                   <div className="skeleton h-3 rounded w-full" />
@@ -2447,7 +2447,7 @@ export default function LojaPage() {
                 const economia = original - Number(c.preco)
                 const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
                 return (
-                  <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50/95 via-white to-amber-50/95 rounded-2xl border border-white/85 shadow-[0_20px_36px_-26px_rgba(15,23,42,0.9)] overflow-hidden">
+                  <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50/95 via-white to-amber-50/95 rounded-2xl border border-stone-200 overflow-hidden">
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h3 className="text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
@@ -2472,7 +2472,7 @@ export default function LojaPage() {
                         </div>
                         <button
                           onClick={(e) => addComboAoCarrinho(c, e.currentTarget)}
-                          className="w-9 h-9 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 active:scale-95 transition-all shadow-[0_14px_24px_-16px_rgba(220,38,38,0.95)]"
+                          className="w-9 h-9 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 active:scale-95 transition-all"
                         >
                           <FiPlus size={18} />
                         </button>
@@ -2493,7 +2493,7 @@ export default function LojaPage() {
                 value={buscaProdutoLoja}
                 onChange={(e) => { setBuscaProdutoLoja(e.target.value); setCategoriaSel(null) }}
                 placeholder="Buscar produto pelo nome"
-                className="w-full pl-9 pr-3.5 py-3 rounded-xl border border-white/85 bg-white/90 backdrop-blur-sm text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.95)]"
+                className="w-full pl-9 pr-3.5 py-3 rounded-xl border border-stone-200 bg-white text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
               />
             </div>
           </div>
@@ -2516,7 +2516,7 @@ export default function LojaPage() {
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
-                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-white/85 bg-white/90 hover:-translate-y-0.5 hover:border-red-100 active:scale-[0.99] hover:shadow-[0_24px_44px_-30px_rgba(220,38,38,0.35)]'}`}>
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-stone-200 bg-white hover:-translate-y-0.5 hover:border-red-200 active:scale-[0.99]'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
@@ -2542,10 +2542,10 @@ export default function LojaPage() {
                         loading={idx < 6 ? 'eager' : 'lazy'}
                         fetchPriority={idx < 4 ? 'high' : 'auto'}
                         decoding={idx < 4 ? 'sync' : 'async'}
-                        className="w-[76px] h-[76px] rounded-2xl object-cover shrink-0 border border-white/90 shadow-[0_16px_24px_-20px_rgba(15,23,42,0.9)]"
+                        className="w-[76px] h-[76px] rounded-2xl object-cover shrink-0 border border-stone-200"
                       />
                     )}
-                    {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shrink-0 ring-2 ring-white shadow-[0_10px_18px_-12px_rgba(220,38,38,0.9)]">{qtd}</span>}
+                    {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shrink-0 ring-2 ring-white">{qtd}</span>}
                   </button>
                 )
               })}
@@ -2566,7 +2566,7 @@ export default function LojaPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoriaSel(cat)}
-                    className="group w-full h-full bg-linear-to-br from-white to-red-50/45 rounded-xl border border-white/85 p-3 hover:border-red-200 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_22px_36px_-30px_rgba(15,23,42,0.8)]"
+                    className="group w-full h-full bg-linear-to-br from-white to-red-50/45 rounded-xl border border-stone-200 p-3 hover:border-red-200 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 text-left"
                   >
                     <div className="h-full flex flex-col">
                       <div className="flex-1 min-w-0">
@@ -2603,7 +2603,7 @@ export default function LojaPage() {
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
-                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-white/85 bg-white/90 hover:-translate-y-0.5 hover:border-red-100 active:scale-[0.99] hover:shadow-[0_24px_44px_-30px_rgba(220,38,38,0.35)]'}`}>
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-stone-200 bg-white hover:-translate-y-0.5 hover:border-red-200 active:scale-[0.99]'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
@@ -2636,10 +2636,10 @@ export default function LojaPage() {
                         loading={idx < 6 ? 'eager' : 'lazy'}
                         fetchPriority={idx < 4 ? 'high' : 'auto'}
                         decoding={idx < 4 ? 'sync' : 'async'}
-                        className="w-[76px] h-[76px] rounded-2xl object-cover shrink-0 border border-white/90 shadow-[0_16px_24px_-20px_rgba(15,23,42,0.9)]"
+                        className="w-[76px] h-[76px] rounded-2xl object-cover shrink-0 border border-stone-200"
                       />
                     )}
-                    {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shrink-0 ring-2 ring-white shadow-[0_10px_18px_-12px_rgba(220,38,38,0.9)]">{qtd}</span>}
+                    {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shrink-0 ring-2 ring-white">{qtd}</span>}
                   </button>
                 )
               })}
@@ -2651,8 +2651,8 @@ export default function LojaPage() {
 
       {totalItens > 0 && aberta && (
         <div className="fixed bottom-16 left-0 right-0 z-60 px-4 pb-2">
-          <div className="mx-auto max-w-xl rounded-2xl border border-white/70 bg-white/55 backdrop-blur-xl p-2 shadow-[0_26px_52px_-34px_rgba(15,23,42,0.9)]">
-            <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-5 py-3 rounded-xl border border-red-400/40 shadow-[0_22px_48px_-30px_rgba(220,38,38,0.95)] hover:from-red-700 hover:to-red-600 transition-all">
+          <div className="mx-auto max-w-xl rounded-xl border border-stone-200 bg-white p-2">
+            <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-5 py-3 rounded-xl border border-red-400/40 hover:from-red-700 hover:to-red-600 transition-all">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
             <span className="font-bold font-numeric">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>
@@ -2667,7 +2667,7 @@ export default function LojaPage() {
           onClick={() => setShowInfo(false)}
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl border border-stone-200 shadow-2xl p-4 max-h-[80vh] overflow-y-auto"
+            className="w-full max-w-md bg-white rounded-2xl border border-stone-200 p-4 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
@@ -2709,7 +2709,7 @@ export default function LojaPage() {
 
       {showSubmitOverlay && (
         <div className="fixed inset-0 z-120 bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-stone-200 p-4">
+          <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-200 p-4">
             <p className="text-sm font-bold text-stone-900 mb-3">Finalizando pedido</p>
             <div className="relative h-2 rounded-full bg-stone-200 overflow-hidden mb-4">
               <div
