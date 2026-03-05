@@ -2158,29 +2158,29 @@ export default function LojaPage() {
         {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
-      <div className="mx-4 mt-3 md:-mt-12 px-4 pt-4 pb-4 relative z-20 rounded-[1.8rem] border border-white/70 bg-white/86 backdrop-blur-xl shadow-[0_30px_54px_-42px_rgba(15,23,42,0.95)]">
-        <h1 className="text-[1.7rem] font-black text-stone-900 leading-tight tracking-tight">{loja.nome}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="mx-4 mt-2.5 md:-mt-10 px-3.5 pt-3 pb-3 relative z-20 rounded-[1.55rem] border border-white/70 bg-white/86 backdrop-blur-xl shadow-[0_26px_46px_-38px_rgba(15,23,42,0.95)]">
+        <h1 className="text-[clamp(1.35rem,5.8vw,1.9rem)] font-black text-stone-900 leading-[1.06] tracking-tight line-clamp-2">{loja.nome}</h1>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {loja.cidade && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-100/80 px-2.5 py-1 text-[11px] font-semibold text-stone-600">
-              <FiMapPin className="text-[11px]" />
+            <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-100/80 px-2.5 py-0.5 text-[10px] font-semibold text-stone-600">
+              <FiMapPin className="text-[10px]" />
               {loja.cidade}
             </span>
           )}
-          <span className="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50/80 px-2.5 py-1 text-[11px] font-semibold text-red-700">
-            {aceitaEntrega ? <FiTruck className="text-[11px]" /> : <FiShoppingBag className="text-[11px]" />}
+          <span className="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50/80 px-2.5 py-0.5 text-[10px] font-semibold text-red-700">
+            {aceitaEntrega ? <FiTruck className="text-[10px]" /> : <FiShoppingBag className="text-[10px]" />}
             {aceitaEntrega ? 'Entrega disponível' : 'Retirada no balcão'}
           </span>
           {horaFecha && aberta && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/95 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-              <FiClock className="text-[11px]" />
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/95 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+              <FiClock className="text-[10px]" />
               Fecha às {horaFecha}
             </span>
           )}
         </div>
-        <button onClick={() => setShowInfo(!showInfo)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 mt-3 px-3 py-1.5 rounded-xl border border-stone-200 bg-white/90 hover:text-stone-800 hover:bg-white transition-colors"><FiInfo className="text-[11px]" /> Informações da loja <FiChevronRight className={`text-[10px] transition-transform ${showInfo ? 'rotate-90' : ''}`} /></button>
+        <button onClick={() => setShowInfo(!showInfo)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-600 mt-2.5 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white/90 hover:text-stone-800 hover:bg-white transition-colors"><FiInfo className="text-[10px]" /> Informações da loja <FiChevronRight className={`text-[10px] transition-transform ${showInfo ? 'rotate-90' : ''}`} /></button>
         {showInfo && (
-          <div className="mt-3 bg-white/90 backdrop-blur-sm rounded-2xl border border-stone-200 p-3 text-xs text-stone-500 space-y-1.5 shadow-[0_14px_24px_-20px_rgba(15,23,42,0.9)] animate-fade-in-up">
+          <div className="mt-2.5 bg-white/90 backdrop-blur-sm rounded-xl border border-stone-200 p-2.5 text-[11px] text-stone-500 space-y-1 shadow-[0_14px_24px_-20px_rgba(15,23,42,0.9)] animate-fade-in-up">
             <p><strong>Categoria:</strong> {loja.categoria_negocio}</p>
             <p><strong>Cidade:</strong> {loja.cidade}</p>
             {loja.endereco && <p><strong>Endereço:</strong> {loja.endereco}</p>}
@@ -2204,16 +2204,16 @@ export default function LojaPage() {
         )}
       </div>
 
-      <div className="px-4 pb-5">
-        <div className="grid grid-cols-2 gap-2.5 rounded-3xl border border-white/70 bg-white/82 backdrop-blur-md p-2.5 shadow-[0_24px_50px_-42px_rgba(15,23,42,0.95)]">
-          <button onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)} className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5 transition-colors hover:border-yellow-200 hover:bg-yellow-50/60">
-            <div className="flex items-center gap-1 text-xs"><FiStar className="text-yellow-500 text-[11px]" /><span className="font-semibold text-stone-800">{notaMedia.media > 0 ? notaMedia.media.toFixed(1) : 'Novo'}</span></div>
+      <div className="px-4 pb-4">
+        <div className="grid grid-cols-2 gap-2 rounded-[1.6rem] border border-white/70 bg-white/82 backdrop-blur-md p-2 shadow-[0_24px_50px_-42px_rgba(15,23,42,0.95)]">
+          <button onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)} className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1 transition-colors hover:border-yellow-200 hover:bg-yellow-50/60">
+            <div className="flex items-center gap-1 text-[13px]"><FiStar className="text-yellow-500 text-[11px]" /><span className="font-semibold text-stone-800">{notaMedia.media > 0 ? notaMedia.media.toFixed(1) : 'Novo'}</span></div>
             <span className="text-[10px] text-stone-400">{notaMedia.total > 0 ? `${notaMedia.total} avaliação${notaMedia.total !== 1 ? 'ões' : ''}` : 'sem notas'}</span>
           </button>
-          <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5"><div className="flex items-center gap-1 text-xs"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
-          <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
-          <div className="rounded-2xl border border-stone-200/75 bg-white/80 px-2 py-3 flex flex-col items-center gap-1.5">
-            <div className="flex items-center gap-1 text-xs">
+          <div className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1"><div className="flex items-center gap-1 text-[13px]"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
+          <div className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1"><div className="flex items-center gap-1 text-[13px]"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
+          <div className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1 text-[13px]">
               {aceitaEntrega ? <FiTruck className="text-red-500 text-[11px]" /> : <FiShoppingBag className="text-red-500 text-[11px]" />}
               <span className="font-semibold text-stone-800">
                 {aceitaEntrega ? (taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(0)}`) : 'Balcão'}
