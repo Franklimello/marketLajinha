@@ -162,6 +162,7 @@ model AdicionalProduto {
   produto_id String
   nome       String
   preco      Decimal
+  imagem_url String  @default("")
   grupo_nome String  @default("Complementos")
   grupo_min  Int     @default(0)
   grupo_max  Int     @default(99)

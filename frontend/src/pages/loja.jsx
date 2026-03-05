@@ -2012,27 +2012,39 @@ export default function LojaPage() {
                       const sel = adicionaisSel.includes(a.id)
                       const countItem = sel ? 1 : 0
                       const podeAdicionar = countGrupo < maxGrupo
+                      const imagemSabor = ehPizza && a.is_sabor ? String(a.imagem_url || '').trim() : ''
                       return (
-                        <div key={a.id} className={`flex items-center justify-between py-2.5 px-2 rounded-xl mb-1 border ${sel ? 'bg-emerald-50/65 border-emerald-200' : 'bg-white border-stone-200'}`}>
-                          <div className="flex items-center gap-2">
+                        <div key={a.id} className={`flex items-center justify-between gap-2 py-2.5 px-2 rounded-xl mb-1 border ${sel ? 'bg-emerald-50/65 border-emerald-200' : 'bg-white border-stone-200'}`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {imagemSabor && (
+                              <img
+                                src={imagemSabor}
+                                alt={a.nome}
+                                loading="lazy"
+                                className="w-11 h-11 shrink-0 rounded-lg border border-stone-200 object-cover"
+                                onError={(e) => { e.currentTarget.style.display = 'none' }}
+                              />
+                            )}
                             <button
                               onClick={() => toggleAdicionalComRegra(a, grupo, 'remover')}
                               disabled={!sel}
-                              className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
+                              className="w-7 h-7 shrink-0 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
                             >
                               <FiMinus size={12} />
                             </button>
-                            <span className="w-4 text-center text-sm text-stone-600">{countItem}</span>
+                            <span className="w-4 shrink-0 text-center text-sm text-stone-600">{countItem}</span>
                             <button
                               onClick={() => toggleAdicionalComRegra(a, grupo, 'adicionar')}
                               disabled={!podeAdicionar && !sel}
-                              className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
+                              className="w-7 h-7 shrink-0 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
                             >
                               <FiPlus size={12} />
                             </button>
-                            <span className="text-sm text-stone-800">{a.nome}</span>
+                            <span className="text-sm text-stone-800 truncate">{a.nome}</span>
                           </div>
-                          <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {getPrecoAdicionalPorVariacao(a, varSel).toFixed(2).replace('.', ',')}</span>
+                          <div className="shrink-0">
+                            <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {getPrecoAdicionalPorVariacao(a, varSel).toFixed(2).replace('.', ',')}</span>
+                          </div>
                         </div>
                       )
                     })}

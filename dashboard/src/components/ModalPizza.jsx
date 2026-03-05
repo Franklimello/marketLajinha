@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
-import { FiCheckCircle, FiAlertCircle, FiChevronLeft, FiChevronRight, FiPlus, FiTrash2 } from 'react-icons/fi'
+import { uploadImagem } from '../config/firebase'
+import { FiAlertCircle, FiCamera, FiCheckCircle, FiChevronLeft, FiChevronRight, FiImage, FiPlus, FiTrash2 } from 'react-icons/fi'
 
 const TAMANHOS_INICIAIS = [
   { nome: 'Broto', permiteMeio: false },
@@ -23,6 +24,22 @@ function criarPrecosIniciais(tamanhos = []) {
   return precos
 }
 
+function slugArquivo(valor, fallback = 'sabor') {
+  const texto = String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return texto || fallback
+}
+
+function limparBlobUrl(url) {
+  if (typeof url === 'string' && url.startsWith('blob:')) {
+    URL.revokeObjectURL(url)
+  }
+}
+
 function mapProdutoParaPizza(produto) {
   const variacoes = Array.isArray(produto?.variacoes) ? produto.variacoes : []
   const adicionais = Array.isArray(produto?.adicionais) ? produto.adicionais : []
@@ -43,6 +60,9 @@ function mapProdutoParaPizza(produto) {
       return {
         nome: a.nome || '',
         descricao: a.descricao || '',
+        imagem_url: a.imagem_url || '',
+        imagemFile: null,
+        imagemPreview: '',
         precos,
       }
     })
@@ -67,6 +87,8 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
   const [abaAtiva, setAbaAtiva] = useState('info')
+  const fileInputRefs = useRef({})
+  const cameraInputRefs = useRef({})
 
   const quantidadeSaboresMax = useMemo(
     () => pizza.tamanhos.some((t) => t.permiteMeio) && pizza.meioAMeio ? 2 : 1,
@@ -162,6 +184,9 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
         {
           nome: '',
           descricao: '',
+          imagem_url: '',
+          imagemFile: null,
+          imagemPreview: '',
           precos: precosIniciais,
         },
       ],
@@ -170,22 +195,89 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
 
   function atualizarSabor(index, campo, valor) {
     if (erro) setErro('')
-    const novos = [...pizza.sabores]
-    novos[index][campo] = valor
-    setPizza({ ...pizza, sabores: novos })
+    setPizza((prev) => ({
+      ...prev,
+      sabores: prev.sabores.map((sabor, idx) => (
+        idx === index ? { ...sabor, [campo]: valor } : sabor
+      )),
+    }))
   }
 
   function atualizarPreco(index, tamanho, valor) {
     if (erro) setErro('')
-    const novos = [...pizza.sabores]
-    novos[index].precos[tamanho] = valor
-    setPizza({ ...pizza, sabores: novos })
+    setPizza((prev) => ({
+      ...prev,
+      sabores: prev.sabores.map((sabor, idx) => (
+        idx === index
+          ? { ...sabor, precos: { ...sabor.precos, [tamanho]: valor } }
+          : sabor
+      )),
+    }))
+  }
+
+  function selecionarImagemSabor(index, file) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setErro('Selecione um arquivo de imagem valido.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErro('A imagem deve ter no maximo 5 MB.')
+      return
+    }
+    const preview = URL.createObjectURL(file)
+    setPizza((prev) => ({
+      ...prev,
+      sabores: prev.sabores.map((sabor, idx) => {
+        if (idx !== index) return sabor
+        limparBlobUrl(sabor.imagemPreview)
+        return {
+          ...sabor,
+          imagemFile: file,
+          imagemPreview: preview,
+        }
+      }),
+    }))
+    setErro('')
+  }
+
+  function handleFileChangeSabor(index, event) {
+    const file = event.target.files?.[0]
+    selecionarImagemSabor(index, file)
+  }
+
+  function removerImagemSabor(index) {
+    setPizza((prev) => ({
+      ...prev,
+      sabores: prev.sabores.map((sabor, idx) => {
+        if (idx !== index) return sabor
+        limparBlobUrl(sabor.imagemPreview)
+        return {
+          ...sabor,
+          imagem_url: '',
+          imagemFile: null,
+          imagemPreview: '',
+        }
+      }),
+    }))
+    const galeriaInput = fileInputRefs.current[index]
+    const cameraInput = cameraInputRefs.current[index]
+    if (galeriaInput) galeriaInput.value = ''
+    if (cameraInput) cameraInput.value = ''
   }
 
   function removerSabor(index) {
     setErro('')
-    const novos = pizza.sabores.filter((_, i) => i !== index)
-    setPizza({ ...pizza, sabores: novos })
+    setPizza((prev) => {
+      const alvo = prev.sabores[index]
+      limparBlobUrl(alvo?.imagemPreview)
+      return {
+        ...prev,
+        sabores: prev.sabores.filter((_, i) => i !== index),
+      }
+    })
+    delete fileInputRefs.current[index]
+    delete cameraInputRefs.current[index]
   }
 
   function irParaAba(id) {
@@ -230,49 +322,60 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
       max_sabores: t.permiteMeio && pizza.meioAMeio ? 2 : 1,
     }))
 
-    const adicionais = pizza.sabores.map((s, idx) => ({
-      nome: String(s.nome || '').trim(),
-      descricao: String(s.descricao || '').trim(),
-      ativo: true,
-      preco: 0,
-      is_sabor: true,
-      grupo_nome: 'Escolha os sabores',
-      grupo_min: 1,
-      grupo_max: quantidadeSaboresMax,
-      ordem_grupo: 0,
-      ordem_item: idx,
-      precos_variacoes: pizza.tamanhos.map((t) => ({
-        variacao_nome: normalizarNomeTamanho(t.nome).toUpperCase(),
-        preco: Number(s.precos?.[t.nome] || 0),
-      })),
-    }))
-
-    if (adicionais.some((a) => !a.nome)) {
+    if (pizza.sabores.some((s) => !String(s.nome || '').trim())) {
       setAbaAtiva('sabores')
       setErro('Preencha o nome de todos os sabores.')
       return
     }
 
-    const payload = {
-      loja_id: lojaId,
-      nome: pizza.nome.trim(),
-      descricao: pizza.descricao || '',
-      categoria: 'Pizza',
-      tipo_produto: 'PIZZA',
-      pizza_preco_sabores: 'MAIOR',
-      setor_impressao: 'PIZZARIA',
-      ativo: true,
-      destaque: false,
-      controla_estoque: false,
-      estoque: 0,
-      preco: 0,
-      imagem_url: '',
-      variacoes,
-      adicionais,
-    }
+    const adicionais = []
 
     setSalvando(true)
     try {
+      for (const [idx, sabor] of pizza.sabores.entries()) {
+        let imagemUrl = String(sabor.imagem_url || '').trim()
+        if (sabor.imagemFile) {
+          const nomeArquivo = `${Date.now()}-${idx}-${slugArquivo(sabor.nome || `sabor-${idx + 1}`)}.jpg`
+          const path = `produtos/${lojaId}/pizzas/sabores/${produto?.id || 'novo'}/${nomeArquivo}`
+          imagemUrl = await uploadImagem(sabor.imagemFile, path)
+        }
+        adicionais.push({
+          nome: String(sabor.nome || '').trim(),
+          descricao: String(sabor.descricao || '').trim(),
+          imagem_url: imagemUrl,
+          ativo: true,
+          preco: 0,
+          is_sabor: true,
+          grupo_nome: 'Escolha os sabores',
+          grupo_min: 1,
+          grupo_max: quantidadeSaboresMax,
+          ordem_grupo: 0,
+          ordem_item: idx,
+          precos_variacoes: pizza.tamanhos.map((t) => ({
+            variacao_nome: normalizarNomeTamanho(t.nome).toUpperCase(),
+            preco: Number(sabor.precos?.[t.nome] || 0),
+          })),
+        })
+      }
+
+      const payload = {
+        loja_id: lojaId,
+        nome: pizza.nome.trim(),
+        descricao: pizza.descricao || '',
+        categoria: 'Pizza',
+        tipo_produto: 'PIZZA',
+        pizza_preco_sabores: 'MAIOR',
+        setor_impressao: 'PIZZARIA',
+        ativo: true,
+        destaque: false,
+        controla_estoque: false,
+        estoque: 0,
+        preco: 0,
+        imagem_url: '',
+        variacoes,
+        adicionais,
+      }
+
       const salvo = produto
         ? await api.produtos.atualizar(produto.id, payload)
         : await api.produtos.criar(payload)
@@ -468,49 +571,111 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
               )}
 
               <div className="space-y-3">
-                {pizza.sabores.map((sabor, index) => (
-                  <div key={index} className="border border-stone-200 rounded-xl p-4 space-y-3 bg-stone-50">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-semibold text-stone-800">Sabor {index + 1}</h3>
-                      <button type="button" onClick={() => removerSabor(index)} className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700">
-                        <FiTrash2 className="text-sm" />
-                        Remover
-                      </button>
+                {pizza.sabores.map((sabor, index) => {
+                  const imagemExibida = sabor.imagemPreview || sabor.imagem_url
+                  return (
+                    <div key={index} className="border border-stone-200 rounded-xl p-4 space-y-3 bg-stone-50">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="font-semibold text-stone-800">Sabor {index + 1}</h3>
+                        <button type="button" onClick={() => removerSabor(index)} className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700">
+                          <FiTrash2 className="text-sm" />
+                          Remover
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Nome do sabor"
+                        value={sabor.nome}
+                        onChange={(e) => atualizarSabor(index, 'nome', e.target.value)}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white"
+                      />
+
+                      <textarea
+                        placeholder="Descricao do sabor"
+                        value={sabor.descricao}
+                        onChange={(e) => atualizarSabor(index, 'descricao', e.target.value)}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white"
+                        rows={2}
+                      />
+
+                      <div className="rounded-xl border border-stone-200 bg-white p-3">
+                        <p className="text-xs font-semibold text-stone-700 mb-2">Imagem do sabor (opcional)</p>
+                        <div className="flex items-center gap-3">
+                          {imagemExibida ? (
+                            <img
+                              src={imagemExibida}
+                              alt={sabor.nome || `Sabor ${index + 1}`}
+                              className="h-16 w-16 rounded-lg object-cover border border-stone-200"
+                            />
+                          ) : (
+                            <div className="h-16 w-16 rounded-lg border border-dashed border-stone-300 text-stone-400 flex items-center justify-center bg-stone-50">
+                              <FiImage className="text-lg" />
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => fileInputRefs.current[index]?.click()}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-stone-700"
+                            >
+                              <FiImage className="text-sm" />
+                              Galeria
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => cameraInputRefs.current[index]?.click()}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700"
+                            >
+                              <FiCamera className="text-sm" />
+                              Camera
+                            </button>
+                            {imagemExibida && (
+                              <button
+                                type="button"
+                                onClick={() => removerImagemSabor(index)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600"
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <input
+                          ref={(el) => { fileInputRefs.current[index] = el }}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChangeSabor(index, e)}
+                          className="hidden"
+                        />
+                        <input
+                          ref={(el) => { cameraInputRefs.current[index] = el }}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(e) => handleFileChangeSabor(index, e)}
+                          className="hidden"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {pizza.tamanhos.map((t) => (
+                          <label key={t.nome} className="text-xs text-stone-700">
+                            <span className="block mb-1 font-semibold">{t.nome} (R$)</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={sabor.precos[t.nome] || ''}
+                              onChange={(e) => atualizarPreco(index, t.nome, e.target.value)}
+                              className="w-full px-2.5 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white"
+                            />
+                          </label>
+                        ))}
+                      </div>
                     </div>
-
-                    <input
-                      type="text"
-                      placeholder="Nome do sabor"
-                      value={sabor.nome}
-                      onChange={(e) => atualizarSabor(index, 'nome', e.target.value)}
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white"
-                    />
-
-                    <textarea
-                      placeholder="Descrição do sabor"
-                      value={sabor.descricao}
-                      onChange={(e) => atualizarSabor(index, 'descricao', e.target.value)}
-                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white"
-                      rows={2}
-                    />
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {pizza.tamanhos.map((t) => (
-                        <label key={t.nome} className="text-xs text-stone-700">
-                          <span className="block mb-1 font-semibold">{t.nome} (R$)</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={sabor.precos[t.nome] || ''}
-                            onChange={(e) => atualizarPreco(index, t.nome, e.target.value)}
-                            className="w-full px-2.5 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm bg-white"
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               <button type="button" onClick={adicionarSabor} className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700">

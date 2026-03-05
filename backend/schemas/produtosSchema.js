@@ -10,6 +10,7 @@ const schemaVariacao = z.object({
 const schemaAdicional = z.object({
   nome: z.string().min(1, 'Nome do adicional é obrigatório'),
   preco: z.coerce.number().min(0, 'Preço deve ser >= 0'),
+  imagem_url: z.string().url().optional().or(z.literal('')).default(''),
   descricao: z.string().optional().default(''),
   ativo: z.boolean().optional().default(true),
   grupo_nome: z.string().min(1).optional().default('Complementos'),

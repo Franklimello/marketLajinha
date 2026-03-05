@@ -115,6 +115,7 @@ async function criar(data) {
         data: {
           nome: a.nome,
           preco: a.preco,
+          imagem_url: a.imagem_url || '',
           descricao: a.descricao || '',
           ativo: a.ativo !== undefined ? !!a.ativo : true,
           produto_id: produto.id,
@@ -192,6 +193,7 @@ async function atualizar(id, data) {
           data: {
             nome: a.nome,
             preco: a.preco,
+            imagem_url: a.imagem_url || '',
             descricao: a.descricao || '',
             ativo: a.ativo !== undefined ? !!a.ativo : true,
             produto_id: id,
