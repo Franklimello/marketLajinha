@@ -1253,7 +1253,6 @@ export default function LojaPage() {
             </div>
           </div>
         )}
-
         {devePedirComprovantePix && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-left">
             <p className="text-xs font-semibold text-amber-800">
@@ -1876,7 +1875,7 @@ export default function LojaPage() {
         )}
 
         <div className="px-4 pt-3">
-          <h1 className="text-2xl font-extrabold text-stone-900 leading-tight">{p.nome}</h1>
+          <h1 className="text-2xl font-black text-stone-900 leading-tight">{p.nome}</h1>
           {controlaEstoque && (
             <p className={`text-xs mt-1 ${semEstoque ? 'text-red-600 font-semibold' : 'text-stone-500'}`}>
               {semEstoque ? 'Indisponível no momento' : `${estoqueDisponivel} disponível(is)`}
@@ -2063,7 +2062,7 @@ export default function LojaPage() {
   const DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
   const DIAS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   let horariosSemana = []
-  try { horariosSemana = JSON.parse(loja.horarios_semana || '[]') } catch { }
+  try { horariosSemana = JSON.parse(loja.horarios_semana || '[]') } catch { horariosSemana = [] }
   const temSemana = Array.isArray(horariosSemana) && horariosSemana.length === 7
   const horarioHoje = temSemana ? horariosSemana[new Date().getDay()] : null
   const horaFecha = horarioHoje?.fechamento || loja.horario_fechamento || null
@@ -2091,7 +2090,9 @@ export default function LojaPage() {
   } : null
 
   return (
-    <div className={`max-w-lg mx-auto pb-24 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+    <div className={`relative max-w-lg mx-auto pb-28 overflow-x-hidden transition-all duration-300 ease-out ${pageTransitionClass}`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-red-100/75 via-orange-50/60 to-transparent" />
+      <div className="pointer-events-none absolute -top-16 right-[-5.5rem] -z-10 h-64 w-64 rounded-full bg-red-200/35 blur-3xl" />
       {loja && (
         <SEO
           title={loja.nome}
@@ -2104,14 +2105,14 @@ export default function LojaPage() {
       )}
       <Link
         to="/"
-        className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 w-9 h-9 bg-white/90 backdrop-blur rounded-full border border-stone-200 flex items-center justify-center shadow text-stone-700 hover:bg-white"
+        className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.8rem)] z-20 w-10 h-10 bg-white/92 backdrop-blur-xl rounded-full border border-stone-200/90 flex items-center justify-center shadow-[0_16px_28px_-20px_rgba(15,23,42,0.9)] text-stone-700 hover:bg-white"
         aria-label="Voltar para lojas"
       >
         <FiChevronLeft />
       </Link>
 
       {/* Banner */}
-      <div className="relative w-full h-60 bg-stone-200 overflow-hidden">
+      <div className="relative w-full h-64 bg-stone-200 overflow-hidden rounded-b-[2rem] shadow-[0_24px_52px_-40px_rgba(15,23,42,0.75)]">
         {String(loja.banner_url || '').trim() ? (
           <img
             src={loja.banner_url}
@@ -2130,19 +2131,20 @@ export default function LojaPage() {
             </div>
           </div>
         )}
-        <div className="absolute bottom-4 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-white">
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-stone-950/55 via-stone-900/20 to-transparent" />
+        <div className="absolute bottom-4 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-[0_18px_36px_-24px_rgba(15,23,42,0.95)] bg-white">
           <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           <div className="w-full h-full items-center justify-center text-2xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
         </div>
-        {horaFecha && aberta && <span className="absolute bottom-5 right-32 bg-white/90 backdrop-blur-sm text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full">fecha às {horaFecha}</span>}
-        {!aberta && <div className="absolute inset-0 bg-black/30 flex items-center justify-center"><span className="bg-black/60 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
+        {horaFecha && aberta && <span className="absolute bottom-5 right-32 bg-emerald-50/95 border border-emerald-200 backdrop-blur-sm text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-full">fecha às {horaFecha}</span>}
+        {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
-      <div className="px-4 pt-4 pb-3">
-        <h1 className="text-2xl font-extrabold text-stone-900 leading-tight">{loja.nome}</h1>
-        <button onClick={() => setShowInfo(!showInfo)} className="flex items-center gap-1 text-xs text-stone-400 mt-1 hover:text-stone-600"><FiInfo className="text-[11px]" /> infos da loja <FiChevronRight className="text-[10px]" /></button>
+      <div className="px-4 -mt-8 pt-0 pb-3 relative z-10">
+        <h1 className="text-2xl font-black text-stone-900 leading-tight">{loja.nome}</h1>
+        <button onClick={() => setShowInfo(!showInfo)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500 mt-2 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white/90 hover:text-stone-700 hover:bg-stone-50"><FiInfo className="text-[11px]" /> infos da loja <FiChevronRight className="text-[10px]" /></button>
         {showInfo && (
-          <div className="mt-3 bg-stone-50 rounded-xl p-3 text-xs text-stone-500 space-y-1">
+          <div className="mt-3 bg-stone-50 rounded-xl border border-stone-200 p-3 text-xs text-stone-500 space-y-1">
             <p><strong>Categoria:</strong> {loja.categoria_negocio}</p>
             <p><strong>Cidade:</strong> {loja.cidade}</p>
             {loja.endereco && <p><strong>Endereço:</strong> {loja.endereco}</p>}
@@ -2166,15 +2168,15 @@ export default function LojaPage() {
         )}
       </div>
 
-      <div className="px-4 pb-4">
-        <div className="flex items-stretch justify-between bg-white rounded-xl border border-stone-100 divide-x divide-stone-100">
-          <button onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)} className="flex-1 flex flex-col items-center py-3 gap-0.5">
+      <div className="px-4 pb-5">
+        <div className="flex items-stretch justify-between bg-white/95 rounded-2xl border border-stone-200 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] divide-x divide-stone-100 overflow-hidden">
+          <button onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)} className="flex-1 flex flex-col items-center py-3.5 gap-0.5">
             <div className="flex items-center gap-1 text-xs"><FiStar className="text-yellow-500 text-[11px]" /><span className="font-semibold text-stone-800">{notaMedia.media > 0 ? notaMedia.media.toFixed(1) : 'Novo'}</span></div>
             <span className="text-[10px] text-stone-400">{notaMedia.total > 0 ? `${notaMedia.total} avaliação${notaMedia.total !== 1 ? 'ões' : ''}` : 'sem notas'}</span>
           </button>
-          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
-          <div className="flex-1 flex flex-col items-center py-3 gap-0.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
-          <div className="flex-1 flex flex-col items-center py-3 gap-0.5">
+          <div className="flex-1 flex flex-col items-center py-3.5 gap-0.5"><div className="flex items-center gap-1 text-xs"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
+          <div className="flex-1 flex flex-col items-center py-3.5 gap-0.5"><div className="flex items-center gap-1 text-xs"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
+          <div className="flex-1 flex flex-col items-center py-3.5 gap-0.5">
             <div className="flex items-center gap-1 text-xs">
               {aceitaEntrega ? <FiTruck className="text-red-500 text-[11px]" /> : <FiShoppingBag className="text-red-500 text-[11px]" />}
               <span className="font-semibold text-stone-800">
@@ -2188,7 +2190,7 @@ export default function LojaPage() {
 
       {/* Avaliações */}
       {showAvaliacoes && avaliacoes.length > 0 && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-5">
           <div className="bg-white rounded-xl border border-stone-200 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-stone-900">Avaliações</h3>
@@ -2244,7 +2246,7 @@ export default function LojaPage() {
         </div>
       )}
 
-      <div className="h-2 bg-stone-100" />
+      <div className="mx-4 h-px bg-linear-to-r from-transparent via-stone-200 to-transparent" />
 
       <div className={`px-4 pt-4 ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
         {!produtosCarregando && categoriaSel === null && Array.isArray(promocoes) && promocoes.length > 0 && (
@@ -2393,7 +2395,7 @@ export default function LojaPage() {
                 value={buscaProdutoLoja}
                 onChange={(e) => { setBuscaProdutoLoja(e.target.value); setCategoriaSel(null) }}
                 placeholder="Buscar produto pelo nome"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300"
+                className="w-full pl-9 pr-3.5 py-3 rounded-2xl border border-stone-200 bg-white text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 shadow-[0_16px_34px_-34px_rgba(15,23,42,0.95)]"
               />
             </div>
           </div>
@@ -2416,7 +2418,7 @@ export default function LojaPage() {
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
-                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 bg-white rounded-xl border p-3 text-left transition-colors ${semEstoque ? 'border-stone-200 opacity-60' : 'border-stone-100 hover:bg-stone-50 active:bg-stone-100'}`}>
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3.5 bg-white rounded-2xl border p-3.5 text-left transition-all shadow-[0_18px_36px_-32px_rgba(15,23,42,0.9)] ${semEstoque ? 'border-stone-200 opacity-60' : 'border-stone-100 hover:bg-stone-50 active:bg-stone-100 hover:shadow-[0_24px_48px_-34px_rgba(15,23,42,0.9)]'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
@@ -2442,7 +2444,7 @@ export default function LojaPage() {
                         loading={idx < 6 ? 'eager' : 'lazy'}
                         fetchPriority={idx < 4 ? 'high' : 'auto'}
                         decoding={idx < 4 ? 'sync' : 'async'}
-                        className="w-16 h-16 rounded-lg object-cover shrink-0"
+                        className="w-[72px] h-[72px] rounded-xl object-cover shrink-0 border border-stone-200"
                       />
                     )}
                     {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">{qtd}</span>}
@@ -2466,18 +2468,18 @@ export default function LojaPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoriaSel(cat)}
-                    className="group w-full h-full bg-white rounded-2xl border border-stone-200/70 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+                    className="group w-full h-full bg-white rounded-2xl border border-stone-200 p-3.5 hover:border-red-200 hover:bg-red-50/20 active:bg-red-50 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]"
                   >
                     <div className="h-full flex flex-col">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[15px] leading-tight font-serif font-bold text-stone-900 flex items-center gap-1.5">
+                        <h3 className="text-[15px] leading-tight font-bold text-stone-900 flex items-center gap-1.5">
                           <span aria-hidden="true">🔹</span>
                           <span className="line-clamp-2">{cat}</span>
                         </h3>
                         <p className="text-xs text-stone-500 mt-1">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
                       </div>
                       <div className="mt-3 flex items-center justify-between">
-                        <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-1">
+                        <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-1">
                           Ver produtos
                         </div>
                         <FiChevronRight className="text-stone-300 group-hover:text-red-400 text-lg shrink-0 transition-colors" />
@@ -2503,7 +2505,7 @@ export default function LojaPage() {
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
-                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 bg-white rounded-xl border p-3 text-left transition-colors ${semEstoque ? 'border-stone-200 opacity-60' : 'border-stone-100 hover:bg-stone-50 active:bg-stone-100'}`}>
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3.5 bg-white rounded-2xl border p-3.5 text-left transition-all shadow-[0_18px_36px_-32px_rgba(15,23,42,0.9)] ${semEstoque ? 'border-stone-200 opacity-60' : 'border-stone-100 hover:bg-stone-50 active:bg-stone-100 hover:shadow-[0_24px_48px_-34px_rgba(15,23,42,0.9)]'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
@@ -2536,7 +2538,7 @@ export default function LojaPage() {
                         loading={idx < 6 ? 'eager' : 'lazy'}
                         fetchPriority={idx < 4 ? 'high' : 'auto'}
                         decoding={idx < 4 ? 'sync' : 'async'}
-                        className="w-16 h-16 rounded-lg object-cover shrink-0"
+                        className="w-[72px] h-[72px] rounded-xl object-cover shrink-0 border border-stone-200"
                       />
                     )}
                     {qtd > 0 && <span className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shrink-0">{qtd}</span>}
@@ -2551,7 +2553,7 @@ export default function LojaPage() {
 
       {totalItens > 0 && aberta && (
         <div className="fixed bottom-16 left-0 right-0 z-60 px-4 pb-2">
-          <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full max-w-lg mx-auto flex items-center justify-between bg-red-600 text-white px-5 py-3.5 rounded-xl shadow-lg hover:bg-red-700 transition-all">
+          <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full max-w-lg mx-auto flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-5 py-3.5 rounded-2xl border border-red-400/40 shadow-[0_22px_48px_-30px_rgba(220,38,38,0.95)] hover:from-red-700 hover:to-red-600 transition-all">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
             <span className="font-bold font-numeric">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>
