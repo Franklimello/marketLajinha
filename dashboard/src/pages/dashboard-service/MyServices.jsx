@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiSearch } from 'react-icons/fi'
 import { api } from '../../api/client'
 import { uploadImagem } from '../../config/firebase'
@@ -97,13 +97,28 @@ export default function ServiceMyServicesPage() {
   }, [services, query])
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold text-stone-900">Meus servicos</h2>
-        <p className="text-sm text-stone-500">Cadastre servicos com nome claro, preco e duracao para facilitar a escolha do cliente.</p>
-      </div>
+    <div className="space-y-4 pb-20 lg:pb-0">
+      <section className="relative overflow-hidden rounded-3xl border border-stone-300 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-4 sm:p-5 shadow-lg">
+        <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 -bottom-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative">
+          <p className="text-xs uppercase tracking-[0.18em] text-amber-200">Catalogo premium</p>
+          <h2 className="text-2xl font-semibold mt-1">Meus servicos</h2>
+          <p className="text-sm text-stone-200 mt-2 max-w-2xl">
+            Cadastre servicos com nome claro, preco e duracao para facilitar a escolha do cliente.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">
+              Total: {services.length}
+            </span>
+            <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">
+              Exibidos: {filteredServices.length}
+            </span>
+          </div>
+        </div>
+      </section>
 
-      <div className="border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
         Ordem recomendada: 1) Cadastre o servico, 2) confira como o card ficou, 3) repita para cada tipo de atendimento.
       </div>
 
@@ -119,7 +134,7 @@ export default function ServiceMyServicesPage() {
         </div>
 
         <section className="space-y-3">
-          <div className="border border-stone-200 bg-white p-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="rounded-2xl border border-stone-200 bg-white p-3 flex flex-wrap items-center justify-between gap-3 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
             <div>
               <p className="text-sm font-semibold text-stone-900">Servicos cadastrados</p>
               <p className="text-xs text-stone-500">{filteredServices.length} de {services.length} exibidos</p>
@@ -131,17 +146,17 @@ export default function ServiceMyServicesPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar por nome, categoria ou descricao"
-                className="w-full border border-stone-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
               />
             </label>
           </div>
 
-          {error && <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+          {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
           {loading ? (
-            <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Carregando servicos...</div>
+            <div className="rounded-2xl border border-stone-200 bg-white p-4 text-sm text-stone-500 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">Carregando servicos...</div>
           ) : filteredServices.length === 0 ? (
-            <div className="border border-stone-200 bg-white p-6 text-sm text-stone-500">
+            <div className="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-stone-500 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
               {services.length === 0
                 ? 'Voce ainda nao cadastrou servicos. Preencha o formulario ao lado para comecar.'
                 : 'Nenhum servico encontrado para este filtro.'}

@@ -31,6 +31,13 @@ function instagramHref(value) {
   return `https://instagram.com/${username}`
 }
 
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  })
+}
+
 export default function PrestadorServicoPage() {
   const { providerId } = useParams()
   const navigate = useNavigate()
@@ -47,6 +54,7 @@ export default function PrestadorServicoPage() {
   const [booking, setBooking] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [entered, setEntered] = useState(false)
 
   const city = useMemo(() => {
     const selected = String(getLocalItem(SELECTED_CITY_KEY, '') || '').trim()
@@ -124,6 +132,12 @@ export default function PrestadorServicoPage() {
     setTime('')
   }, [freeSlots, time])
 
+  useEffect(() => {
+    setEntered(false)
+    const frameId = window.requestAnimationFrame(() => setEntered(true))
+    return () => window.cancelAnimationFrame(frameId)
+  }, [loading, profile?.id, selectedService?.id])
+
   async function handleBook(e) {
     e.preventDefault()
     setError('')
@@ -186,7 +200,11 @@ export default function PrestadorServicoPage() {
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl mt-4">Prestador não encontrado.</div>
       ) : (
         <>
-          <section className="mt-4 border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)]">
+          <section className={`mt-4 border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] overflow-hidden transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+            <div className="rounded-2xl border border-stone-200 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-3.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200">Perfil profissional</p>
+              <p className="text-xs text-stone-200 mt-1">Veja serviços e escolha um horário em segundos.</p>
+            </div>
             <div className="flex items-start gap-3">
               {profile.profile_image_url ? (
                 <img src={profile.profile_image_url} alt={profile.name} className="w-20 h-20 object-cover border border-stone-300 rounded-2xl shrink-0" />
@@ -250,14 +268,21 @@ export default function PrestadorServicoPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-black text-stone-900">Serviços</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base font-black text-stone-900">Serviços</h2>
+              <span className="text-[11px] rounded-full border border-stone-200 bg-white px-2.5 py-1 text-stone-600">
+                {(profile.services || []).length} disponível(is)
+              </span>
+            </div>
             {Array.isArray(profile.services) && profile.services.length > 0 ? (
-              profile.services.map((service) => (
+              profile.services.map((service, index) => (
                 <ServiceCard
                   key={service.id}
                   service={service}
                   selecting={selectedService?.id === service.id}
                   onSelect={() => setSelectedService(service)}
+                  entered={entered}
+                  delayMs={Math.min(index * 50 + 60, 320)}
                 />
               ))
             ) : (
@@ -265,11 +290,36 @@ export default function PrestadorServicoPage() {
             )}
           </section>
 
-          <form onSubmit={handleBook} className="border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)]">
-            <h3 className="text-sm font-black text-stone-900">Solicitar agendamento</h3>
+          <form onSubmit={handleBook} className={`border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transitionDelay: '120ms' }}>
+            <div className="rounded-2xl border border-red-200 bg-linear-to-r from-red-50 to-orange-50 px-3 py-2.5">
+              <h3 className="text-sm font-black text-stone-900">Solicitar agendamento</h3>
+              <p className="text-[11px] text-stone-600 mt-1">Selecione serviço, data e horário livre para enviar sua solicitação.</p>
+            </div>
             <p className="text-xs text-stone-500">
               Serviço selecionado: {selectedService?.name || 'nenhum serviço'}
             </p>
+
+            <div className="rounded-2xl border border-stone-200 bg-stone-50/80 px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">Resumo do agendamento</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-stone-600">
+                <div className="rounded-xl border border-stone-200 bg-white px-2.5 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-stone-400">Serviço</p>
+                  <p className="font-semibold text-stone-800 mt-0.5 truncate">{selectedService?.name || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-white px-2.5 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-stone-400">Valor</p>
+                  <p className="font-semibold text-stone-800 mt-0.5">{selectedService ? formatCurrency(selectedService.price) : '-'}</p>
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-white px-2.5 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-stone-400">Data</p>
+                  <p className="font-semibold text-stone-800 mt-0.5">{date || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-stone-200 bg-white px-2.5 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-stone-400">Horário</p>
+                  <p className="font-semibold text-stone-800 mt-0.5">{time || '-'}</p>
+                </div>
+              </div>
+            </div>
 
             <label className="text-xs text-stone-600 space-y-1 block">
               <span className="inline-flex items-center gap-1"><FiCalendar /> Data</span>
@@ -277,7 +327,7 @@ export default function PrestadorServicoPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-stone-300 rounded-xl px-2.5 py-2 text-sm"
+                className="w-full border border-stone-300 bg-stone-50 rounded-xl px-2.5 py-2 text-sm transition-all focus:outline-none focus:border-red-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-red-200"
                 required
               />
             </label>
@@ -294,13 +344,13 @@ export default function PrestadorServicoPage() {
               ) : freeSlots.length === 0 ? (
                 <p className="text-xs text-red-600">Sem horarios livres para este dia.</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-4 gap-1.5">
                   {freeSlots.map((slot) => (
                     <button
                       key={slot}
                       type="button"
                       onClick={() => setTime(slot)}
-                      className={`border px-2.5 py-1.5 text-xs font-semibold rounded-lg ${
+                      className={`border px-1.5 py-1.5 text-[11px] font-semibold rounded-lg transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-200 ${
                         time === slot
                           ? 'border-green-600 bg-green-50 text-green-700'
                           : 'border-green-300 bg-white text-green-700 hover:border-green-500'
@@ -319,14 +369,21 @@ export default function PrestadorServicoPage() {
               )}
             </div>
 
-            {message && <p className="text-sm text-green-700">{message}</p>}
+            {message && (
+              <div className="rounded-xl border border-green-200 bg-green-50 p-2.5 space-y-1.5">
+                <p className="text-sm text-green-700">{message}</p>
+                <Link to="/meus-agendamentos" className="inline-flex text-xs font-semibold text-green-800 underline">
+                  Ver meus agendamentos
+                </Link>
+              </div>
+            )}
             {slotError && <p className="text-sm text-red-700">{slotError}</p>}
             {error && <p className="text-sm text-red-700">{error}</p>}
 
             <button
               type="submit"
               disabled={booking || !selectedService}
-              className="border border-red-600 text-red-700 px-4 py-2 text-sm font-semibold rounded-xl hover:bg-red-50 disabled:opacity-50"
+              className="w-full border border-red-600 text-red-700 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-150 hover:bg-red-50 active:scale-[0.995] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
             >
               {booking ? 'Enviando...' : 'Solicitar horário'}
             </button>

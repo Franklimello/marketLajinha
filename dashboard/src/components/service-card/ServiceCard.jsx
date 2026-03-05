@@ -1,4 +1,4 @@
-﻿import { FiClock, FiEdit2, FiImage, FiMapPin, FiTag, FiTrash2 } from 'react-icons/fi'
+import { FiClock, FiEdit2, FiImage, FiMapPin, FiTag, FiTrash2 } from 'react-icons/fi'
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-BR', {
@@ -18,14 +18,14 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
   if (!service) return null
 
   return (
-    <article className="border border-stone-200 bg-white p-4 space-y-3">
+    <article className="rounded-2xl border border-stone-200 bg-white p-4 space-y-3 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h4 className="text-sm font-semibold text-stone-900">{service.name}</h4>
           <p className="text-xs text-stone-500 mt-1">Cadastrado em {formatCreatedAt(service.created_at)}</p>
         </div>
 
-        <span className="text-xs border border-stone-200 bg-stone-50 text-stone-600 px-2 py-1 inline-flex items-center gap-1">
+        <span className="text-xs rounded-full border border-stone-200 bg-stone-50 text-stone-600 px-2 py-1 inline-flex items-center gap-1">
           <FiMapPin size={11} /> {service.city || 'Cidade'}
         </span>
       </div>
@@ -35,7 +35,7 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
       </p>
 
       {service.category && (
-        <p className="text-xs inline-flex items-center gap-1 border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">
+        <p className="text-xs inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">
           <FiTag size={11} /> {service.category}
         </p>
       )}
@@ -48,7 +48,7 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
 
           <div className="flex gap-2 overflow-x-auto pb-1">
             {service.images_urls.map((url) => (
-              <img key={url} src={url} alt={service.name} className="w-16 h-16 object-cover border border-stone-200 shrink-0" />
+              <img key={url} src={url} alt={service.name} className="w-16 h-16 object-cover rounded-xl border border-stone-200 shrink-0" />
             ))}
           </div>
         </div>
@@ -70,11 +70,11 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
         </div>
       </div>
 
-      <div className="pt-1 flex items-center gap-2">
+      <div className="pt-1 grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => onEdit?.(service)}
-          className="inline-flex items-center gap-1.5 border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-stone-300 px-3 py-2 text-xs text-stone-700 hover:bg-stone-50"
         >
           <FiEdit2 size={12} /> Editar
         </button>
@@ -83,7 +83,7 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
           type="button"
           onClick={() => onDelete?.(service)}
           disabled={deleting}
-          className="inline-flex items-center gap-1.5 border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
         >
           <FiTrash2 size={12} /> {deleting ? 'Excluindo...' : 'Excluir'}
         </button>

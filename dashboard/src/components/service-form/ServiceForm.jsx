@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiClock, FiDollarSign, FiFileText, FiImage, FiScissors, FiTag, FiUpload } from 'react-icons/fi'
 
 const INITIAL_FORM = {
@@ -172,7 +172,7 @@ export default function ServiceForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border border-stone-200 bg-white p-4 space-y-4">
+    <form onSubmit={handleSubmit} className="rounded-3xl border border-stone-200 bg-white p-4 sm:p-5 space-y-4 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-stone-900">{isEditing ? 'Editar servico' : 'Novo servico'}</h3>
@@ -183,12 +183,12 @@ export default function ServiceForm({
           </p>
         </div>
 
-        <span className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">
+        <span className="text-xs rounded-full border border-amber-200 bg-amber-50 text-amber-700 px-2.5 py-1">
           {isEditing ? 'Edicao' : 'Novo'}
         </span>
       </div>
 
-      <div className="border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600">
+      <div className="rounded-2xl border border-stone-200 bg-linear-to-br from-stone-50 to-amber-50 p-3 text-xs text-stone-600">
         Campos obrigatorios: Nome, Categoria, Preco e Duracao.
       </div>
 
@@ -201,7 +201,7 @@ export default function ServiceForm({
           value={form.name}
           onChange={handleChange}
           placeholder="Ex.: Corte masculino completo"
-          className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+          className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
           required
           maxLength={80}
         />
@@ -218,7 +218,7 @@ export default function ServiceForm({
           value={form.category}
           onChange={handleChange}
           placeholder="Ex.: Cabelo"
-          className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+          className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
           required
           maxLength={50}
         />
@@ -240,7 +240,7 @@ export default function ServiceForm({
           onChange={handleChange}
           rows={3}
           placeholder="Explique o que esta incluso no atendimento, para quem e em quanto tempo voce entrega."
-          className="w-full border border-stone-300 px-3 py-2 text-sm resize-none focus:outline-none focus:border-amber-500"
+          className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-amber-500 focus:bg-white"
           maxLength={600}
         />
       </label>
@@ -257,7 +257,7 @@ export default function ServiceForm({
             value={form.image_url_input}
             onChange={handleChange}
             placeholder="https://site.com/imagem.jpg"
-            className="flex-1 min-w-[220px] border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+            className="flex-1 min-w-[220px] rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
             inputMode="url"
           />
 
@@ -265,12 +265,12 @@ export default function ServiceForm({
             type="button"
             onClick={() => addImageUrl(form.image_url_input)}
             disabled={!canAddMoreImages}
-            className="border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+            className="rounded-xl border border-stone-300 px-3 py-2.5 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
           >
             Adicionar URL
           </button>
 
-          <label className="inline-flex items-center gap-1.5 border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer">
+          <label className="inline-flex items-center gap-1.5 rounded-xl border border-stone-300 px-3 py-2.5 text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer">
             <FiUpload size={12} /> {uploading ? 'Enviando...' : 'Upload'}
             <input
               type="file"
@@ -292,7 +292,7 @@ export default function ServiceForm({
                 <button
                   type="button"
                   onClick={() => removeImageUrl(imageUrl)}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-600 text-white text-[10px] font-bold"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold"
                   aria-label="Remover imagem"
                 >
                   x
@@ -315,7 +315,7 @@ export default function ServiceForm({
             step="0.01"
             value={form.price}
             onChange={handleChange}
-            className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+            className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
             required
             placeholder="Ex.: 90.00"
             inputMode="decimal"
@@ -333,7 +333,7 @@ export default function ServiceForm({
             step="5"
             value={form.duration_minutes}
             onChange={handleChange}
-            className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+            className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
             required
             placeholder="Ex.: 60"
             inputMode="numeric"
@@ -364,7 +364,7 @@ export default function ServiceForm({
         <button
           type="submit"
           disabled={loading}
-          className="bg-amber-600 text-white px-4 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+            className="w-full sm:w-auto rounded-xl bg-amber-600 text-white px-4 py-2.5 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
         >
           {loading ? 'Salvando...' : (isEditing ? 'Salvar alteracoes' : 'Salvar servico')}
         </button>
@@ -373,7 +373,7 @@ export default function ServiceForm({
           <button
             type="button"
             onClick={onCancel}
-            className="border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+            className="w-full sm:w-auto rounded-xl border border-stone-300 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
           >
             Cancelar
           </button>

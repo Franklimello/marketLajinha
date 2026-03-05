@@ -30,9 +30,12 @@ export default function MeusAgendamentosPage() {
   const navigate = useNavigate()
   const { logado, perfilCompleto } = useAuth()
   const [appointments, setAppointments] = useState([])
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState('')
+  const [entered, setEntered] = useState(false)
 
   useEffect(() => {
     if (!logado) {
@@ -99,6 +102,24 @@ export default function MeusAgendamentosPage() {
     })
   }, [appointments])
 
+  const filtered = useMemo(() => {
+    const text = String(query || '').trim().toLowerCase()
+    return ordered.filter((appointment) => {
+      const byStatus = selectedStatus === 'all' || appointment.status === selectedStatus
+      if (!byStatus) return false
+      if (!text) return true
+      const providerName = String(appointment?.provider?.name || '').toLowerCase()
+      const serviceName = String(appointment?.service?.name || '').toLowerCase()
+      return providerName.includes(text) || serviceName.includes(text)
+    })
+  }, [ordered, selectedStatus, query])
+
+  useEffect(() => {
+    setEntered(false)
+    const frameId = window.requestAnimationFrame(() => setEntered(true))
+    return () => window.cancelAnimationFrame(frameId)
+  }, [loading, selectedStatus, query])
+
   if (!logado || !perfilCompleto) return null
 
   return (
@@ -131,8 +152,8 @@ export default function MeusAgendamentosPage() {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">pendentes</p>
             </div>
             <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
-              <p className="font-numeric text-base font-black text-stone-900">{ordered.filter((a) => a.status === 'confirmed' || a.status === 'accepted').length}</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">confirmados</p>
+              <p className="font-numeric text-base font-black text-stone-900">{ordered.filter((a) => ['pending', 'counter_offer', 'accepted', 'confirmed'].includes(a.status)).length}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">ativos</p>
             </div>
           </div>
         </div>
@@ -140,16 +161,55 @@ export default function MeusAgendamentosPage() {
 
       {error && <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700 rounded-xl mb-4">{error}</div>}
 
+      <section className="mb-3 rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] space-y-2.5">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por serviço ou prestador"
+          className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm text-stone-700 transition-all focus:outline-none focus:border-red-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-red-200"
+        />
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'all', label: 'Todos' },
+            { id: 'pending', label: 'Pendentes' },
+            { id: 'counter_offer', label: 'Contraproposta' },
+            { id: 'accepted', label: 'Aceitos' },
+            { id: 'confirmed', label: 'Confirmados' },
+            { id: 'completed', label: 'Concluídos' },
+            { id: 'cancelled', label: 'Cancelados' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSelectedStatus(item.id)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200 ${
+                selectedStatus === item.id
+                  ? 'border-red-300 bg-red-50 text-red-700'
+                  : 'border-stone-300 bg-white text-stone-600'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {loading ? (
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">Carregando...</div>
-      ) : ordered.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="border border-stone-200 bg-white p-6 text-sm text-stone-500 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
-          Você ainda não possui agendamentos.
+          Nenhum agendamento encontrado para o filtro atual.
         </div>
       ) : (
         <div className="space-y-3">
-          {ordered.map((appointment) => (
-            <article key={appointment.id} className="border border-stone-200 bg-white p-4 space-y-3 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
+          {filtered.map((appointment, index) => (
+            <article
+              key={appointment.id}
+              className={`border border-stone-200 bg-white p-4 space-y-3 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] transition-all duration-400 ${
+                entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+              }`}
+              style={{ transitionDelay: `${Math.min(index * 45, 260)}ms` }}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-stone-900">{appointment.service?.name || 'Serviço'}</p>
@@ -176,7 +236,7 @@ export default function MeusAgendamentosPage() {
                     type="button"
                     onClick={() => respond(appointment.id, 'accept')}
                     disabled={busyId === appointment.id}
-                    className="inline-flex items-center gap-1 border border-green-600 text-green-700 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-green-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 border border-green-600 text-green-700 px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-150 hover:bg-green-50 active:scale-[0.99] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-200"
                   >
                     <FiCheck size={12} /> Aceitar
                   </button>
@@ -184,7 +244,7 @@ export default function MeusAgendamentosPage() {
                     type="button"
                     onClick={() => respond(appointment.id, 'reject')}
                     disabled={busyId === appointment.id}
-                    className="inline-flex items-center gap-1 border border-red-600 text-red-700 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-red-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 border border-red-600 text-red-700 px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-150 hover:bg-red-50 active:scale-[0.99] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
                   >
                     <FiX size={12} /> Recusar
                   </button>
@@ -196,7 +256,7 @@ export default function MeusAgendamentosPage() {
                   type="button"
                   onClick={() => cancelarAgendamento(appointment.id)}
                   disabled={busyId === appointment.id}
-                  className="inline-flex items-center gap-1 border border-red-300 bg-red-50 text-red-700 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-red-100 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 border border-red-300 bg-red-50 text-red-700 px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-150 hover:bg-red-100 active:scale-[0.99] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
                 >
                   <FiSlash size={12} /> Cancelar agendamento
                 </button>

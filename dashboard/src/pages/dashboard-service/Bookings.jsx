@@ -1,4 +1,4 @@
-﻿import { createElement, useEffect, useMemo, useState } from 'react'
+import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   FiCalendar,
   FiCheckCircle,
@@ -34,7 +34,7 @@ function statusCounts(bookings) {
 
 function StatCard({ icon, label, value, helper, tone }) {
   return (
-    <article className={`border p-3 ${tone}`}>
+    <article className={`rounded-2xl border p-3 shadow-sm ${tone}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs uppercase tracking-wide">{label}</p>
         {icon ? createElement(icon, { size: 14 }) : null}
@@ -164,8 +164,10 @@ export default function ServiceBookingsPage() {
   }, [bookings, filter])
 
   return (
-    <div className="space-y-4">
-      <section className="border border-stone-300 bg-linear-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
+    <div className="space-y-4 pb-20 lg:pb-0">
+      <section className="relative overflow-hidden rounded-3xl border border-stone-300 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-4 sm:p-5 shadow-lg">
+        <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 -bottom-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Solicitacoes recebidas</p>
@@ -178,20 +180,20 @@ export default function ServiceBookingsPage() {
           <button
             type="button"
             onClick={loadBookings}
-            className="inline-flex items-center gap-1.5 border border-white/30 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
           >
             <FiRefreshCcw size={14} /> Atualizar lista
           </button>
         </div>
       </section>
 
-      <section className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
+      <section className="grid grid-cols-2 xl:grid-cols-5 gap-2.5 sm:gap-3">
         {metrics.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
       </section>
 
-      <section className="border border-stone-200 bg-white p-3 space-y-3">
+      <section className="rounded-2xl border border-stone-200 bg-white p-3 space-y-3 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
             <FiCalendar size={14} /> Filtrar por status
@@ -208,7 +210,7 @@ export default function ServiceBookingsPage() {
               key={item.value}
               type="button"
               onClick={() => setFilter(item.value)}
-              className={`border px-3 py-1.5 text-xs font-semibold ${
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
                 filter === item.value
                   ? 'border-amber-500 bg-amber-50 text-amber-800'
                   : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
@@ -220,12 +222,12 @@ export default function ServiceBookingsPage() {
         </div>
       </section>
 
-      {error && <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {loading ? (
-        <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Carregando agendamentos...</div>
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 text-sm text-stone-500 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">Carregando agendamentos...</div>
       ) : orderedBookings.length === 0 ? (
-        <div className="border border-stone-200 bg-white p-5 text-sm text-stone-500">
+        <div className="rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-500 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
           Nenhuma solicitacao encontrada neste filtro.
         </div>
       ) : (
