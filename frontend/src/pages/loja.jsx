@@ -1865,174 +1865,203 @@ export default function LojaPage() {
     }
 
     return (
-      <div className={`relative max-w-lg mx-auto pb-32 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+      <div className={`relative max-w-lg mx-auto pb-36 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-red-100/75 via-amber-50/65 to-transparent" />
+        <div className="pointer-events-none absolute -top-12 right-[-5rem] -z-10 h-52 w-52 rounded-full bg-red-200/40 blur-3xl" />
         <button
           onClick={() => setProdutoDetalhe(null)}
-          className="absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20 w-9 h-9 rounded-full bg-white/90 backdrop-blur border border-stone-200 text-stone-700 inline-flex items-center justify-center shadow"
+          className="absolute left-4 top-[calc(env(safe-area-inset-top)+0.8rem)] z-30 w-10 h-10 rounded-full bg-white/95 backdrop-blur border border-white text-stone-700 inline-flex items-center justify-center shadow-[0_20px_34px_-22px_rgba(15,23,42,0.85)]"
           aria-label="Voltar para o cardápio"
         >
           <FiChevronLeft className="text-xl" />
         </button>
 
-        {/* Imagem */}
         {p.imagem_url && (
-          <div className="w-full h-64 bg-linear-to-b from-stone-100 to-stone-200 overflow-hidden flex items-center justify-center">
-            <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-contain" />
+          <div className="mx-3 mt-[calc(env(safe-area-inset-top)+0.75rem)] h-[17rem] rounded-[2rem] border border-white/80 bg-linear-to-b from-stone-100 to-stone-200 overflow-hidden flex items-center justify-center shadow-[0_24px_42px_-28px_rgba(15,23,42,0.85)]">
+            <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover" />
           </div>
         )}
 
-        <div className="px-4 pt-3">
-          <h1 className="text-2xl font-black text-stone-900 leading-tight">{p.nome}</h1>
-          {controlaEstoque && (
-            <p className={`text-xs mt-1 ${semEstoque ? 'text-red-600 font-semibold' : 'text-stone-500'}`}>
-              {semEstoque ? 'Indisponível no momento' : `${estoqueDisponivel} disponível(is)`}
-            </p>
-          )}
+        <div className="px-4 pt-4">
+          <div className="rounded-3xl border border-white/75 bg-white/92 backdrop-blur-sm shadow-[0_26px_44px_-34px_rgba(15,23,42,0.9)] p-4">
+            <h1 className="text-[1.75rem] font-black text-stone-900 leading-tight tracking-tight">{p.nome}</h1>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              {controlaEstoque && (
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold border ${semEstoque ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                  {semEstoque ? 'Indisponível no momento' : `${estoqueDisponivel} disponível(is)`}
+                </span>
+              )}
+              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold border border-stone-200 bg-stone-100/85 text-stone-600">
+                Unitário: R$ {precoUnitario.toFixed(2).replace('.', ',')}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Descrição */}
         {p.descricao && (
-          <div className="px-4 py-3 bg-stone-50 border-b border-stone-100">
-            <p className="text-sm text-stone-600">{p.descricao}</p>
+          <div className="px-4 pt-3">
+            <div className="rounded-2xl border border-stone-200/80 bg-white/85 p-3 shadow-[0_18px_30px_-24px_rgba(15,23,42,0.7)]">
+              <p className="text-sm text-stone-600 leading-relaxed">{p.descricao}</p>
+            </div>
           </div>
         )}
 
         {/* Tamanhos */}
         {ehPizza && possuiGrupoSabores && (
-          <div className="px-4 pt-4 pb-1">
-            <p className="text-base font-bold text-stone-900 mb-3">quantos sabores?</p>
-            <div className="grid grid-cols-2 gap-2">
-              {Array.from(
-                { length: Math.max(1, Math.max(...(p.variacoes || []).map((v) => getMaxSaboresVariacao(v)))) },
-                (_, i) => i + 1
-              ).map((qtd) => (
-                <button
-                  key={qtd}
-                  type="button"
-                  onClick={() => {
-                    setPizzaQtdSabores(qtd)
-                    setAdicionaisSel((prev) => {
-                      const flavorIds = new Set(adicionaisAtivos.filter((a) => !!a.is_sabor).map((a) => a.id))
-                      const nonFlavors = prev.filter((id) => !flavorIds.has(id))
-                      const chosenFlavors = prev.filter((id) => flavorIds.has(id)).slice(0, qtd)
-                      return [...nonFlavors, ...chosenFlavors]
-                    })
-                    const candidatas = (p.variacoes || []).filter((v) => getMaxSaboresVariacao(v) >= qtd)
-                    if (candidatas.length > 0 && !candidatas.some((v) => v.id === variacaoSel)) {
-                      setVariacaoSel(candidatas[0].id)
-                    }
-                  }}
-                  className={`py-2.5 rounded-lg border text-sm font-semibold ${pizzaQtdSabores === qtd
-                      ? 'border-red-500 bg-red-50 text-red-700'
-                      : 'border-stone-300 bg-white text-stone-700'
-                    }`}
-                >
-                  {qtd} sabor{qtd > 1 ? 'es' : ''}
-                </button>
-              ))}
+          <div className="px-4 pt-4">
+            <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-stone-900">Quantos sabores?</p>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-red-600">obrigatório</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {Array.from(
+                  { length: Math.max(1, Math.max(...(p.variacoes || []).map((v) => getMaxSaboresVariacao(v)))) },
+                  (_, i) => i + 1
+                ).map((qtd) => (
+                  <button
+                    key={qtd}
+                    type="button"
+                    onClick={() => {
+                      setPizzaQtdSabores(qtd)
+                      setAdicionaisSel((prev) => {
+                        const flavorIds = new Set(adicionaisAtivos.filter((a) => !!a.is_sabor).map((a) => a.id))
+                        const nonFlavors = prev.filter((id) => !flavorIds.has(id))
+                        const chosenFlavors = prev.filter((id) => flavorIds.has(id)).slice(0, qtd)
+                        return [...nonFlavors, ...chosenFlavors]
+                      })
+                      const candidatas = (p.variacoes || []).filter((v) => getMaxSaboresVariacao(v) >= qtd)
+                      if (candidatas.length > 0 && !candidatas.some((v) => v.id === variacaoSel)) {
+                        setVariacaoSel(candidatas[0].id)
+                      }
+                    }}
+                    className={`py-2.5 rounded-xl border text-sm font-semibold transition-colors ${pizzaQtdSabores === qtd
+                        ? 'border-red-500 bg-red-50 text-red-700'
+                        : 'border-stone-300 bg-white text-stone-700 hover:border-stone-400'
+                      }`}
+                  >
+                    {qtd} sabor{qtd > 1 ? 'es' : ''}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         {temVariacoes && (
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-base font-bold text-stone-900 mb-3">qual tamanho?</p>
-            {variacoesFiltradas.length === 0 && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
-                Nenhum tamanho disponível para {pizzaQtdSabores} sabor{pizzaQtdSabores > 1 ? 'es' : ''}.
-              </p>
-            )}
-            {variacoesFiltradas.map((v) => {
-              const sel = varSel?.id === v.id
-              return (
-                <button key={v.id} onClick={() => setVariacaoSel(v.id)} className="w-full flex items-center justify-between py-3.5 border-b border-stone-100">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${sel ? 'border-emerald-500 bg-emerald-500' : 'border-stone-300'}`}>
-                      {sel && <FiCheck className="text-white text-[10px]" />}
-                    </div>
-                    <span className="text-sm text-stone-800">
-                      {v.nome}
-                      {ehPizza && Number(v.fatias || 0) > 0 ? ` • ${Number(v.fatias)} fatias` : ''}
-                    </span>
-                  </div>
-                  <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(v.preco).toFixed(2).replace('.', ',')}</span>
-                </button>
-              )
-            })}
+          <div className="px-4 pt-4">
+            <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+              <p className="text-sm font-bold text-stone-900 mb-3">Escolha o tamanho</p>
+              {variacoesFiltradas.length === 0 && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
+                  Nenhum tamanho disponível para {pizzaQtdSabores} sabor{pizzaQtdSabores > 1 ? 'es' : ''}.
+                </p>
+              )}
+              <div className="space-y-2">
+                {variacoesFiltradas.map((v) => {
+                  const sel = varSel?.id === v.id
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setVariacaoSel(v.id)}
+                      className={`w-full flex items-center justify-between rounded-xl px-3 py-3 border transition-all ${sel ? 'border-emerald-300 bg-emerald-50/75' : 'border-stone-200 bg-white hover:border-stone-300'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${sel ? 'border-emerald-500 bg-emerald-500' : 'border-stone-300'}`}>
+                          {sel && <FiCheck className="text-white text-[10px]" />}
+                        </div>
+                        <span className="text-sm text-stone-800">
+                          {v.nome}
+                          {ehPizza && Number(v.fatias || 0) > 0 ? ` • ${Number(v.fatias)} fatias` : ''}
+                        </span>
+                      </div>
+                      <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {Number(v.preco).toFixed(2).replace('.', ',')}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Adicionais / Complementos */}
         {temAdicionais && (
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-base font-bold text-stone-900 mb-1">complementos</p>
-            <p className="text-xs text-stone-400 mb-3">escolha os complementos de cada grupo</p>
-            {gruposAdicionais.map((grupo) => {
-              const countGrupo = grupo.itens.filter((it) => adicionaisSel.includes(it.id)).length
-              const grupoSaborPizza = ehPizza && grupo.itens.some((it) => !!it.is_sabor) && !!varSel
-              const minGrupo = grupoSaborPizza ? pizzaQtdSabores : Number(grupo.min || 0)
-              const maxGrupo = grupoSaborPizza
-                ? Math.min(getMaxSaboresVariacao(varSel), pizzaQtdSabores)
-                : Number(grupo.max || 99)
-              return (
-                <div key={grupo.nome} className="mb-4">
-                  <p className="text-sm font-bold text-stone-800 mb-2">
-                    {grupo.nome} (escolha de {minGrupo} a {maxGrupo})
-                  </p>
-                  {grupo.itens.map((a) => {
-                    const sel = adicionaisSel.includes(a.id)
-                    const countItem = sel ? 1 : 0
-                    const podeAdicionar = countGrupo < maxGrupo
-                    return (
-                      <div key={a.id} className="flex items-center justify-between py-3 border-b border-stone-100">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleAdicionalComRegra(a, grupo, 'remover')}
-                            disabled={!sel}
-                            className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
-                          >
-                            <FiMinus size={12} />
-                          </button>
-                          <span className="w-4 text-center text-sm text-stone-600">{countItem}</span>
-                          <button
-                            onClick={() => toggleAdicionalComRegra(a, grupo, 'adicionar')}
-                            disabled={!podeAdicionar && !sel}
-                            className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
-                          >
-                            <FiPlus size={12} />
-                          </button>
-                          <span className="text-sm text-stone-800">{a.nome}</span>
+          <div className="px-4 pt-4">
+            <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+              <p className="text-sm font-bold text-stone-900 mb-1">Complementos</p>
+              <p className="text-xs text-stone-400 mb-3">Escolha por grupo conforme as regras</p>
+              {gruposAdicionais.map((grupo) => {
+                const countGrupo = grupo.itens.filter((it) => adicionaisSel.includes(it.id)).length
+                const grupoSaborPizza = ehPizza && grupo.itens.some((it) => !!it.is_sabor) && !!varSel
+                const minGrupo = grupoSaborPizza ? pizzaQtdSabores : Number(grupo.min || 0)
+                const maxGrupo = grupoSaborPizza
+                  ? Math.min(getMaxSaboresVariacao(varSel), pizzaQtdSabores)
+                  : Number(grupo.max || 99)
+                return (
+                  <div key={grupo.nome} className="mb-4 last:mb-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-bold text-stone-800">
+                        {grupo.nome}
+                      </p>
+                      <span className="text-[10px] font-semibold text-stone-500 bg-stone-100 rounded-full px-2 py-0.5">
+                        {countGrupo}/{maxGrupo}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-500 mb-2">Escolha de {minGrupo} a {maxGrupo}</p>
+                    {grupo.itens.map((a) => {
+                      const sel = adicionaisSel.includes(a.id)
+                      const countItem = sel ? 1 : 0
+                      const podeAdicionar = countGrupo < maxGrupo
+                      return (
+                        <div key={a.id} className={`flex items-center justify-between py-2.5 px-2 rounded-xl mb-1 border ${sel ? 'bg-emerald-50/65 border-emerald-200' : 'bg-white border-stone-200'}`}>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleAdicionalComRegra(a, grupo, 'remover')}
+                              disabled={!sel}
+                              className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
+                            >
+                              <FiMinus size={12} />
+                            </button>
+                            <span className="w-4 text-center text-sm text-stone-600">{countItem}</span>
+                            <button
+                              onClick={() => toggleAdicionalComRegra(a, grupo, 'adicionar')}
+                              disabled={!podeAdicionar && !sel}
+                              className="w-7 h-7 rounded-full border-2 border-emerald-400 text-emerald-500 inline-flex items-center justify-center disabled:opacity-40"
+                            >
+                              <FiPlus size={12} />
+                            </button>
+                            <span className="text-sm text-stone-800">{a.nome}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {getPrecoAdicionalPorVariacao(a, varSel).toFixed(2).replace('.', ',')}</span>
                         </div>
-                        <span className="text-sm font-semibold text-emerald-600 font-numeric">R$ {getPrecoAdicionalPorVariacao(a, varSel).toFixed(2).replace('.', ',')}</span>
-                      </div>
-                    )
-                  })}
-                  <p className="text-[11px] text-stone-500 mt-1">
-                    Selecionados: {countGrupo}/{maxGrupo}
-                  </p>
-                </div>
-              )
-            })}
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
         {/* Quantidade */}
-        <div className="px-4 pt-6 pb-4">
-          <p className="text-base font-bold text-stone-900 mb-4">quantos?</p>
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-stone-500">valor unitário: <span className="font-bold text-stone-900 font-numeric">R$ {precoUnitario.toFixed(2).replace('.', ',')}</span></p>
-            <div className="flex items-center gap-5">
-              <button onClick={() => setQtdDetalhe((q) => Math.max(1, q - 1))} className="w-10 h-10 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors">
+        <div className="px-4 pt-4">
+          <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-stone-900">Quantidade</p>
+              <p className="text-xs text-stone-500">Unitário: <span className="font-bold text-stone-800 font-numeric">R$ {precoUnitario.toFixed(2).replace('.', ',')}</span></p>
+            </div>
+            <div className="flex items-center justify-center gap-6">
+              <button onClick={() => setQtdDetalhe((q) => Math.max(1, q - 1))} className="w-11 h-11 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors">
                 <FiMinus />
               </button>
-              <span className="text-2xl font-bold text-stone-900 w-8 text-center">{qtdDetalhe}</span>
+              <span className="text-2xl font-black text-stone-900 w-9 text-center">{qtdDetalhe}</span>
               <button
                 onClick={() => setQtdDetalhe((q) => {
                   if (!controlaEstoque) return q + 1
                   return Math.min(q + 1, estoqueDisponivel || 1)
                 })}
                 disabled={controlaEstoque && qtdDetalhe >= estoqueDisponivel}
-                className="w-10 h-10 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                className="w-11 h-11 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center hover:bg-emerald-50 transition-colors disabled:opacity-40"
               >
                 <FiPlus />
               </button>
@@ -2041,25 +2070,38 @@ export default function LojaPage() {
         </div>
 
         {/* Observação */}
-        <div className="px-4 pb-6">
-          <input
-            type="text"
-            value={obsDetalhe}
-            onChange={(e) => setObsDetalhe(e.target.value)}
-            placeholder="alguma observação?"
-            className="w-full px-4 py-3 border border-stone-200 rounded-xl text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-          />
+        <div className="px-4 pt-4 pb-6">
+          <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-3 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.7)]">
+            <label className="block text-xs font-semibold text-stone-700 mb-2">Observações para a loja</label>
+            <textarea
+              value={obsDetalhe}
+              onChange={(e) => setObsDetalhe(e.target.value)}
+              rows={2}
+              placeholder="Ex.: sem cebola, ponto da carne, retirar molho..."
+              className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl text-sm text-stone-700 placeholder:text-stone-400 focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+            />
+          </div>
         </div>
 
         {/* Botão fixo */}
         <div className="fixed bottom-16 left-0 right-0 z-40 px-4 pb-3">
-          <button
-            onClick={addItemConfigurado}
-            disabled={(temVariacoes && !variacaoSel) || semEstoque || (ehPizza && !varSel)}
-            className="w-full max-w-lg mx-auto block bg-red-600 text-white py-3.5 rounded-xl shadow-lg hover:bg-red-700 active:scale-[0.98] disabled:opacity-50 transition-all font-semibold text-sm"
-          >
-            {semEstoque ? 'Produto indisponível' : `põe no ticket - R$ ${precoTotal.toFixed(2).replace('.', ',')}`}
-          </button>
+          <div className="w-full max-w-lg mx-auto rounded-2xl border border-white/70 bg-white/60 backdrop-blur-xl p-2 shadow-[0_28px_48px_-34px_rgba(15,23,42,0.9)]">
+            <button
+              onClick={addItemConfigurado}
+              disabled={(temVariacoes && !variacaoSel) || semEstoque || (ehPizza && !varSel)}
+              className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-4 py-3.5 rounded-xl border border-red-400/40 shadow-[0_18px_34px_-26px_rgba(220,38,38,0.9)] hover:from-red-700 hover:to-red-600 active:scale-[0.98] disabled:opacity-50 transition-all"
+            >
+              {semEstoque ? (
+                <span className="font-semibold text-sm">Produto indisponível</span>
+              ) : (
+                <>
+                  <span className="inline-flex items-center justify-center min-w-8 h-8 rounded-full bg-white/20 px-2 text-xs font-bold">{qtdDetalhe}x</span>
+                  <span className="font-semibold text-sm">Adicionar ao pedido</span>
+                  <span className="font-bold font-numeric text-sm">R$ {precoTotal.toFixed(2).replace('.', ',')}</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     )
