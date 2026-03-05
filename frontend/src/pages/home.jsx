@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo, memo } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { FiStar, FiChevronLeft, FiChevronRight, FiGrid, FiList, FiX } from 'react-icons/fi'
 import { useQuery } from '@tanstack/react-query'
@@ -496,7 +496,11 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
   const rippleIdRef = useRef(0)
   const rippleTimersRef = useRef([])
   const isAboveFold = idx < 4
-  const prefetch = usePrefetchLoja(loja.slug, {
+  const {
+    ref: prefetchRef,
+    onMouseEnter: onPrefetchMouseEnter,
+    onTouchStart: onPrefetchTouchStart,
+  } = usePrefetchLoja(loja.slug, {
     prefetchOnViewport: idx < 4 ? 'full' : 'chunk',
     viewportThreshold: 0.6,
   })
@@ -504,13 +508,15 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
 
   useEffect(() => {
     return () => {
-      rippleTimersRef.current.forEach((timer) => clearTimeout(timer))
+      const timers = rippleTimersRef.current
+      timers.forEach((timer) => clearTimeout(timer))
+      rippleTimersRef.current = []
     }
   }, [])
 
   function handlePointerDown(e) {
     if (e.pointerType === 'mouse') return
-    prefetch.onTouchStart()
+    onPrefetchTouchStart()
     const rect = e.currentTarget.getBoundingClientRect()
     const size = Math.max(rect.width, rect.height) * 1.15
     const id = rippleIdRef.current + 1
@@ -532,9 +538,9 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
 
   return (
     <Link
-      ref={prefetch.ref}
+      ref={prefetchRef}
       to={`/loja/${loja.slug}`}
-      onMouseEnter={prefetch.onMouseEnter}
+      onMouseEnter={onPrefetchMouseEnter}
       onPointerDown={handlePointerDown}
       className={`group relative overflow-hidden flex items-center gap-4 px-3 py-3.5 rounded-2xl border border-stone-200 bg-white transform-gpu will-change-transform transition-all duration-200 ease-out hover:border-stone-300 hover:shadow-[0_14px_28px_-24px_rgba(15,23,42,0.55)] hover:scale-[1.005] active:scale-[0.985] active:bg-stone-50 active:shadow-none ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-55' : ''
         }`}
@@ -626,7 +632,11 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
 const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
   const aberta = loja.aberta_agora ?? loja.aberta
   const taxa = typeof taxaBairro === 'number' ? taxaBairro : (loja.taxa_entrega ?? 0)
-  const prefetch = usePrefetchLoja(loja.slug, {
+  const {
+    ref: prefetchRef,
+    onMouseEnter: onPrefetchMouseEnter,
+    onTouchStart: onPrefetchTouchStart,
+  } = usePrefetchLoja(loja.slug, {
     prefetchOnViewport: idx < 3 ? 'full' : 'chunk',
     viewportThreshold: 0.65,
   })
@@ -636,10 +646,10 @@ const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
 
   return (
     <Link
-      ref={prefetch.ref}
+      ref={prefetchRef}
       to={`/loja/${loja.slug}`}
-      onMouseEnter={prefetch.onMouseEnter}
-      onTouchStart={prefetch.onTouchStart}
+      onMouseEnter={onPrefetchMouseEnter}
+      onTouchStart={onPrefetchTouchStart}
       className={`group block transform-gpu will-change-transform ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-60' : ''}`}
       style={{
         WebkitTapHighlightColor: 'rgba(239, 68, 68, 0.12)',
@@ -733,13 +743,11 @@ export default function HomePage() {
   const storyTouchStartYRef = useRef(null)
   const feedPrefetchRef = useRef({ cityId: '', ts: 0 })
 
-  const cachedHome = getLocalItem(HOME_CACHE_KEY, null)
-  const cachedHomeData =
-    cachedHome?.ts &&
-      Array.isArray(cachedHome?.data) &&
-      Date.now() - cachedHome.ts < HOME_CACHE_TTL
-      ? cachedHome.data
-      : null
+  const [cachedHomeData] = useState(() => {
+    const cached = getLocalItem(HOME_CACHE_KEY, null)
+    if (!cached?.ts || !Array.isArray(cached?.data)) return null
+    return Date.now() - cached.ts < HOME_CACHE_TTL ? cached.data : null
+  })
 
   const homeQuery = useQuery({
     queryKey: ['home-lojas'],
@@ -895,8 +903,53 @@ export default function HomePage() {
     )
   }, [])
 
-  const lojasAbertas = useMemo(() => lojas.filter((l) => l.aberta_agora ?? l.aberta), [lojas])
-  const lojasFechadas = useMemo(() => lojas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojas])
+  const termosFiltro = useMemo(
+    () => ({
+      busca: String(buscaDebounced || '').trim().toLowerCase(),
+      categoria: categoriaSel ? normalizeText(categoriaSel) : '',
+      cidade: String(cidadeSelecionada || cidadeGeo || cidadePadrao || '').trim().toLowerCase(),
+    }),
+    [buscaDebounced, categoriaSel, cidadeSelecionada, cidadeGeo, cidadePadrao]
+  )
+
+  const lojasComIndice = useMemo(
+    () => (Array.isArray(lojas) ? lojas : []).map((loja) => ({
+      loja,
+      aberta: Boolean(loja?.aberta_agora ?? loja?.aberta),
+      nomeLower: String(loja?.nome || '').toLowerCase(),
+      categoriaLower: String(loja?.categoria_negocio || '').toLowerCase(),
+      cidadeLower: String(loja?.cidade || '').toLowerCase(),
+      categoriaNormalizada: normalizeText(loja?.categoria_negocio || ''),
+    })),
+    [lojas]
+  )
+
+  const lojasSeparadas = useMemo(() => {
+    const abertas = []
+    const fechadas = []
+    const abertasRaw = []
+    const fechadasRaw = []
+
+    for (const item of lojasComIndice) {
+      if (item.aberta) {
+        abertas.push(item)
+        abertasRaw.push(item.loja)
+      } else {
+        fechadas.push(item)
+        fechadasRaw.push(item.loja)
+      }
+    }
+
+    return {
+      abertas,
+      fechadas,
+      abertasRaw,
+      fechadasRaw,
+      ordenadas: [...abertas, ...fechadas],
+    }
+  }, [lojasComIndice])
+
+  const lojasAbertas = lojasSeparadas.abertasRaw
   const categoriasDinamicas = useMemo(() => extrairCategorias(lojas), [lojas])
   const cidadeRanking = useMemo(() => {
     const cidadeBase = String(cidadeSelecionada || cidadeGeo || cidadePadrao || '').trim()
@@ -904,37 +957,36 @@ export default function HomePage() {
   }, [lojas, cidadeSelecionada, cidadeGeo, cidadePadrao])
 
   const lojasFiltradas = useMemo(() => {
-    let lista = [...lojasAbertas, ...lojasFechadas]
-    const buscaAtiva = Boolean(buscaDebounced.trim())
-    const cidadeBase = (cidadeSelecionada || cidadeGeo || cidadePadrao || '').trim()
+    let lista = lojasSeparadas.ordenadas
+    const buscaAtiva = Boolean(termosFiltro.busca)
 
-    if (cidadeBase && !buscaAtiva) {
-      const c = cidadeBase.toLowerCase()
-      lista = lista.filter((l) => String(l.cidade || '').toLowerCase() === c)
+    if (termosFiltro.cidade && !buscaAtiva) {
+      lista = lista.filter((item) => item.cidadeLower === termosFiltro.cidade)
     }
 
     if (buscaAtiva) {
-      const b = buscaDebounced.toLowerCase()
       lista = lista.filter(
-        (l) =>
-          l.nome.toLowerCase().includes(b) ||
-          l.categoria_negocio.toLowerCase().includes(b) ||
-          String(l.cidade || '').toLowerCase().includes(b)
+        (item) =>
+          item.nomeLower.includes(termosFiltro.busca) ||
+          item.categoriaLower.includes(termosFiltro.busca) ||
+          item.cidadeLower.includes(termosFiltro.busca)
       )
     }
-    if (categoriaSel) {
-      const c = normalizeText(categoriaSel)
-      lista = lista.filter((l) => normalizeText(l.categoria_negocio).includes(c))
+
+    if (termosFiltro.categoria) {
+      lista = lista.filter((item) => item.categoriaNormalizada.includes(termosFiltro.categoria))
     }
-    return lista
-  }, [lojasAbertas, lojasFechadas, buscaDebounced, categoriaSel, cidadePadrao, cidadeGeo, cidadeSelecionada])
+
+    return lista.map((item) => item.loja)
+  }, [lojasSeparadas, termosFiltro])
 
   const filtradasAbertas = useMemo(() => lojasFiltradas.filter((l) => l.aberta_agora ?? l.aberta), [lojasFiltradas])
   const filtradasFechadas = useMemo(() => lojasFiltradas.filter((l) => !(l.aberta_agora ?? l.aberta)), [lojasFiltradas])
+  const passoCarregamento = modoVisualizacao === 'grade' ? 18 : 12
 
   useEffect(() => {
-    setVisibleCount(12)
-    if (lojasFiltradas.length <= 12) return undefined
+    setVisibleCount(passoCarregamento)
+    if (lojasFiltradas.length <= passoCarregamento) return undefined
 
     let cancelled = false
     let timeoutId = null
@@ -945,7 +997,7 @@ export default function HomePage() {
       if ('requestIdleCallback' in window) {
         idleId = window.requestIdleCallback(() => {
           setVisibleCount((prev) => {
-            const next = Math.min(prev + 12, lojasFiltradas.length)
+            const next = Math.min(prev + passoCarregamento, lojasFiltradas.length)
             if (next < lojasFiltradas.length) scheduleNext()
             return next
           })
@@ -953,7 +1005,7 @@ export default function HomePage() {
       } else {
         timeoutId = window.setTimeout(() => {
           setVisibleCount((prev) => {
-            const next = Math.min(prev + 12, lojasFiltradas.length)
+            const next = Math.min(prev + passoCarregamento, lojasFiltradas.length)
             if (next < lojasFiltradas.length) scheduleNext()
             return next
           })
@@ -968,7 +1020,7 @@ export default function HomePage() {
       if (timeoutId) clearTimeout(timeoutId)
       if (idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
     }
-  }, [lojasFiltradas.length])
+  }, [lojasFiltradas.length, passoCarregamento])
 
   const lojasVisiveis = useMemo(() => lojasFiltradas.slice(0, visibleCount), [lojasFiltradas, visibleCount])
   const filtradasAbertasVisiveis = useMemo(() => lojasVisiveis.filter((l) => l.aberta_agora ?? l.aberta), [lojasVisiveis])
@@ -1026,22 +1078,22 @@ export default function HomePage() {
     }
   }, [bairroPadrao, lojasVisiveis])
 
-  function openStories(groupIdx) {
+  const openStories = useCallback((groupIdx) => {
     if (!storiesGroups[groupIdx]) return
     setStoryGroupIndex(groupIdx)
     setStoryIndex(0)
     setStoryProgress(0)
     setStoryModalOpen(true)
-  }
+  }, [storiesGroups])
 
-  function closeStories() {
+  const closeStories = useCallback(() => {
     setStoryModalOpen(false)
     setStoryGroupIndex(-1)
     setStoryIndex(0)
     setStoryProgress(0)
-  }
+  }, [])
 
-  function nextStory() {
+  const nextStory = useCallback(() => {
     const grupo = storiesGroups[storyGroupIndex]
     if (!grupo) return closeStories()
     const max = (grupo.stories || []).length
@@ -1057,9 +1109,9 @@ export default function HomePage() {
       return
     }
     closeStories()
-  }
+  }, [storiesGroups, storyGroupIndex, storyIndex, closeStories])
 
-  function prevStory() {
+  const prevStory = useCallback(() => {
     if (storyIndex > 0) {
       setStoryIndex((prev) => prev - 1)
       setStoryProgress(0)
@@ -1075,9 +1127,9 @@ export default function HomePage() {
       return
     }
     closeStories()
-  }
+  }, [storyIndex, storyGroupIndex, storiesGroups, closeStories])
 
-  function nextStoreStories() {
+  const nextStoreStories = useCallback(() => {
     if (storyGroupIndex < storiesGroups.length - 1) {
       setStoryGroupIndex((prev) => prev + 1)
       setStoryIndex(0)
@@ -1085,7 +1137,7 @@ export default function HomePage() {
       return
     }
     closeStories()
-  }
+  }, [storyGroupIndex, storiesGroups.length, closeStories])
 
   useEffect(() => {
     if (!storyModalOpen) return undefined
@@ -1115,19 +1167,22 @@ export default function HomePage() {
     return () => {
       clearInterval(timer)
     }
-  }, [storyModalOpen, storyGroupIndex, storyIndex])
+  }, [storyModalOpen, storyGroupIndex, storyIndex, nextStory])
 
-  function onStoryPointerDown(e) {
+  const onStoryPointerDown = useCallback((e) => {
     storyTouchStartYRef.current = e.clientY
-  }
+  }, [])
 
-  function onStoryPointerUp(e) {
+  const onStoryPointerUp = useCallback((e) => {
     const startY = storyTouchStartYRef.current
     if (typeof startY !== 'number') return
     const deltaY = e.clientY - startY
     storyTouchStartYRef.current = null
     if (Math.abs(deltaY) > 70) closeStories()
-  }
+  }, [closeStories])
+
+  const limparBusca = useCallback(() => setBusca(''), [])
+  const limparCategoria = useCallback(() => setCategoriaSel(null), [])
 
   if (carregando) {
     return <HomeLoadingState />
@@ -1211,7 +1266,7 @@ export default function HomePage() {
           <HomeSearchBar
             busca={busca}
             onChangeBusca={setBusca}
-            onClearBusca={() => setBusca('')}
+            onClearBusca={limparBusca}
           />
 
           <Link
@@ -1252,7 +1307,7 @@ export default function HomePage() {
             categoriasDinamicas={categoriasDinamicas}
             categoriaSel={categoriaSel}
             onToggleCategoria={setCategoriaSel}
-            onClearCategoria={() => setCategoriaSel(null)}
+            onClearCategoria={limparCategoria}
             categoriaCardComponent={CategoriaCard}
           />
 
