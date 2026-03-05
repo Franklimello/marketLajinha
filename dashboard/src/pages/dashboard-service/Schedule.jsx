@@ -128,8 +128,11 @@ export default function ServiceSchedulePage() {
   const [busySlotKey, setBusySlotKey] = useState('')
   const [busyDayAction, setBusyDayAction] = useState(false)
   const [busyDefaultApply, setBusyDefaultApply] = useState(false)
+  const [busyDefaultUndo, setBusyDefaultUndo] = useState(false)
   const [defaultStartTime, setDefaultStartTime] = useState('08:00')
   const [defaultEndTime, setDefaultEndTime] = useState('18:00')
+  const [workdaysMode, setWorkdaysMode] = useState('SEG_SAB')
+  const [defaultUndoContext, setDefaultUndoContext] = useState(null)
 
   const range = useMemo(() => {
     if (viewMode === 'day') return { from: dayRef, to: dayRef }
@@ -225,12 +228,23 @@ export default function ServiceSchedulePage() {
     setBusyDefaultApply(true)
     setError('')
     try {
+      const previousBlockedSlots = blockedSlots
+        .filter((item) => {
+          const date = String(item?.date || '')
+          return date >= range.from && date <= range.to
+        })
+        .map((item) => ({
+          date: String(item?.date || ''),
+          time: String(item?.time || ''),
+        }))
+
       await api.appointments.providerApplyDefaultSchedule({
         start_time: defaultStartTime,
         end_time: defaultEndTime,
         date_from: range.from,
         date_to: range.to,
         except_sunday: true,
+        workdays_mode: workdaysMode,
       })
 
       const res = await api.appointments.providerSchedule(range.from, range.to)
@@ -243,10 +257,38 @@ export default function ServiceSchedulePage() {
 
       setAppointments(appointmentsData)
       setBlockedSlots(blockedData)
+      setDefaultUndoContext({
+        date_from: range.from,
+        date_to: range.to,
+        blocked_slots: previousBlockedSlots,
+      })
     } catch (err) {
       setError(err.message || 'Nao foi possivel aplicar o horario padrao.')
     } finally {
       setBusyDefaultApply(false)
+    }
+  }
+
+  async function handleUndoDefaultSchedule() {
+    if (!defaultUndoContext) return
+    setBusyDefaultUndo(true)
+    setError('')
+    try {
+      await api.appointments.providerRestoreDefaultSchedule(defaultUndoContext)
+      const res = await api.appointments.providerSchedule(range.from, range.to)
+      const appointmentsData = Array.isArray(res)
+        ? res
+        : (Array.isArray(res?.appointments) ? res.appointments : [])
+      const blockedData = Array.isArray(res?.blocked_slots)
+        ? res.blocked_slots
+        : []
+      setAppointments(appointmentsData)
+      setBlockedSlots(blockedData)
+      setDefaultUndoContext(null)
+    } catch (err) {
+      setError(err.message || 'Nao foi possivel desfazer a ultima aplicacao.')
+    } finally {
+      setBusyDefaultUndo(false)
     }
   }
 
@@ -318,48 +360,45 @@ export default function ServiceSchedulePage() {
   }
 
   return (
-    <div className="space-y-4 pb-6">
-      <section className="relative overflow-hidden rounded-3xl border border-stone-300 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-4 sm:p-5 shadow-lg">
-        <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute -left-10 -bottom-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-
-        <div className="relative grid xl:grid-cols-[1.2fr_0.9fr] gap-4 items-start">
+    <div className="space-y-3 pb-6">
+      <section className="relative overflow-hidden rounded-2xl border border-stone-300 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-3.5 sm:p-4 shadow-lg">
+        <div className="relative grid xl:grid-cols-[1.2fr_0.9fr] gap-3 items-start">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-amber-200">Agenda premium</p>
-            <h2 className="text-xl sm:text-2xl font-semibold mt-1">Agenda mobile premium</h2>
-            <p className="text-sm text-stone-200 mt-2 max-w-2xl">
-              Visual limpo e rapido para liberar vagas, bloquear intervalos e manter sua rotina sempre organizada no celular.
+            <h2 className="text-lg sm:text-xl font-semibold mt-1">Agenda do prestador</h2>
+            <p className="text-xs text-stone-200 mt-1.5 max-w-2xl">
+              Gerencie disponibilidade com rapidez e precisão.
             </p>
 
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
               <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">1. Periodo</span>
               <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">2. Disponibilidade</span>
               <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">3. Confirmacao</span>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 space-y-3">
+          <div className="rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-2.5 space-y-2.5">
             <p className="text-xs uppercase tracking-wide text-amber-200">Visualizacao do periodo</p>
 
             <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 onClick={() => setViewMode('day')}
-                className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-colors ${viewMode === 'day' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
+                className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-colors ${viewMode === 'day' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Dia
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('week')}
-                className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-colors ${viewMode === 'week' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
+                className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-colors ${viewMode === 'week' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Semana
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('month')}
-                className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-colors ${viewMode === 'month' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
+                className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-colors ${viewMode === 'month' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Mes
               </button>
@@ -369,7 +408,7 @@ export default function ServiceSchedulePage() {
               <button
                 type="button"
                 onClick={() => movePeriod(-1)}
-                className="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 w-10 h-10 hover:bg-white/20"
+                className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 w-9 h-9 hover:bg-white/20"
                 aria-label="Periodo anterior"
               >
                 <FiChevronLeft size={16} />
@@ -380,21 +419,21 @@ export default function ServiceSchedulePage() {
                   type="month"
                   value={month}
                   onChange={(e) => handleMonthChange(e.target.value)}
-                  className="rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white"
+                  className="rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm text-white"
                 />
               ) : (
                 <input
                   type="date"
                   value={dayRef}
                   onChange={(e) => setDayRef(e.target.value)}
-                  className="rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white"
+                  className="rounded-lg border border-white/30 bg-white/10 px-3 py-2 text-sm text-white"
                 />
               )}
 
               <button
                 type="button"
                 onClick={() => movePeriod(1)}
-                className="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 w-10 h-10 hover:bg-white/20"
+                className="inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 w-9 h-9 hover:bg-white/20"
                 aria-label="Proximo periodo"
               >
                 <FiChevronRight size={16} />
@@ -410,7 +449,7 @@ export default function ServiceSchedulePage() {
               <button
                 type="button"
                 onClick={goToToday}
-                className="rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
+                className="rounded-lg border border-white/30 bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
               >
                 Ir para hoje
               </button>
@@ -441,8 +480,13 @@ export default function ServiceSchedulePage() {
           defaultEndTime={defaultEndTime}
           onDefaultStartTimeChange={setDefaultStartTime}
           onDefaultEndTimeChange={setDefaultEndTime}
+          workdaysMode={workdaysMode}
+          onWorkdaysModeChange={setWorkdaysMode}
           onApplyDefaultSchedule={handleApplyDefaultSchedule}
           busyDefaultApply={busyDefaultApply}
+          onUndoDefaultSchedule={handleUndoDefaultSchedule}
+          busyDefaultUndo={busyDefaultUndo}
+          canUndoDefaultSchedule={!!defaultUndoContext}
           busySlotKey={busySlotKey}
           busyDayAction={busyDayAction}
         />

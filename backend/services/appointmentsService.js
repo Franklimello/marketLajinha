@@ -1095,6 +1095,9 @@ async function setProviderDefaultSchedule(providerAccount, payload) {
   const startTime = cleanText(payload.start_time);
   const endTime = cleanText(payload.end_time);
   const exceptSunday = payload.except_sunday !== false;
+  const workdaysMode = ['SEG_SEX', 'SEG_SAB', 'TODOS'].includes(payload.workdays_mode)
+    ? payload.workdays_mode
+    : (exceptSunday ? 'SEG_SAB' : 'TODOS');
 
   if (!isValidTime(startTime) || !isValidTime(endTime)) {
     const err = new Error('Faixa de horário inválida. Use HH:mm.');
@@ -1129,7 +1132,10 @@ async function setProviderDefaultSchedule(providerAccount, payload) {
 
   while (cursor.getTime() <= to.getTime()) {
     const date = parseDateOnly(formatDateToKey(cursor));
-    const isSunday = cursor.getUTCDay() === 0;
+    const weekDay = cursor.getUTCDay();
+    const isWorkingDay = workdaysMode === 'TODOS'
+      ? true
+      : (workdaysMode === 'SEG_SEX' ? weekDay >= 1 && weekDay <= 5 : weekDay >= 1 && weekDay <= 6);
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -1154,7 +1160,7 @@ async function setProviderDefaultSchedule(providerAccount, payload) {
     }
 
     const shouldBeFreeSet = new Set(
-      isSunday && exceptSunday
+      !isWorkingDay
         ? []
         : allSlots.filter((slot) => {
           const minutes = timeToMinutes(slot);
@@ -1205,9 +1211,61 @@ async function setProviderDefaultSchedule(providerAccount, payload) {
     start_time: startTime,
     end_time: endTime,
     except_sunday: exceptSunday,
+    workdays_mode: workdaysMode,
     days_updated: daysUpdated,
     blocked_upserted: blockedUpserted,
     unblocked_removed: unblockedRemoved,
+  };
+}
+
+async function restoreProviderDefaultSchedule(providerAccount, payload) {
+  const from = parseDateOnly(payload.date_from);
+  const to = parseDateOnly(payload.date_to);
+
+  if (from.getTime() > to.getTime()) {
+    const err = new Error('Intervalo de datas inválido.');
+    err.status = 400;
+    throw err;
+  }
+
+  const inRange = (dateKey) => dateKey >= formatDateToKey(from) && dateKey <= formatDateToKey(to);
+  const uniqueSnapshot = new Map();
+  for (const slot of Array.isArray(payload.blocked_slots) ? payload.blocked_slots : []) {
+    const dateKey = cleanText(slot?.date);
+    const time = cleanText(slot?.time);
+    if (!dateKey || !time || !isValidTime(time) || !inRange(dateKey)) continue;
+    uniqueSnapshot.set(`${dateKey}__${time}`, { date: parseDateOnly(dateKey), time });
+  }
+
+  await prisma.providerBlockedSlot.deleteMany({
+    where: {
+      provider_id: providerAccount.id,
+      date: {
+        gte: from,
+        lte: to,
+      },
+    },
+  });
+
+  const data = Array.from(uniqueSnapshot.values()).map((slot) => ({
+    provider_id: providerAccount.id,
+    date: slot.date,
+    time: slot.time,
+  }));
+
+  let restoredCount = 0;
+  if (data.length > 0) {
+    const created = await prisma.providerBlockedSlot.createMany({
+      data,
+      skipDuplicates: true,
+    });
+    restoredCount = Number(created?.count || 0);
+  }
+
+  return {
+    date_from: formatDateToKey(from),
+    date_to: formatDateToKey(to),
+    restored_count: restoredCount,
   };
 }
 
@@ -1356,6 +1414,7 @@ module.exports = {
   setProviderSlotOccupancy,
   setProviderDayOccupancy,
   setProviderDefaultSchedule,
+  restoreProviderDefaultSchedule,
   listAvailableSlotsForService,
   sendDueAppointmentReminders,
 };

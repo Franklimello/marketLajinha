@@ -43,6 +43,16 @@ const schemaProviderDefaultScheduleUpdate = z.object({
   date_from: z.string().regex(dateRegex, 'Data inicial inválida. Use YYYY-MM-DD.').optional(),
   date_to: z.string().regex(dateRegex, 'Data final inválida. Use YYYY-MM-DD.').optional(),
   except_sunday: z.boolean().optional().default(true),
+  workdays_mode: z.enum(['SEG_SEX', 'SEG_SAB', 'TODOS']).optional(),
+});
+
+const schemaProviderRestoreDefaultSchedule = z.object({
+  date_from: z.string().regex(dateRegex, 'Data inicial inválida. Use YYYY-MM-DD.'),
+  date_to: z.string().regex(dateRegex, 'Data final inválida. Use YYYY-MM-DD.'),
+  blocked_slots: z.array(z.object({
+    date: z.string().regex(dateRegex, 'Data inválida. Use YYYY-MM-DD.'),
+    time: z.string().regex(timeRegex, 'Hora inválida. Use HH:mm.'),
+  })).max(10000, 'Limite de 10.000 bloqueios por restauração.'),
 });
 
 const schemaAvailableSlotsQuery = z.object({
@@ -58,5 +68,6 @@ module.exports = {
   schemaProviderSlotUpdate,
   schemaProviderDayOccupancyUpdate,
   schemaProviderDefaultScheduleUpdate,
+  schemaProviderRestoreDefaultSchedule,
   schemaAvailableSlotsQuery,
 };

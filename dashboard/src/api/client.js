@@ -202,5 +202,7 @@ export const api = {
       request('/appointments/provider/day-occupancy', { method: 'PATCH', body: JSON.stringify(data) }),
     providerApplyDefaultSchedule: (data) =>
       request('/appointments/provider/default-schedule', { method: 'PATCH', body: JSON.stringify(data) }),
+    providerRestoreDefaultSchedule: (data) =>
+      request('/appointments/provider/default-schedule/restore', { method: 'PATCH', body: JSON.stringify(data) }),
   },
 }

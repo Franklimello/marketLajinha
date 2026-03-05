@@ -53,8 +53,13 @@ export default function BookingCalendar({
   defaultEndTime = '18:00',
   onDefaultStartTimeChange = null,
   onDefaultEndTimeChange = null,
+  workdaysMode = 'SEG_SAB',
+  onWorkdaysModeChange = null,
   onApplyDefaultSchedule = null,
+  onUndoDefaultSchedule = null,
   busyDefaultApply = false,
+  busyDefaultUndo = false,
+  canUndoDefaultSchedule = false,
   busySlotKey = '',
   busyDayAction = false,
 }) {
@@ -255,9 +260,25 @@ export default function BookingCalendar({
     )
   }
 
+  const periodPresets = [
+    { label: 'Comercial', start: '08:00', end: '18:00' },
+    { label: 'Estendido', start: '09:00', end: '19:00' },
+    { label: 'Noite', start: '12:00', end: '22:00' },
+  ]
+
+  const workdayModes = [
+    { value: 'SEG_SEX', label: 'Seg-Sex' },
+    { value: 'SEG_SAB', label: 'Seg-Sab' },
+    { value: 'TODOS', label: 'Todos' },
+  ]
+
+  const workdaysLabel = workdaysMode === 'SEG_SEX'
+    ? 'Segunda a sexta'
+    : (workdaysMode === 'SEG_SAB' ? 'Segunda a sábado' : 'Todos os dias')
+
   return (
-    <section className="rounded-3xl border border-stone-200 bg-white shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] overflow-hidden max-w-full">
-      <div className="border-b border-stone-200 bg-linear-to-r from-stone-50 to-amber-50 p-3 sm:p-4 space-y-3">
+    <section className="rounded-2xl border border-stone-200 bg-white shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] overflow-hidden max-w-full">
+      <div className="border-b border-stone-200 bg-linear-to-r from-stone-50 to-amber-50 p-3 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             <label className="inline-flex items-center gap-2 text-sm font-medium text-stone-700">
@@ -266,14 +287,14 @@ export default function BookingCalendar({
                 type="date"
                 value={selectedDate}
                 onChange={(e) => updateSelectedDate(e.target.value)}
-                className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white max-w-full"
+                className="rounded-lg border border-stone-300 px-2.5 py-1.5 text-sm bg-white max-w-full"
               />
             </label>
 
             <button
               type="button"
               onClick={() => updateSelectedDate(new Date().toISOString().slice(0, 10))}
-              className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-[11px] font-semibold text-stone-700 hover:bg-stone-50"
+              className="rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-stone-700 hover:bg-stone-50"
             >
               Hoje
             </button>
@@ -289,23 +310,23 @@ export default function BookingCalendar({
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-800">
             Livres: <strong className="font-numeric">{freeCount}</strong>
           </div>
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-800">
             Ocupados: <strong className="font-numeric">{occupiedCount}</strong>
           </div>
-          <div className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-600 col-span-2 sm:col-span-1">
+          <div className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 col-span-2 sm:col-span-1">
             Verde = livre, Vermelho = ocupado
           </div>
         </div>
       </div>
 
-      <div className="p-3 sm:p-4 space-y-4">
+      <div className="p-3 space-y-3.5">
         {onApplyDefaultSchedule && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3 space-y-2.5">
+          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 space-y-2">
             <p className="text-xs font-semibold text-amber-900">
-              Horario padrao (Seg-Sab): aplica a faixa em todos os dias e bloqueia domingos.
+              Horario padrao profissional: aplica no periodo escolhido e bloqueia fora da janela automaticamente.
             </p>
 
             <div className="grid grid-cols-2 gap-2">
@@ -316,7 +337,7 @@ export default function BookingCalendar({
                   step="1800"
                   value={defaultStartTime}
                   onChange={(e) => onDefaultStartTimeChange?.(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-amber-300 bg-white px-2.5 py-2 text-xs text-stone-700"
+                  className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs text-stone-700"
                 />
               </label>
 
@@ -327,19 +348,70 @@ export default function BookingCalendar({
                   step="1800"
                   value={defaultEndTime}
                   onChange={(e) => onDefaultEndTimeChange?.(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-amber-300 bg-white px-2.5 py-2 text-xs text-stone-700"
+                  className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs text-stone-700"
                 />
               </label>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold text-amber-900">Modelos rapidos</p>
+              <div className="flex flex-wrap gap-1.5">
+                {periodPresets.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      onDefaultStartTimeChange?.(preset.start)
+                      onDefaultEndTimeChange?.(preset.end)
+                    }}
+                    className="rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[10px] font-medium text-amber-900 hover:bg-amber-100"
+                  >
+                    {preset.label} ({preset.start}-{preset.end})
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold text-amber-900">Dias de funcionamento</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {workdayModes.map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => onWorkdaysModeChange?.(mode.value)}
+                    className={`rounded-lg border px-2 py-1 text-[10px] font-semibold ${
+                      workdaysMode === mode.value
+                        ? 'border-amber-500 bg-amber-600 text-white'
+                        : 'border-amber-300 bg-white text-amber-900 hover:bg-amber-100'
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-amber-900/80">Aplicando em: {workdaysLabel}</p>
             </div>
 
             <button
               type="button"
               onClick={onApplyDefaultSchedule}
               disabled={busyDefaultApply}
-              className="w-full rounded-xl border border-amber-400 bg-amber-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+              className="w-full rounded-lg border border-amber-400 bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
             >
               {busyDefaultApply ? 'Aplicando padrao...' : 'Aplicar padrao no periodo'}
             </button>
+
+            {onUndoDefaultSchedule && (
+              <button
+                type="button"
+                onClick={onUndoDefaultSchedule}
+                disabled={!canUndoDefaultSchedule || busyDefaultUndo}
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+              >
+                {busyDefaultUndo ? 'Desfazendo...' : 'Desfazer ultima aplicacao'}
+              </button>
+            )}
           </div>
         )}
 
@@ -349,7 +421,7 @@ export default function BookingCalendar({
               type="button"
               onClick={() => onToggleDay({ date: selectedDate, occupied: true })}
               disabled={busyDayAction || allFreeSlotsBlocked}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3 py-2.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
             >
               {busyDayAction ? 'Processando...' : 'Bloquear horarios livres do dia'}
             </button>
@@ -358,7 +430,7 @@ export default function BookingCalendar({
               type="button"
               onClick={() => onToggleDay({ date: selectedDate, occupied: false })}
               disabled={busyDayAction || manualBlockedList.length === 0}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
             >
               Liberar bloqueios manuais do dia
             </button>
@@ -397,7 +469,7 @@ export default function BookingCalendar({
           </div>
 
           <div className="space-y-2 order-1 lg:order-2">
-            <div className="rounded-2xl border border-amber-200 bg-linear-to-br from-amber-50 to-orange-50 p-3">
+            <div className="rounded-xl border border-amber-200 bg-linear-to-br from-amber-50 to-orange-50 p-2.5">
               <h4 className="text-sm font-semibold text-amber-900">Editor de horarios</h4>
               <p className="text-xs text-amber-800 mt-1">
                 Abra o mapa para tocar nos blocos de horario e liberar ou bloquear rapidamente.
@@ -406,7 +478,7 @@ export default function BookingCalendar({
               <button
                 type="button"
                 onClick={() => setMapModalOpen(true)}
-                className="mt-3 w-full rounded-xl border border-amber-500 bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"
+                className="mt-2.5 w-full rounded-lg border border-amber-500 bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"
               >
                 Abrir mapa de horarios
               </button>
