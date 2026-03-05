@@ -2151,75 +2151,106 @@ export default function LojaPage() {
             </span>
           )}
         </div>
-        <div className="absolute bottom-4 left-4 w-20 h-20 md:bottom-5 md:w-24 md:h-24 rounded-[1.4rem] md:rounded-3xl overflow-hidden border-[3px] md:border-4 border-white/90 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.95)] md:shadow-[0_24px_42px_-26px_rgba(15,23,42,0.95)] bg-white">
+        <div className="hidden md:block absolute bottom-4 left-4 w-20 h-20 md:bottom-5 md:w-24 md:h-24 rounded-[1.4rem] md:rounded-3xl overflow-hidden border-[3px] md:border-4 border-white/90 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.95)] md:shadow-[0_24px_42px_-26px_rgba(15,23,42,0.95)] bg-white">
           <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           <div className="w-full h-full items-center justify-center text-2xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
         </div>
         {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
-      <div className="mx-4 mt-2.5 md:-mt-10 px-3.5 pt-3 pb-3 relative z-20 rounded-[1.55rem] border border-white/70 bg-white/86 backdrop-blur-xl shadow-[0_26px_46px_-38px_rgba(15,23,42,0.95)]">
-        <h1 className="text-[clamp(1.35rem,5.8vw,1.9rem)] font-black text-stone-900 leading-[1.06] tracking-tight line-clamp-2">{loja.nome}</h1>
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          {loja.cidade && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-100/80 px-2.5 py-0.5 text-[10px] font-semibold text-stone-600">
-              <FiMapPin className="text-[10px]" />
-              {loja.cidade}
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50/80 px-2.5 py-0.5 text-[10px] font-semibold text-red-700">
-            {aceitaEntrega ? <FiTruck className="text-[10px]" /> : <FiShoppingBag className="text-[10px]" />}
-            {aceitaEntrega ? 'Entrega disponível' : 'Retirada no balcão'}
-          </span>
-          {horaFecha && aberta && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/95 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-              <FiClock className="text-[10px]" />
-              Fecha às {horaFecha}
-            </span>
-          )}
-        </div>
-        <button onClick={() => setShowInfo(!showInfo)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-600 mt-2.5 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white/90 hover:text-stone-800 hover:bg-white transition-colors"><FiInfo className="text-[10px]" /> Informações da loja <FiChevronRight className={`text-[10px] transition-transform ${showInfo ? 'rotate-90' : ''}`} /></button>
-        {showInfo && (
-          <div className="mt-2.5 bg-white/90 backdrop-blur-sm rounded-xl border border-stone-200 p-2.5 text-[11px] text-stone-500 space-y-1 shadow-[0_14px_24px_-20px_rgba(15,23,42,0.9)] animate-fade-in-up">
-            <p><strong>Categoria:</strong> {loja.categoria_negocio}</p>
-            <p><strong>Cidade:</strong> {loja.cidade}</p>
-            {loja.endereco && <p><strong>Endereço:</strong> {loja.endereco}</p>}
-            {loja.telefone && <p><strong>Telefone:</strong> {loja.telefone}</p>}
-            {temSemana ? (
-              <div>
-                <strong>Horários:</strong>
-                <div className="mt-1.5 space-y-1">
-                  {horariosSemana.map((h, i) => (
-                    <div key={i} className={`flex justify-between rounded-lg px-2 py-1 ${new Date().getDay() === i ? 'bg-stone-50 text-stone-800 font-semibold border border-stone-200' : ''}`}>
-                      <span>{DIAS_SEMANA_PT[i]}</span>
-                      <span>{h.aberto ? `${h.abertura} - ${h.fechamento}` : 'Fechado'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : loja.horario_funcionamento ? (
-              <p><strong>Funcionamento:</strong> {loja.horario_funcionamento}</p>
-            ) : null}
-          </div>
-        )}
-      </div>
+      <div className="mx-4 -mt-6 mb-4 relative z-20">
+        <button
+          type="button"
+          onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)}
+          disabled={notaMedia.total === 0}
+          className={`absolute left-3 top-0 -translate-y-1/2 inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-sm font-bold shadow-[0_14px_24px_-16px_rgba(15,23,42,0.45)] ${
+            notaMedia.total > 0
+              ? 'bg-amber-400 text-white'
+              : 'bg-stone-200 text-stone-500'
+          }`}
+        >
+          <FiStar className="text-[13px]" />
+          <span>{notaMedia.media > 0 ? notaMedia.media.toFixed(1) : 'Novo'}</span>
+          {notaMedia.total > 0 && <FiChevronRight className={`text-[12px] transition-transform ${showAvaliacoes ? 'rotate-90' : ''}`} />}
+        </button>
 
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-2 gap-2 rounded-[1.6rem] border border-white/70 bg-white/82 backdrop-blur-md p-2 shadow-[0_24px_50px_-42px_rgba(15,23,42,0.95)]">
-          <button onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)} className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1 transition-colors hover:border-yellow-200 hover:bg-yellow-50/60">
-            <div className="flex items-center gap-1 text-[13px]"><FiStar className="text-yellow-500 text-[11px]" /><span className="font-semibold text-stone-800">{notaMedia.media > 0 ? notaMedia.media.toFixed(1) : 'Novo'}</span></div>
-            <span className="text-[10px] text-stone-400">{notaMedia.total > 0 ? `${notaMedia.total} avaliação${notaMedia.total !== 1 ? 'ões' : ''}` : 'sem notas'}</span>
-          </button>
-          <div className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1"><div className="flex items-center gap-1 text-[13px]"><FiClock className="text-red-500 text-[11px]" /><span className="font-semibold text-stone-800">{loja.tempo_entrega || '—'}</span></div><span className="text-[10px] text-stone-400">minutos</span></div>
-          <div className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1"><div className="flex items-center gap-1 text-[13px]"><span className="font-semibold text-stone-800">{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span></div><span className="text-[10px] text-stone-400">mínimo</span></div>
-          <div className="rounded-xl border border-stone-200/75 bg-white/80 px-2 py-2.5 flex flex-col items-center gap-1">
-            <div className="flex items-center gap-1 text-[13px]">
-              {aceitaEntrega ? <FiTruck className="text-red-500 text-[11px]" /> : <FiShoppingBag className="text-red-500 text-[11px]" />}
-              <span className="font-semibold text-stone-800">
-                {aceitaEntrega ? (taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(0)}`) : 'Balcão'}
+        <div className="relative rounded-[2rem] border border-white/80 bg-white/94 px-4 pt-5 pb-4 shadow-[0_30px_52px_-40px_rgba(15,23,42,0.95)]">
+          <div className="absolute -top-9 right-4 w-28 h-28 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-[0_22px_36px_-22px_rgba(15,23,42,0.8)] md:hidden">
+            <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
+            <div className="w-full h-full items-center justify-center text-xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
+          </div>
+
+          <h1 className="pr-28 md:pr-0 text-[clamp(2rem,8vw,2.8rem)] font-black text-stone-900 leading-[1.02] tracking-tight line-clamp-2">{loja.nome}</h1>
+          <p className="pr-28 md:pr-0 mt-1 text-[11px] font-medium text-stone-500">
+            {loja.cidade ? `${loja.cidade} · ` : ''}{aceitaEntrega ? 'delivery' : 'retirada'}
+          </p>
+
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <button onClick={() => setShowInfo(!showInfo)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-600 px-2.5 py-1 rounded-lg border border-stone-200 bg-white/90 hover:text-stone-800 hover:bg-white transition-colors"><FiInfo className="text-[10px]" /> infos da loja <FiChevronRight className={`text-[10px] transition-transform ${showInfo ? 'rotate-90' : ''}`} /></button>
+            {horaFecha && aberta && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                <FiClock className="text-[11px]" />
+                fecha às {horaFecha}
               </span>
+            )}
+          </div>
+
+          {showInfo && (
+            <div className="mt-2.5 bg-white/90 backdrop-blur-sm rounded-xl border border-stone-200 p-2.5 text-[11px] text-stone-500 space-y-1 shadow-[0_14px_24px_-20px_rgba(15,23,42,0.9)] animate-fade-in-up">
+              <p><strong>Categoria:</strong> {loja.categoria_negocio}</p>
+              <p><strong>Cidade:</strong> {loja.cidade}</p>
+              {loja.endereco && <p><strong>Endereço:</strong> {loja.endereco}</p>}
+              {loja.telefone && <p><strong>Telefone:</strong> {loja.telefone}</p>}
+              {temSemana ? (
+                <div>
+                  <strong>Horários:</strong>
+                  <div className="mt-1.5 space-y-1">
+                    {horariosSemana.map((h, i) => (
+                      <div key={i} className={`flex justify-between rounded-lg px-2 py-1 ${new Date().getDay() === i ? 'bg-stone-50 text-stone-800 font-semibold border border-stone-200' : ''}`}>
+                        <span>{DIAS_SEMANA_PT[i]}</span>
+                        <span>{h.aberto ? `${h.abertura} - ${h.fechamento}` : 'Fechado'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : loja.horario_funcionamento ? (
+                <p><strong>Funcionamento:</strong> {loja.horario_funcionamento}</p>
+              ) : null}
             </div>
-            <span className="text-[10px] text-stone-400">{aceitaEntrega ? 'entrega' : 'retirada'}</span>
+          )}
+
+          <div className="mt-4 grid grid-cols-4 gap-1.5 border-t border-stone-100 pt-3">
+            <div className="flex flex-col items-center text-center gap-0.5 px-1">
+              <div className="flex items-center gap-1 text-[13px] font-semibold text-emerald-700">
+                <FiTruck className="text-[13px]" />
+                <span>{aceitaEntrega ? (taxa === 0 ? 'Grátis' : `R$ ${taxa.toFixed(0)}`) : 'Retirada'}</span>
+              </div>
+              <span className="text-[10px] text-stone-500">{aceitaEntrega ? 'entrega' : 'balcão'}</span>
+            </div>
+
+            <div className="flex flex-col items-center text-center gap-0.5 px-1">
+              <div className="flex items-center gap-1 text-[13px] font-semibold text-stone-700">
+                <FiClock className="text-[13px] text-stone-400" />
+                <span>{loja.tempo_entrega || '--'}</span>
+              </div>
+              <span className="text-[10px] text-stone-500">minutos</span>
+            </div>
+
+            <div className="flex flex-col items-center text-center gap-0.5 px-1">
+              <div className="flex items-center gap-1 text-[13px] font-semibold text-stone-700">
+                <FiTag className="text-[13px] text-stone-400" />
+                <span>{Number(loja.pedido_minimo || 0) > 0 ? `R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'R$ 0'}</span>
+              </div>
+              <span className="text-[10px] text-stone-500">mínimo</span>
+            </div>
+
+            <div className="flex flex-col items-center text-center gap-0.5 px-1">
+              <div className="flex items-center gap-1 text-[13px] font-semibold text-stone-700">
+                <FiDollarSign className="text-[13px] text-stone-400" />
+                <span>Pagamento</span>
+              </div>
+              <span className="text-[10px] text-stone-500">consulte</span>
+            </div>
           </div>
         </div>
       </div>
