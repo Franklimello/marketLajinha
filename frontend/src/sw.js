@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2-2026-02-26';
+const CACHE_VERSION = 'v3-2026-03-05';
 const CACHE_PREFIX = 'uaifood';
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}-runtime-${CACHE_VERSION}`;
