@@ -408,7 +408,7 @@ export default function PedidosPage() {
 
   if (authCarregando || carregando) {
     return (
-      <div className="relative max-w-lg mx-auto px-4 pt-4 pb-32 min-h-screen">
+      <div className="relative max-w-lg mx-auto px-4 pt-4 pb-32 min-h-screen overflow-x-hidden">
         <SEO title="Meus pedidos" noIndex />
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/70 to-transparent" />
         <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
@@ -441,7 +441,7 @@ export default function PedidosPage() {
 
   if (!logado) {
     return (
-      <div className="relative max-w-lg mx-auto px-4 pt-10 pb-32 min-h-screen">
+      <div className="relative max-w-lg mx-auto px-4 pt-10 pb-32 min-h-screen overflow-x-hidden">
         <SEO title="Meus pedidos" noIndex />
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/70 to-transparent" />
         <div className="bg-white rounded-3xl border border-stone-200 px-5 py-8 text-center shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)]">
@@ -457,7 +457,7 @@ export default function PedidosPage() {
   }
 
   return (
-    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen">
+    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
       <SEO title="Meus pedidos" noIndex />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/70 to-transparent" />
       <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
