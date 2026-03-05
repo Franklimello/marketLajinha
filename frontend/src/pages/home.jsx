@@ -17,7 +17,6 @@ import {
   PawPrint,
   Leaf,
   Storefront,
-  Tag,
   Motorcycle,
 } from '@phosphor-icons/react'
 import { api } from '../api/client'
@@ -387,8 +386,6 @@ function extrairCategorias(lojas) {
 }
 
 const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggle }) {
-  const Icon = categoria.Icon || Tag
-  const corCategoria = categoria.cor || '#ef4444'
   return (
     <button
       type="button"
@@ -404,20 +401,11 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
         {isActive && (
           <span className="absolute inset-0 rounded-xl bg-linear-to-br from-red-500 to-amber-500" />
         )}
-        <div className="relative z-10 flex flex-col items-center gap-1.5 min-w-[64px]">
-          <div
-            className={`w-11 h-11 rounded-full flex items-center justify-center ${isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-stone-100'
-              }`}
-            style={
-              isActive
-                ? undefined
-                : { color: corCategoria, backgroundColor: `${corCategoria}1A` }
-            }
-          >
-            <Icon size={22} weight={isActive ? 'fill' : 'duotone'} />
-          </div>
+        <div className="relative z-10 flex flex-col items-center gap-1 min-w-[70px]">
+          <span className={`text-2xl leading-none ${isActive ? 'drop-shadow-xs' : ''}`}>
+            {categoria.emoji || '🏬'}
+          </span>
           <span className={`font-heading text-[11px] font-bold tracking-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-700'}`}>
-            <span className="mr-1">{categoria.emoji || '🏬'}</span>
             {categoria.nome}
           </span>
         </div>
