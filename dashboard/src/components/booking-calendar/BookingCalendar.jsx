@@ -376,11 +376,11 @@ export default function BookingCalendar({
       </div>
 
       {mapModalOpen && (
-        <div className="fixed inset-0 z-130 bg-black/55 flex items-end lg:items-center justify-center lg:p-4 overscroll-contain">
+        <div className="fixed inset-0 z-130 bg-black/55 flex items-center justify-center p-3 sm:p-4 overscroll-contain">
           <div className="absolute inset-0" onClick={() => setMapModalOpen(false)} />
 
-          <div className="relative z-10 bg-white border border-stone-200 w-full lg:max-w-3xl max-h-[88vh] overflow-y-auto overscroll-contain rounded-t-2xl lg:rounded-2xl p-2.5 space-y-2">
-            <div className="mx-auto h-1 w-10 rounded-full bg-stone-300 lg:hidden" />
+          <div className="relative z-10 bg-white border border-stone-200 w-full max-w-3xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain rounded-2xl p-2.5 space-y-2">
+            <div className="mx-auto h-1 w-10 rounded-full bg-stone-300 sm:hidden" />
 
             <div className="flex items-center justify-between gap-3">
               <h4 className="text-xs sm:text-sm font-semibold text-stone-900">
