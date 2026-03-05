@@ -303,6 +303,14 @@ export default function PerfilPage() {
   const pushDisponivel = canUseWebPush({ requireStandalone: true })
   const enderecoAtivo = enderecos.find((e) => e.padrao) || enderecos[0] || null
   const cuponsDisponiveis = cuponsAtivos
+  const avatarInicial = (cliente?.nome || '?').trim().charAt(0).toUpperCase() || '?'
+  const cidadeAtual = cidadeSelecionada || enderecoAtivo?.cidade || 'Selecione uma cidade'
+  const totalEnderecos = enderecos.length
+  const statusPush = pushPermission === 'granted'
+    ? 'ativadas'
+    : pushPermission === 'denied'
+      ? 'bloqueadas'
+      : 'pendentes'
 
   function abrirModalDados() {
     setEditandoPerfil(false)
@@ -322,89 +330,173 @@ export default function PerfilPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 pb-24 bg-stone-50 min-h-screen">
+    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen">
       <SEO title="Minha conta" noIndex />
-      <div className="bg-white rounded-2xl border border-stone-200 px-4 py-3 mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="w-9 h-9 rounded-full bg-red-50 text-red-700 inline-flex items-center justify-center">
-            <FiMapPin />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11px] text-stone-400">Endereço atual</p>
-            <p className="font-semibold text-stone-900 truncate">
-              {enderecoAtivo
-                ? `${enderecoAtivo.rua}, ${enderecoAtivo.numero}`
-                : (cliente?.nome ? 'Defina seu endereço' : 'Minha conta')}
-            </p>
-            {(enderecoAtivo?.cidade || enderecoAtivo?.bairro) && (
-              <p className="text-xs text-stone-500 truncate">
-                {enderecoAtivo.cidade || ''}{enderecoAtivo.cidade && enderecoAtivo.bairro ? ' - ' : ''}{enderecoAtivo.bairro || ''}
-              </p>
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/65 to-transparent" />
+      <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
+
+      <section className="mb-4 overflow-hidden rounded-3xl border border-stone-200/90 bg-white/90 shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur">
+        <div className="relative px-4 pt-4 pb-5">
+          <div className="pointer-events-none absolute -top-10 -right-12 h-32 w-32 rounded-full bg-red-100/70 blur-2xl" />
+          <div className="relative flex items-start gap-3">
+            {cliente?.foto_url ? (
+              <img
+                src={cliente.foto_url}
+                alt="Foto de perfil"
+                className="w-16 h-16 rounded-2xl object-cover border border-stone-200 bg-white shadow-sm"
+              />
+            ) : (
+              <span className="w-16 h-16 rounded-2xl bg-linear-to-br from-red-500 to-red-700 text-white inline-flex items-center justify-center text-xl font-bold shadow-[0_14px_32px_-20px_rgba(185,28,28,0.9)]">
+                {avatarInicial}
+              </span>
             )}
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">Minha conta</p>
+              <h1 className="mt-1 text-[1.35rem] leading-tight font-black text-stone-900 truncate">{cliente?.nome || 'Cliente UaiFood'}</h1>
+              <p className="text-xs text-stone-500 truncate">{cliente?.email || 'Sem e-mail cadastrado'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={abrirModalDados}
+              className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            >
+              Editar
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2.5">
+            <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
+              <p className="font-numeric text-base font-black text-stone-900">{totalEnderecos}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">enderecos</p>
+            </div>
+            <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
+              <p className="text-sm font-black text-stone-900 truncate">{cidadeAtual || '-'}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">cidade ativa</p>
+            </div>
+            <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
+              <p className="text-sm font-black text-stone-900">{statusPush}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">push</p>
+            </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={abrirModalEnderecos}
-          className="text-sm font-semibold text-red-700"
-        >
-          trocar
-        </button>
+      </section>
+
+      <div className="mb-4 rounded-2xl border border-stone-200 bg-white/95 px-4 py-3.5 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl bg-red-50 text-red-700 inline-flex items-center justify-center border border-red-100">
+              <FiMapPin />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Endereco atual</p>
+              <p className="font-semibold text-stone-900 truncate">
+                {enderecoAtivo
+                  ? `${enderecoAtivo.rua}, ${enderecoAtivo.numero}`
+                  : (cliente?.nome ? 'Defina seu endereco' : 'Minha conta')}
+              </p>
+              {(enderecoAtivo?.cidade || enderecoAtivo?.bairro) && (
+                <p className="text-xs text-stone-500 truncate">
+                  {enderecoAtivo.cidade || ''}{enderecoAtivo.cidade && enderecoAtivo.bairro ? ' - ' : ''}{enderecoAtivo.bairro || ''}
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={abrirModalEnderecos}
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 hover:bg-red-100"
+          >
+            Trocar
+          </button>
+        </div>
       </div>
 
-      {sucesso && <p className="text-sm text-green-600 bg-green-50 rounded-lg p-3 mb-4">{sucesso}</p>}
-      {erro && <p className="text-sm text-red-500 bg-red-50 rounded-lg p-3 mb-4">{erro}</p>}
+      {sucesso && <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl p-3 mb-4">{sucesso}</p>}
+      {erro && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl p-3 mb-4">{erro}</p>}
 
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <button type="button" onClick={() => setModalCupons(true)} className="bg-white rounded-xl border border-stone-200 p-4 text-center">
-          <FiTag className="mx-auto text-red-700 mb-1.5" />
-          <p className="text-sm font-medium text-stone-800">cupons</p>
+        <button
+          type="button"
+          onClick={() => setModalCupons(true)}
+          className="rounded-2xl border border-stone-200 bg-white p-3.5 text-left shadow-[0_16px_34px_-34px_rgba(15,23,42,0.95)] transition hover:border-red-200 hover:bg-red-50/35"
+        >
+          <span className="mb-2 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-red-50 text-red-700">
+            <FiTag />
+          </span>
+          <p className="text-sm font-semibold text-stone-900">Cupons</p>
+          <p className="text-[11px] text-stone-500 mt-0.5">Veja descontos ativos para sua cidade.</p>
         </button>
-        <button type="button" onClick={() => setModalAtendimento(true)} className="bg-white rounded-xl border border-stone-200 p-4 text-center">
-          <FiMessageCircle className="mx-auto text-red-700 mb-1.5" />
-          <p className="text-sm font-medium text-stone-800">atendimento</p>
+        <button
+          type="button"
+          onClick={() => setModalAtendimento(true)}
+          className="rounded-2xl border border-stone-200 bg-white p-3.5 text-left shadow-[0_16px_34px_-34px_rgba(15,23,42,0.95)] transition hover:border-red-200 hover:bg-red-50/35"
+        >
+          <span className="mb-2 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-red-50 text-red-700">
+            <FiMessageCircle />
+          </span>
+          <p className="text-sm font-semibold text-stone-900">Atendimento</p>
+          <p className="text-[11px] text-stone-500 mt-0.5">Fale rapido com o suporte via WhatsApp.</p>
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 mb-4 overflow-hidden">
-        <button type="button" onClick={abrirModalDados} className="w-full px-4 py-3 flex items-center justify-between hover:bg-stone-50">
-          <span className="flex items-center gap-2 text-stone-800"><FiUser className="text-red-700" /> meus dados</span>
-          <FiChevronRight className="text-stone-400" />
+      <div className="bg-white rounded-2xl border border-stone-200 mb-4 overflow-hidden shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
+        <button type="button" onClick={abrirModalDados} className="w-full px-4 py-3.5 flex items-center justify-between gap-3 hover:bg-stone-50">
+          <span className="flex items-center gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 text-red-700 inline-flex items-center justify-center"><FiUser /></span>
+            <span className="min-w-0 text-left">
+              <span className="block text-sm font-semibold text-stone-900">Meus dados</span>
+              <span className="block text-[11px] text-stone-500 truncate">Nome, telefone e foto de perfil</span>
+            </span>
+          </span>
+          <FiChevronRight className="text-stone-400 shrink-0" />
         </button>
-        <button type="button" onClick={abrirModalEnderecos} className="w-full px-4 py-3 flex items-center justify-between border-t border-stone-100 hover:bg-stone-50">
-          <span className="flex items-center gap-2 text-stone-800"><FiHome className="text-red-700" /> meus endereços</span>
-          <FiChevronRight className="text-stone-400" />
+        <button type="button" onClick={abrirModalEnderecos} className="w-full px-4 py-3.5 flex items-center justify-between gap-3 border-t border-stone-100 hover:bg-stone-50">
+          <span className="flex items-center gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 text-red-700 inline-flex items-center justify-center"><FiHome /></span>
+            <span className="min-w-0 text-left">
+              <span className="block text-sm font-semibold text-stone-900">Meus enderecos</span>
+              <span className="block text-[11px] text-stone-500 truncate">Gerencie casa, trabalho e endereco padrao</span>
+            </span>
+          </span>
+          <FiChevronRight className="text-stone-400 shrink-0" />
         </button>
-        <button type="button" onClick={() => setModalConfig(true)} className="w-full px-4 py-3 flex items-center justify-between border-t border-stone-100 hover:bg-stone-50">
-          <span className="flex items-center gap-2 text-stone-800"><FiSettings className="text-red-700" /> configurações</span>
-          <FiChevronRight className="text-stone-400" />
+        <button type="button" onClick={() => setModalConfig(true)} className="w-full px-4 py-3.5 flex items-center justify-between gap-3 border-t border-stone-100 hover:bg-stone-50">
+          <span className="flex items-center gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 text-red-700 inline-flex items-center justify-center"><FiSettings /></span>
+            <span className="min-w-0 text-left">
+              <span className="block text-sm font-semibold text-stone-900">Configuracoes</span>
+              <span className="block text-[11px] text-stone-500 truncate">Notificacoes e preferencias da conta</span>
+            </span>
+          </span>
+          <FiChevronRight className="text-stone-400 shrink-0" />
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 p-4 mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="font-semibold text-stone-900">Você está em</p>
-          <button type="button" onClick={() => setModalCidade(true)} className="text-sm font-semibold text-red-700">trocar</button>
+      <div className="bg-linear-to-r from-amber-50 via-white to-red-50 rounded-2xl border border-amber-200/60 p-4 mb-4 shadow-[0_20px_40px_-34px_rgba(146,64,14,0.45)]">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="font-semibold text-stone-900">Cidade ativa</p>
+          <button type="button" onClick={() => setModalCidade(true)} className="text-xs font-semibold text-red-700 hover:text-red-800">Trocar</button>
         </div>
-        <p className="text-stone-700">{cidadeSelecionada || enderecoAtivo?.cidade || 'Selecione uma cidade'}</p>
+        <p className="text-stone-700 text-sm">{cidadeAtual}</p>
       </div>
 
-      {/* Logout */}
-      <button onClick={logout} className="flex items-center justify-center gap-2 w-full py-2.5 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 text-sm font-medium transition-colors">
+      <button
+        onClick={logout}
+        className="flex items-center justify-center gap-2 w-full py-3 text-red-700 bg-white border border-red-200 rounded-2xl hover:bg-red-50 text-sm font-semibold shadow-[0_14px_30px_-28px_rgba(185,28,28,0.95)] transition-colors"
+      >
         <FiLogOut /> Sair da conta
       </button>
-
       {(modalCupons || modalAtendimento || modalDados || modalEnderecos || modalConfig || modalCidade) && (
-        <div className="fixed inset-0 z-120 bg-black/45 p-4 flex items-center justify-center">
+        <div className="fixed inset-0 z-120 bg-stone-950/55 backdrop-blur-[2px] p-3 sm:p-4 flex items-center justify-center">
           <div className="absolute inset-0" onClick={() => {
             setModalCupons(false); setModalAtendimento(false); setModalDados(false); setModalEnderecos(false); setModalConfig(false); setModalCidade(false)
           }} />
-          <div className="relative z-10 bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-4">
+          <div className="relative z-10 bg-white/95 border border-stone-200 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 shadow-[0_42px_90px_-50px_rgba(15,23,42,0.7)] backdrop-blur">
             {modalCupons && (
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-stone-900">Cupons disponíveis</h3>
-                  <button onClick={() => setModalCupons(false)} className="p-1 rounded hover:bg-stone-100"><FiX /></button>
+                  <button onClick={() => setModalCupons(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-700"><FiX /></button>
                 </div>
                 {carregandoCupons ? (
                   <p className="text-sm text-stone-500">Carregando cupons ativos...</p>
@@ -434,7 +526,7 @@ export default function PerfilPage() {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-stone-900">Atendimento UaiFood</h3>
-                  <button onClick={() => setModalAtendimento(false)} className="p-1 rounded hover:bg-stone-100"><FiX /></button>
+                  <button onClick={() => setModalAtendimento(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-700"><FiX /></button>
                 </div>
                 <p className="text-sm text-stone-600 mb-4">Fale com nosso atendimento no WhatsApp.</p>
                 <a
@@ -452,7 +544,7 @@ export default function PerfilPage() {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-stone-900">Meus dados</h3>
-                  <button onClick={() => { setModalDados(false); setEditandoPerfil(false) }} className="p-1 rounded hover:bg-stone-100"><FiX /></button>
+                  <button onClick={() => { setModalDados(false); setEditandoPerfil(false) }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-700"><FiX /></button>
                 </div>
                 {editandoPerfil ? (
                   <form onSubmit={salvarPerfil} className="space-y-3">
@@ -484,15 +576,15 @@ export default function PerfilPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Nome</label>
-                      <input value={formPerfil.nome} onChange={(e) => setFormPerfil((p) => ({ ...p, nome: e.target.value }))} required className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+                      <input value={formPerfil.nome} onChange={(e) => setFormPerfil((p) => ({ ...p, nome: e.target.value }))} required className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Telefone</label>
-                      <input value={formPerfil.telefone} onChange={(e) => setFormPerfil((p) => ({ ...p, telefone: e.target.value }))} className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+                      <input value={formPerfil.telefone} onChange={(e) => setFormPerfil((p) => ({ ...p, telefone: e.target.value }))} className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25" />
                     </div>
                     <div className="flex gap-2">
-                      <button type="submit" disabled={salvando} className="flex items-center gap-1 px-4 py-2 bg-red-700 text-white text-sm rounded-lg hover:bg-red-800 disabled:opacity-50"><FiSave /> Salvar</button>
-                      <button type="button" onClick={() => setEditandoPerfil(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancelar</button>
+                      <button type="submit" disabled={salvando} className="flex items-center gap-1.5 px-4 py-2.5 bg-red-700 text-white text-sm rounded-xl hover:bg-red-800 disabled:opacity-50 shadow-[0_14px_30px_-24px_rgba(185,28,28,0.95)]"><FiSave /> Salvar</button>
+                      <button type="button" onClick={() => setEditandoPerfil(false)} className="px-4 py-2.5 text-sm text-stone-500 hover:text-stone-700">Cancelar</button>
                     </div>
                   </form>
                 ) : (
@@ -535,17 +627,17 @@ export default function PerfilPage() {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-stone-900">Meus endereços</h3>
-                  <button onClick={() => { setModalEnderecos(false); setEditEndereco(null) }} className="p-1 rounded hover:bg-stone-100"><FiX /></button>
+                  <button onClick={() => { setModalEnderecos(false); setEditEndereco(null) }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-700"><FiX /></button>
                 </div>
                 {editEndereco !== null ? (
                   <form onSubmit={salvarEndereco} className="space-y-3">
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Apelido (opcional)</label>
-                      <input name="apelido" value={formEnd.apelido} onChange={handleEndChange} placeholder="ex: Casa, Trabalho" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+                      <input name="apelido" value={formEnd.apelido} onChange={handleEndChange} placeholder="ex: Casa, Trabalho" className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Estado *</label>
-                      <select name="estado" value={formEnd.estado || ''} onChange={handleEndChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white">
+                      <select name="estado" value={formEnd.estado || ''} onChange={handleEndChange} required className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25">
                         <option value="">Selecione o estado</option>
                         {ESTADOS_SUPORTADOS.map((uf) => (
                           <option key={uf.sigla} value={uf.sigla}>{uf.nome}</option>
@@ -554,7 +646,7 @@ export default function PerfilPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Cidade *</label>
-                      <select name="cidade" value={formEnd.cidade} onChange={handleEndChange} required disabled={!formEnd.estado} className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white disabled:bg-stone-100">
+                      <select name="cidade" value={formEnd.cidade} onChange={handleEndChange} required disabled={!formEnd.estado} className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white disabled:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-red-500/25">
                         <option value="">{formEnd.estado ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
                         {formEnd.cidade && !cidadesSugestoes.includes(formEnd.cidade) && <option value={formEnd.cidade}>{formEnd.cidade}</option>}
                         {cidadesSugestoes.map((nomeCidade) => (
@@ -564,32 +656,32 @@ export default function PerfilPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Bairro *</label>
-                      <select name="bairro" value={formEnd.bairro} onChange={handleEndChange} required className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm bg-white">
+                      <select name="bairro" value={formEnd.bairro} onChange={handleEndChange} required className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25">
                         <option value="">Selecione o bairro</option>
                         {BAIRROS_DISPONIVEIS.map((b) => <option key={b} value={b}>{b}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Rua *</label>
-                      <input name="rua" value={formEnd.rua} onChange={handleEndChange} required placeholder="Nome da rua" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+                      <input name="rua" value={formEnd.rua} onChange={handleEndChange} required placeholder="Nome da rua" className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-stone-600 mb-1">Número *</label>
-                        <input name="numero" value={formEnd.numero} onChange={handleEndChange} required placeholder="Nº" className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+                        <input name="numero" value={formEnd.numero} onChange={handleEndChange} required placeholder="Nº" className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25" />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-stone-600 mb-1">Complemento</label>
-                        <input name="complemento" value={formEnd.complemento} onChange={handleEndChange} placeholder="Apto, bloco..." className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+                        <input name="complemento" value={formEnd.complemento} onChange={handleEndChange} placeholder="Apto, bloco..." className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25" />
                       </div>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-stone-600 mb-1">Referência</label>
-                      <input name="referencia" value={formEnd.referencia} onChange={handleEndChange} placeholder="Próximo ao..." className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm" />
+                      <input name="referencia" value={formEnd.referencia} onChange={handleEndChange} placeholder="Próximo ao..." className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25" />
                     </div>
                     <div className="flex gap-2">
-                      <button type="submit" disabled={salvando} className="flex items-center gap-1 px-4 py-2 bg-red-700 text-white text-sm rounded-lg hover:bg-red-800 disabled:opacity-50"><FiSave /> Salvar</button>
-                      <button type="button" onClick={() => setEditEndereco(null)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancelar</button>
+                      <button type="submit" disabled={salvando} className="flex items-center gap-1.5 px-4 py-2.5 bg-red-700 text-white text-sm rounded-xl hover:bg-red-800 disabled:opacity-50 shadow-[0_14px_30px_-24px_rgba(185,28,28,0.95)]"><FiSave /> Salvar</button>
+                      <button type="button" onClick={() => setEditEndereco(null)} className="px-4 py-2.5 text-sm text-stone-500 hover:text-stone-700">Cancelar</button>
                     </div>
                   </form>
                 ) : (
@@ -646,7 +738,7 @@ export default function PerfilPage() {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-stone-900">Configurações</h3>
-                  <button onClick={() => setModalConfig(false)} className="p-1 rounded hover:bg-stone-100"><FiX /></button>
+                  <button onClick={() => setModalConfig(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-700"><FiX /></button>
                 </div>
                 <div className="bg-white rounded-2xl border border-stone-200 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -662,7 +754,7 @@ export default function PerfilPage() {
                       type="button"
                       onClick={ativarPush}
                       disabled={ativandoPush || pushPermission === 'granted'}
-                      className="px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="px-3.5 py-2.5 bg-red-600 text-white text-xs font-semibold rounded-xl hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_12px_24px_-20px_rgba(220,38,38,0.95)]"
                     >
                       {ativandoPush ? 'Ativando...' : pushPermission === 'granted' ? 'Ativo' : 'Ativar'}
                     </button>
@@ -680,7 +772,7 @@ export default function PerfilPage() {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-stone-900">Mudar cidade</h3>
-                  <button onClick={() => setModalCidade(false)} className="p-1 rounded hover:bg-stone-100"><FiX /></button>
+                  <button onClick={() => setModalCidade(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-700"><FiX /></button>
                 </div>
                 {carregandoCidades ? (
                   <p className="text-sm text-stone-500">Carregando cidades...</p>
@@ -689,7 +781,7 @@ export default function PerfilPage() {
                     <select
                       value={cidadeSelecionada}
                       onChange={(e) => setCidadeSelecionada(e.target.value)}
-                      className="w-full px-3 py-2.5 border border-stone-300 rounded-lg text-sm bg-white"
+                      className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/25"
                     >
                       <option value="">Selecione a cidade</option>
                       {cidadesComLojas.map((cidade) => (
