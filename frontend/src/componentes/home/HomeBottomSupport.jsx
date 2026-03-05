@@ -4,41 +4,45 @@ import { FaWhatsapp } from 'react-icons/fa'
 export default function HomeBottomSupport({ suporteWhatsapp, suporteInstagram }) {
   return (
     <>
-      <div className="mt-8 mb-4 bg-stone-950 rounded-2xl p-5 text-white animate-fade-in-up">
-        <h3 className="text-lg font-bold">Tem um negócio?</h3>
-        <p className="text-sm text-stone-400 mt-1 leading-relaxed">
+      <div className="mt-8 mb-4 relative overflow-hidden rounded-3xl border border-stone-200 bg-linear-to-br from-stone-900 via-stone-950 to-stone-900 p-5 text-white animate-fade-in-up shadow-[0_24px_50px_-36px_rgba(15,23,42,0.75)]">
+        <span className="pointer-events-none absolute -top-12 -right-12 w-36 h-36 rounded-full bg-red-500/30 blur-3xl" />
+        <span className="pointer-events-none absolute -bottom-14 -left-10 w-36 h-36 rounded-full bg-amber-400/25 blur-3xl" />
+        <div className="relative">
+          <h3 className="text-lg font-black tracking-tight">Tem um negócio?</h3>
+          <p className="text-sm text-stone-300 mt-1 leading-relaxed">
           Cadastre sua loja no UaiFood e comece a vender online para toda a cidade!
-        </p>
-        <div className="flex flex-wrap gap-2 mt-3">
-          <a
-            href={`https://wa.me/${suporteWhatsapp}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no UaiFood.')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white font-semibold text-sm rounded-xl hover:bg-red-700 transition-colors"
-          >
-            <FaWhatsapp className="text-lg" />
-            WhatsApp
-          </a>
-          <a
-            href={suporteInstagram}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white font-semibold text-sm rounded-xl hover:bg-white/20 transition-colors"
-          >
-            <FiInstagram className="text-lg" />
-            Instagram
-          </a>
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <a
+              href={`https://wa.me/${suporteWhatsapp}?text=${encodeURIComponent('Olá! Quero cadastrar minha loja no UaiFood.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white font-semibold text-sm rounded-xl hover:bg-red-700 transition-colors"
+            >
+              <FaWhatsapp className="text-lg" />
+              WhatsApp
+            </a>
+            <a
+              href={suporteInstagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white font-semibold text-sm rounded-xl border border-white/15 hover:bg-white/20 transition-colors"
+            >
+              <FiInstagram className="text-lg" />
+              Instagram
+            </a>
+          </div>
         </div>
       </div>
 
       <div className="text-center pb-4 space-y-1">
-        <p className="text-[10px] text-stone-300">Precisa de ajuda?</p>
+        <p className="text-[10px] text-stone-400">Precisa de ajuda?</p>
         <div className="flex items-center justify-center gap-3">
           <a
             href={`https://wa.me/${suporteWhatsapp}?text=${encodeURIComponent('Olá! Preciso de ajuda com o UaiFood.')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-green-600 transition-colors"
+            className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-green-600 transition-colors"
           >
             <FaWhatsapp size={11} /> WhatsApp
           </a>
@@ -47,7 +51,7 @@ export default function HomeBottomSupport({ suporteWhatsapp, suporteInstagram })
             href={suporteInstagram}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-pink-600 transition-colors"
+            className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-pink-600 transition-colors"
           >
             <FiInstagram size={11} /> Instagram
           </a>

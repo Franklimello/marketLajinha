@@ -1,4 +1,4 @@
-import { FiX } from 'react-icons/fi'
+import { FiCompass, FiX } from 'react-icons/fi'
 
 export default function HomeCategoriesSection({
   catRef,
@@ -6,15 +6,25 @@ export default function HomeCategoriesSection({
   categoriaSel,
   onToggleCategoria,
   onClearCategoria,
-  CategoriaCardComponent,
+  categoriaCardComponent,
 }) {
+  const CategoriaCard = categoriaCardComponent
+
   return (
-    <>
-      <div ref={catRef} className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+    <section className="mb-5 rounded-3xl border border-stone-200 bg-white/90 px-3.5 py-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h3 className="inline-flex items-center gap-2 text-sm font-black tracking-tight text-stone-900">
+          <FiCompass className="text-amber-600" />
+          Categorias
+        </h3>
+        <span className="text-[11px] text-stone-500">{categoriasDinamicas.length} opções</span>
+      </div>
+
+      <div ref={catRef} className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
         {categoriasDinamicas.map((cat) => {
           const ativo = categoriaSel === cat.nome
           return (
-            <CategoriaCardComponent
+            <CategoriaCard
               key={cat.nome}
               categoria={cat}
               isActive={ativo}
@@ -25,11 +35,11 @@ export default function HomeCategoriesSection({
       </div>
 
       {categoriaSel && (
-        <div className="flex items-center gap-2 mb-3 animate-fade-in-up">
-          <span className="text-sm text-stone-600">Filtrando por:</span>
+        <div className="flex items-center gap-2 mt-3 animate-fade-in-up">
+          <span className="text-xs text-stone-600">Filtrando por:</span>
           <button
             onClick={onClearCategoria}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm font-medium hover:bg-red-100 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-semibold hover:bg-red-100 transition-colors"
           >
             <span>{categoriaSel}</span>
             <span className="inline-flex transition-transform duration-150 hover:scale-105 active:scale-95">
@@ -38,6 +48,6 @@ export default function HomeCategoriesSection({
           </button>
         </div>
       )}
-    </>
+    </section>
   )
 }

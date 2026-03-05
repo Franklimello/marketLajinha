@@ -258,17 +258,17 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
       className="relative shrink-0 rounded-2xl active:scale-95 transition-transform duration-150"
     >
       <div
-        className={`relative px-2.5 py-2 rounded-2xl border transition-colors duration-200 ${isActive
-          ? 'border-red-600 shadow-sm'
-          : 'border-stone-200 bg-white hover:bg-stone-50'
+        className={`relative px-2.5 py-2.5 rounded-2xl border transition-all duration-200 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.5)] ${isActive
+          ? 'border-red-500'
+          : 'border-stone-200 bg-white hover:border-stone-300'
           }`}
       >
         {isActive && (
-          <span className="absolute inset-0 rounded-2xl bg-red-600" />
+          <span className="absolute inset-0 rounded-2xl bg-linear-to-br from-red-500 to-amber-500" />
         )}
         <div className="relative z-10 flex flex-col items-center gap-1.5 min-w-[64px]">
           <div
-            className={`w-11 h-11 rounded-full flex items-center justify-center ${isActive ? 'bg-white/20 text-white' : 'bg-stone-100'
+            className={`w-11 h-11 rounded-full flex items-center justify-center ${isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-stone-100'
               }`}
             style={
               isActive
@@ -291,9 +291,9 @@ const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
   if (!Array.isArray(grupos) || grupos.length === 0) return null
 
   return (
-    <section className="mb-5" aria-label="Stories das lojas">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-extrabold text-stone-900">UaiFood Stories</h3>
+    <section className="mb-6 rounded-3xl border border-stone-200 bg-white/90 p-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]" aria-label="Stories das lojas">
+      <div className="flex items-center justify-between mb-2.5">
+        <h3 className="text-sm font-black tracking-tight text-stone-900">UaiFood Stories</h3>
         <span className="text-[11px] text-stone-500">{grupos.length} loja(s)</span>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
@@ -306,7 +306,7 @@ const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
               onClick={() => onOpen(idx)}
               className="shrink-0 w-[84px] text-center"
             >
-              <div className={`mx-auto rounded-full p-[2px] ${hasUnseen ? 'bg-linear-to-r from-red-500 to-amber-400' : 'bg-stone-300'}`}>
+              <div className={`mx-auto rounded-full p-[2px] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.6)] ${hasUnseen ? 'bg-linear-to-r from-red-500 to-amber-400' : 'bg-stone-300'}`}>
                 <div className="w-[72px] h-[72px] rounded-full bg-white p-0.5">
                   <img
                     src={g.restaurant_logo || '/icons/icon-192.png'}
@@ -320,7 +320,7 @@ const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-stone-700 mt-1.5 line-clamp-1">{g.restaurant_name}</p>
+              <p className="text-[11px] font-medium text-stone-700 mt-1.5 line-clamp-1">{g.restaurant_name}</p>
             </button>
           )
         })}
@@ -536,7 +536,7 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
       to={`/loja/${loja.slug}`}
       onMouseEnter={prefetch.onMouseEnter}
       onPointerDown={handlePointerDown}
-      className={`group relative overflow-hidden flex items-center gap-4 px-2 py-3.5 rounded-xl transform-gpu will-change-transform transition-all duration-200 ease-out hover:bg-white hover:shadow-sm hover:scale-[1.01] active:scale-[0.985] active:bg-stone-50 active:shadow-none ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-50' : ''
+      className={`group relative overflow-hidden flex items-center gap-4 px-3 py-3.5 rounded-2xl border border-stone-200 bg-white transform-gpu will-change-transform transition-all duration-200 ease-out hover:border-stone-300 hover:shadow-[0_14px_28px_-24px_rgba(15,23,42,0.55)] hover:scale-[1.005] active:scale-[0.985] active:bg-stone-50 active:shadow-none ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-55' : ''
         }`}
       style={{
         animationDelay: shouldAnimate ? `${Math.min(idx, 10) * 50}ms` : '0ms',
@@ -545,8 +545,8 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
         WebkitTapHighlightColor: 'rgba(239, 68, 68, 0.12)',
       }}
     >
-      <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-transparent transition-colors duration-200 group-active:ring-red-200" />
-      <span className="pointer-events-none absolute inset-0 rounded-xl overflow-hidden">
+      <span className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-colors duration-200 group-active:ring-red-200" />
+      <span className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
         {ripples.map((r) => (
           <span
             key={r.id}
@@ -589,7 +589,7 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
       </div>
 
       <div className="flex-1 min-w-0 relative z-10">
-        <h3 className="text-[15px] font-bold text-stone-900 truncate">{loja.nome}</h3>
+        <h3 className="text-[15px] font-extrabold tracking-tight text-stone-900 truncate">{loja.nome}</h3>
         <div className="flex items-center gap-1.5 mt-1 text-xs text-stone-500">
           {(loja.nota_media ?? 0) > 0 && (
             <>
@@ -648,7 +648,7 @@ const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
         containIntrinsicSize: idx >= 8 ? '236px' : 'auto',
       }}
     >
-      <div className="relative rounded-2xl overflow-hidden bg-stone-100">
+      <div className="relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-[0_12px_24px_-24px_rgba(15,23,42,0.55)] group-hover:border-stone-300 transition-colors">
         {!imgError && loja.logo_url ? (
           <img
             src={loja.logo_url}
@@ -690,8 +690,8 @@ const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
         )}
       </div>
 
-      <div className="pt-1.5 px-0.5">
-        <h3 className="font-heading text-[14px] font-bold tracking-tight text-stone-700 line-clamp-1 leading-tight">
+      <div className="pt-2 px-0.5">
+        <h3 className="font-heading text-[14px] font-extrabold tracking-tight text-stone-800 line-clamp-1 leading-tight">
           {loja.nome}
         </h3>
         <div className="mt-0.5 flex items-center gap-1 text-[13px] text-stone-500">
@@ -1253,23 +1253,23 @@ export default function HomePage() {
             categoriaSel={categoriaSel}
             onToggleCategoria={setCategoriaSel}
             onClearCategoria={() => setCategoriaSel(null)}
-            CategoriaCardComponent={CategoriaCard}
+            categoriaCardComponent={CategoriaCard}
           />
 
           {/* Stores */}
           {lojasFiltradas.length === 0 ? (
             <HomeEmptyState busca={busca} />
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-stone-500">
+            <section className="space-y-3 rounded-3xl border border-stone-200 bg-white/95 px-3.5 py-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-medium text-stone-600">
                   {lojasFiltradas.length} loja{lojasFiltradas.length !== 1 ? 's' : ''} encontrada{lojasFiltradas.length !== 1 ? 's' : ''}
                 </p>
-                <div className="inline-flex items-center rounded-xl border border-stone-200 bg-white p-1">
+                <div className="inline-flex items-center rounded-xl border border-stone-200 bg-stone-50 p-1">
                   <button
                     type="button"
                     onClick={() => setModoVisualizacao('lista')}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'lista' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'lista' ? 'bg-white text-red-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
                     aria-label="Visualização em lista"
                   >
                     <FiList size={14} /> Lista
@@ -1277,7 +1277,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setModoVisualizacao('grade')}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'grade' ? 'bg-red-50 text-red-700' : 'text-stone-500 hover:text-stone-700'}`}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${modoVisualizacao === 'grade' ? 'bg-white text-red-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
                     aria-label="Visualização em grade"
                   >
                     <FiGrid size={14} /> Grade
@@ -1328,7 +1328,7 @@ export default function HomePage() {
                   )}
                 </div>
               )}
-            </div>
+            </section>
           )}
 
           <HomeBottomSupport
