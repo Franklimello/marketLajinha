@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { FiArrowLeft, FiAtSign, FiCalendar, FiClock, FiMapPin, FiMessageCircle, FiPhone } from 'react-icons/fi'
+import { FiArrowLeft, FiAtSign, FiCalendar, FiCheckCircle, FiClock, FiMapPin, FiMessageCircle, FiPhone } from 'react-icons/fi'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { getItem as getLocalItem } from '../storage/localStorageService'
@@ -8,6 +8,8 @@ import ServiceCard from '../componentes/services/ServiceCard'
 import SEO from '../componentes/SEO'
 
 const SELECTED_CITY_KEY = 'selectedCity'
+const DAY_CAROUSEL_SIZE = 14
+const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
 
 function cityFromCliente(cliente) {
   const enderecos = Array.isArray(cliente?.enderecos) ? cliente.enderecos : []
@@ -38,6 +40,32 @@ function formatCurrency(value) {
   })
 }
 
+function dateKey(date) {
+  const d = new Date(date)
+  if (!Number.isFinite(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function buildNextDays(size = DAY_CAROUSEL_SIZE) {
+  const today = new Date()
+  const days = []
+  for (let i = 0; i < size; i += 1) {
+    const dt = new Date(today)
+    dt.setDate(today.getDate() + i)
+    const key = dateKey(dt)
+    days.push({
+      key,
+      weekday: WEEKDAY_SHORT[dt.getDay()],
+      label: `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}`,
+      isToday: i === 0,
+    })
+  }
+  return days
+}
+
 export default function PrestadorServicoPage() {
   const { providerId } = useParams()
   const navigate = useNavigate()
@@ -45,7 +73,7 @@ export default function PrestadorServicoPage() {
 
   const [profile, setProfile] = useState(null)
   const [selectedService, setSelectedService] = useState(null)
-  const [date, setDate] = useState('')
+  const [date, setDate] = useState(() => dateKey(new Date()))
   const [time, setTime] = useState('')
   const [availableSlots, setAvailableSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -126,6 +154,8 @@ export default function PrestadorServicoPage() {
       .filter(Boolean)
   }, [availableSlots])
 
+  const dateOptions = useMemo(() => buildNextDays(DAY_CAROUSEL_SIZE), [])
+
   useEffect(() => {
     if (!time) return
     if (freeSlots.includes(time)) return
@@ -183,14 +213,32 @@ export default function PrestadorServicoPage() {
   return (
     <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
       <SEO title="Perfil do prestador" description="Veja serviços disponíveis e solicite um horário." noIndex />
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/65 to-transparent" />
-      <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-violet-100/80 via-fuchsia-50/65 to-transparent" />
+      <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-fuchsia-200/35 blur-3xl" />
 
       <div className="pt-4 flex items-center justify-between">
         <Link to="/servicos" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 font-medium">
           <FiArrowLeft /> Voltar
         </Link>
       </div>
+
+      <section className="mt-3 rounded-2xl border border-violet-200 bg-white/90 p-3 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-500">Fluxo de agendamento</p>
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
+          <div className="rounded-xl border border-violet-200 bg-violet-50 px-2 py-2 text-center">
+            <p className="text-[10px] font-bold text-violet-700">1</p>
+            <p className="text-[10px] text-violet-700">Serviço</p>
+          </div>
+          <div className="rounded-xl border border-fuchsia-200 bg-fuchsia-50 px-2 py-2 text-center">
+            <p className="text-[10px] font-bold text-fuchsia-700">2</p>
+            <p className="text-[10px] text-fuchsia-700">Dia</p>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-center">
+            <p className="text-[10px] font-bold text-emerald-700">3</p>
+            <p className="text-[10px] text-emerald-700">Horário</p>
+          </div>
+        </div>
+      </section>
 
       {loading ? (
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] mt-4">Carregando perfil...</div>
@@ -200,8 +248,8 @@ export default function PrestadorServicoPage() {
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl mt-4">Prestador não encontrado.</div>
       ) : (
         <>
-          <section className={`mt-4 border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] overflow-hidden transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-            <div className="rounded-2xl border border-stone-200 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-3.5">
+          <section className={`mt-4 border border-violet-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] overflow-hidden transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+            <div className="rounded-2xl border border-violet-200 bg-linear-to-br from-violet-800 via-fuchsia-700 to-pink-600 text-white p-3.5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200">Perfil profissional</p>
               <p className="text-xs text-stone-200 mt-1">Veja serviços e escolha um horário em segundos.</p>
             </div>
@@ -270,7 +318,7 @@ export default function PrestadorServicoPage() {
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-black text-stone-900">Serviços</h2>
-              <span className="text-[11px] rounded-full border border-stone-200 bg-white px-2.5 py-1 text-stone-600">
+              <span className="text-[11px] rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-violet-700 font-semibold">
                 {(profile.services || []).length} disponível(is)
               </span>
             </div>
@@ -290,8 +338,8 @@ export default function PrestadorServicoPage() {
             )}
           </section>
 
-          <form onSubmit={handleBook} className={`border border-stone-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transitionDelay: '120ms' }}>
-            <div className="rounded-2xl border border-red-200 bg-linear-to-r from-red-50 to-orange-50 px-3 py-2.5">
+          <form onSubmit={handleBook} className={`border border-violet-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transitionDelay: '120ms' }}>
+            <div className="rounded-2xl border border-violet-200 bg-linear-to-r from-violet-50 to-fuchsia-50 px-3 py-2.5">
               <h3 className="text-sm font-black text-stone-900">Solicitar agendamento</h3>
               <p className="text-[11px] text-stone-600 mt-1">Selecione serviço, data e horário livre para enviar sua solicitação.</p>
             </div>
@@ -299,7 +347,7 @@ export default function PrestadorServicoPage() {
               Serviço selecionado: {selectedService?.name || 'nenhum serviço'}
             </p>
 
-            <div className="rounded-2xl border border-stone-200 bg-stone-50/80 px-3 py-2.5">
+            <div className="rounded-2xl border border-violet-200 bg-violet-50/55 px-3 py-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">Resumo do agendamento</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-stone-600">
                 <div className="rounded-xl border border-stone-200 bg-white px-2.5 py-2">
@@ -321,16 +369,29 @@ export default function PrestadorServicoPage() {
               </div>
             </div>
 
-            <label className="text-xs text-stone-600 space-y-1 block">
-              <span className="inline-flex items-center gap-1"><FiCalendar /> Data</span>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-stone-300 bg-stone-50 rounded-xl px-2.5 py-2 text-sm transition-all focus:outline-none focus:border-red-400 focus:bg-white focus-visible:ring-2 focus-visible:ring-red-200"
-                required
-              />
-            </label>
+            <div className="space-y-1">
+              <p className="text-xs text-stone-600 inline-flex items-center gap-1"><FiCalendar /> Escolha o dia</p>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {dateOptions.map((option) => {
+                  const selected = date === option.key
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setDate(option.key)}
+                      className={`shrink-0 min-w-[82px] rounded-xl border px-2.5 py-2 text-xs transition-all ${
+                        selected
+                          ? 'border-red-400 bg-red-50 text-red-700'
+                          : 'border-stone-300 bg-white text-stone-700 hover:border-stone-400'
+                      }`}
+                    >
+                      <p className="font-semibold">{option.weekday}</p>
+                      <p className="text-[11px] mt-0.5">{option.label}{option.isToday ? ' (hoje)' : ''}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
             <div className="space-y-2">
               <p className="text-xs text-stone-600 inline-flex items-center gap-1"><FiClock /> Horarios livres</p>
@@ -342,23 +403,37 @@ export default function PrestadorServicoPage() {
               ) : loadingSlots ? (
                 <p className="text-xs text-stone-500">Carregando horarios...</p>
               ) : freeSlots.length === 0 ? (
-                <p className="text-xs text-red-600">Sem horarios livres para este dia.</p>
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                  <p className="text-xs font-semibold text-red-700">Sem horários livres para este dia.</p>
+                  <p className="text-[11px] text-red-600 mt-0.5">Escolha outro dia no carrossel para continuar.</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5 text-[10px]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
+                      Livre
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 font-semibold text-violet-700">
+                      Selecionado
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
                   {freeSlots.map((slot) => (
                     <button
                       key={slot}
                       type="button"
                       onClick={() => setTime(slot)}
-                      className={`border px-1.5 py-1.5 text-[11px] font-semibold rounded-lg transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-200 ${
+                      className={`border px-1.5 py-1.5 text-[11px] font-semibold rounded-lg transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 ${
                         time === slot
-                          ? 'border-green-600 bg-green-50 text-green-700'
-                          : 'border-green-300 bg-white text-green-700 hover:border-green-500'
+                          ? 'border-violet-500 bg-violet-50 text-violet-700 shadow-[0_8px_18px_-14px_rgba(109,40,217,0.8)] focus-visible:ring-violet-200'
+                          : 'border-emerald-300 bg-white text-emerald-700 hover:border-emerald-500 hover:bg-emerald-50/45 focus-visible:ring-emerald-200'
                       }`}
                     >
                       {slot}
                     </button>
                   ))}
+                  </div>
                 </div>
               )}
 
@@ -370,8 +445,10 @@ export default function PrestadorServicoPage() {
             </div>
 
             {message && (
-              <div className="rounded-xl border border-green-200 bg-green-50 p-2.5 space-y-1.5">
-                <p className="text-sm text-green-700">{message}</p>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 space-y-1.5">
+                <p className="text-sm text-emerald-700 inline-flex items-center gap-1.5">
+                  <FiCheckCircle size={14} /> {message}
+                </p>
                 <Link to="/meus-agendamentos" className="inline-flex text-xs font-semibold text-green-800 underline">
                   Ver meus agendamentos
                 </Link>

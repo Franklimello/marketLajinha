@@ -65,6 +65,19 @@ function timeToMinutes(time) {
   return h * 60 + m;
 }
 
+function dateAtTimeUtc(date, time) {
+  const dayKey = formatDateToKey(date);
+  const parsed = new Date(`${dayKey}T${cleanText(time)}:00.000Z`);
+  if (!Number.isFinite(parsed.getTime())) return null;
+  return parsed;
+}
+
+function isPastDateTime(date, time) {
+  const target = dateAtTimeUtc(date, time);
+  if (!target) return false;
+  return target.getTime() <= Date.now();
+}
+
 function minutesToTime(minutes) {
   const safe = Math.max(0, Math.min(24 * 60 - 1, Number(minutes || 0)));
   const h = Math.floor(safe / 60);
@@ -320,6 +333,11 @@ async function createAppointment(firebaseDecoded, payload) {
   const bookingDate = parseDateOnly(payload.date);
   if (!isValidTime(payload.time)) {
     const err = new Error('Hora inválida. Use o formato HH:mm.');
+    err.status = 400;
+    throw err;
+  }
+  if (isPastDateTime(bookingDate, payload.time)) {
+    const err = new Error('Não é possível agendar em data/horário passado.');
     err.status = 400;
     throw err;
   }
@@ -1056,6 +1074,133 @@ async function setProviderDayOccupancy(providerAccount, payload) {
   };
 }
 
+async function setProviderDefaultSchedule(providerAccount, payload) {
+  const startTime = cleanText(payload.start_time);
+  const endTime = cleanText(payload.end_time);
+  const exceptSunday = payload.except_sunday !== false;
+
+  if (!isValidTime(startTime) || !isValidTime(endTime)) {
+    const err = new Error('Faixa de horário inválida. Use HH:mm.');
+    err.status = 400;
+    throw err;
+  }
+
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
+  if (startMinutes >= endMinutes) {
+    const err = new Error('O horário final deve ser maior que o inicial.');
+    err.status = 400;
+    throw err;
+  }
+
+  const from = payload.date_from ? parseDateOnly(payload.date_from) : parseDateOnly(formatDateToKey(new Date()));
+  const to = payload.date_to
+    ? parseDateOnly(payload.date_to)
+    : parseDateOnly(formatDateToKey(new Date(Date.now() + (1000 * 60 * 60 * 24 * 60))));
+
+  if (from.getTime() > to.getTime()) {
+    const err = new Error('Intervalo de datas inválido.');
+    err.status = 400;
+    throw err;
+  }
+
+  const allSlots = buildDefaultSlots();
+  let cursor = new Date(from);
+  let daysUpdated = 0;
+  let blockedUpserted = 0;
+  let unblockedRemoved = 0;
+
+  while (cursor.getTime() <= to.getTime()) {
+    const date = parseDateOnly(formatDateToKey(cursor));
+    const isSunday = cursor.getUTCDay() === 0;
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        provider_id: providerAccount.id,
+        date,
+        status: { in: BLOCKING_STATUSES },
+      },
+      include: {
+        service: {
+          select: { duration_minutes: true },
+        },
+      },
+    });
+
+    const appointmentBlockedSet = new Set();
+    for (const item of appointments) {
+      const start = timeToMinutes(getEffectiveTime(item));
+      const end = start + Number(item?.service?.duration_minutes || 0);
+      for (let step = start; step < end; step += SLOT_STEP_MINUTES) {
+        appointmentBlockedSet.add(minutesToTime(step));
+      }
+    }
+
+    const shouldBeFreeSet = new Set(
+      isSunday && exceptSunday
+        ? []
+        : allSlots.filter((slot) => {
+          const minutes = timeToMinutes(slot);
+          return minutes >= startMinutes && minutes <= endMinutes;
+        })
+    );
+
+    const toBlock = allSlots.filter((slot) => (
+      !shouldBeFreeSet.has(slot) && !appointmentBlockedSet.has(slot)
+    ));
+
+    const toUnblock = allSlots.filter((slot) => (
+      shouldBeFreeSet.has(slot) && !appointmentBlockedSet.has(slot)
+    ));
+
+    if (toBlock.length > 0) {
+      await prisma.$transaction(
+        toBlock.map((time) => prisma.providerBlockedSlot.upsert({
+          where: {
+            provider_id_date_time: {
+              provider_id: providerAccount.id,
+              date,
+              time,
+            },
+          },
+          create: {
+            provider_id: providerAccount.id,
+            date,
+            time,
+          },
+          update: {},
+        }))
+      );
+      blockedUpserted += toBlock.length;
+    }
+
+    if (toUnblock.length > 0) {
+      const removed = await prisma.providerBlockedSlot.deleteMany({
+        where: {
+          provider_id: providerAccount.id,
+          date,
+          time: { in: toUnblock },
+        },
+      });
+      unblockedRemoved += Number(removed?.count || 0);
+    }
+
+    daysUpdated += 1;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return {
+    date_from: formatDateToKey(from),
+    date_to: formatDateToKey(to),
+    start_time: startTime,
+    end_time: endTime,
+    except_sunday: exceptSunday,
+    days_updated: daysUpdated,
+    blocked_upserted: blockedUpserted,
+    unblocked_removed: unblockedRemoved,
+  };
+}
+
 async function listAvailableSlotsForService(payload) {
   const service = await prisma.service.findUnique({
     where: { id: payload.service_id },
@@ -1085,10 +1230,11 @@ async function listAvailableSlotsForService(payload) {
     const start = timeToMinutes(slotTime);
     const end = start + duration;
     const occupied = windows.some((window) => hasOverlap(start, end, window.start, window.end));
+    const past = isPastDateTime(date, slotTime);
 
     return {
       time: slotTime,
-      available: !occupied,
+      available: !occupied && !past,
     };
   });
 
@@ -1199,6 +1345,7 @@ module.exports = {
   listProviderSchedule,
   setProviderSlotOccupancy,
   setProviderDayOccupancy,
+  setProviderDefaultSchedule,
   listAvailableSlotsForService,
   sendDueAppointmentReminders,
 };

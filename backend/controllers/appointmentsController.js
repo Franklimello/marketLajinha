@@ -128,6 +128,20 @@ async function prestadorAtualizarDia(req, res, next) {
   }
 }
 
+async function prestadorAplicarPadrao(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
+    const updated = await appointmentsService.setProviderDefaultSchedule(providerAccount, req.validated);
+    res.json(updated);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
 async function prestadorCancelar(req, res, next) {
   try {
     if (!req.firebaseDecoded) {
@@ -197,6 +211,7 @@ module.exports = {
   prestadorAgenda,
   prestadorAtualizarSlot,
   prestadorAtualizarDia,
+  prestadorAplicarPadrao,
   prestadorCancelar,
   prestadorConcluir,
   prestadorClientes,

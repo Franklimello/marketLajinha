@@ -11,7 +11,7 @@ export default function HomeCategoriesSection({
   const CategoriaCard = categoriaCardComponent
 
   return (
-    <section className="mb-5 rounded-3xl border border-stone-200 bg-white/90 px-3.5 py-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]">
+    <section className="mb-5 border-t border-stone-200 pt-4">
       <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="inline-flex items-center gap-2 text-sm font-black tracking-tight text-stone-900">
           <FiCompass className="text-amber-600" />

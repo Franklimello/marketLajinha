@@ -1,7 +1,7 @@
 export default function HomeStoriesSection(props) {
   if (props.storiesCarregando) {
     return (
-      <section className="mb-6 rounded-3xl border border-stone-200 bg-white/90 p-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]" aria-hidden="true">
+      <section className="mb-6 border-t border-stone-200 pt-4" aria-hidden="true">
         <div className="flex items-center justify-between mb-3">
           <div className="skeleton h-4 rounded w-32" />
           <div className="skeleton h-4 rounded w-14" />

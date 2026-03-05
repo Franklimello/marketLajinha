@@ -367,16 +367,16 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
     <button
       type="button"
       onClick={onToggle}
-      className="relative shrink-0 rounded-2xl active:scale-95 transition-transform duration-150"
+      className="relative shrink-0 rounded-xl active:scale-95 transition-transform duration-150"
     >
       <div
-        className={`relative px-2.5 py-2.5 rounded-2xl border transition-all duration-200 shadow-[0_10px_22px_-20px_rgba(15,23,42,0.5)] ${isActive
+        className={`relative px-2.5 py-2.5 rounded-xl border transition-all duration-200 ${isActive
           ? 'border-red-500'
           : 'border-stone-200 bg-white hover:border-stone-300'
           }`}
       >
         {isActive && (
-          <span className="absolute inset-0 rounded-2xl bg-linear-to-br from-red-500 to-amber-500" />
+          <span className="absolute inset-0 rounded-xl bg-linear-to-br from-red-500 to-amber-500" />
         )}
         <div className="relative z-10 flex flex-col items-center gap-1.5 min-w-[64px]">
           <div
@@ -403,7 +403,7 @@ const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
   if (!Array.isArray(grupos) || grupos.length === 0) return null
 
   return (
-    <section className="mb-6 rounded-3xl border border-stone-200 bg-white/90 p-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]" aria-label="Stories das lojas">
+    <section className="mb-6 border-t border-stone-200 pt-4" aria-label="Stories das lojas">
       <div className="flex items-center justify-between mb-2.5">
         <h3 className="text-sm font-black tracking-tight text-stone-900">UaiFood Stories</h3>
         <span className="text-[11px] text-stone-500">{grupos.length} loja(s)</span>
@@ -418,7 +418,7 @@ const StoriesRail = memo(function StoriesRail({ grupos, seenMap, onOpen }) {
               onClick={() => onOpen(idx)}
               className="shrink-0 w-[84px] text-center"
             >
-              <div className={`mx-auto rounded-full p-[2px] shadow-[0_10px_20px_-18px_rgba(15,23,42,0.6)] ${hasUnseen ? 'bg-linear-to-r from-red-500 to-amber-400' : 'bg-stone-300'}`}>
+              <div className={`mx-auto rounded-full p-[2px] ${hasUnseen ? 'bg-linear-to-r from-red-500 to-amber-400' : 'bg-stone-300'}`}>
                 <div className="w-[72px] h-[72px] rounded-full bg-white p-0.5">
                   <img
                     src={g.restaurant_logo || '/icons/icon-192.png'}
@@ -546,7 +546,7 @@ const HomeCarousel = memo(function HomeCarousel() {
 
   return (
     <section className="mb-6" aria-label="Destaques do UaiFood">
-      <div className="relative overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_45px_-35px_rgba(15,23,42,0.55)]">
+      <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_5%,rgba(255,255,255,0.35),transparent_40%)]" />
         <div
           className="relative flex transition-transform duration-500 ease-out"
@@ -654,7 +654,7 @@ const LojaCard = memo(function LojaCard({ loja, idx, taxaBairro }) {
       to={`/loja/${loja.slug}`}
       onMouseEnter={onPrefetchMouseEnter}
       onPointerDown={handlePointerDown}
-      className={`group relative overflow-hidden flex items-center gap-4 px-3 py-3.5 rounded-2xl border border-stone-200 bg-white transform-gpu will-change-transform transition-all duration-200 ease-out hover:border-stone-300 hover:shadow-[0_14px_28px_-24px_rgba(15,23,42,0.55)] hover:scale-[1.005] active:scale-[0.985] active:bg-stone-50 active:shadow-none ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-55' : ''
+      className={`group relative overflow-hidden flex items-center gap-4 px-3 py-3.5 rounded-2xl border border-stone-200 bg-white transform-gpu will-change-transform transition-all duration-200 ease-out hover:border-stone-300 hover:scale-[1.005] active:scale-[0.985] active:bg-stone-50 ${shouldAnimate ? 'animate-fade-in-up' : ''} ${!aberta ? 'opacity-55' : ''
         }`}
       style={{
         animationDelay: shouldAnimate ? `${Math.min(idx, 10) * 50}ms` : '0ms',
@@ -770,7 +770,7 @@ const LojaCardGrid = memo(function LojaCardGrid({ loja, idx, taxaBairro }) {
         containIntrinsicSize: idx >= 8 ? '236px' : 'auto',
       }}
     >
-      <div className="relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-[0_12px_24px_-24px_rgba(15,23,42,0.55)] group-hover:border-stone-300 transition-colors">
+      <div className="relative rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 group-hover:border-stone-300 transition-colors">
         {!imgError && loja.logo_url ? (
           <img
             src={loja.logo_url}
@@ -1366,7 +1366,7 @@ export default function HomePage() {
         jsonLd={jsonLd}
       />
 
-      <section className="relative mb-5 overflow-hidden rounded-[30px] border border-stone-200 bg-linear-to-b from-white via-white to-stone-50 px-4 py-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.5)]">
+      <section className="relative mb-5 overflow-hidden px-1 py-2">
         <span className="pointer-events-none absolute -top-14 -right-16 w-44 h-44 rounded-full bg-red-200/30 blur-3xl" />
         <span className="pointer-events-none absolute -bottom-20 -left-14 w-40 h-40 rounded-full bg-amber-200/35 blur-3xl" />
 
@@ -1388,7 +1388,7 @@ export default function HomePage() {
 
           <Link
             to="/feed-cidade"
-            className="group rounded-2xl border border-red-200 bg-linear-to-r from-red-50 via-white to-red-50 px-4 py-3.5 flex items-center justify-between hover:border-red-300 hover:shadow-sm transition-all"
+            className="group rounded-xl border border-red-200 bg-linear-to-r from-red-50 via-white to-red-50 px-4 py-3 flex items-center justify-between hover:border-red-300 transition-all"
           >
             <div>
               <p className="text-sm font-black tracking-tight text-red-700">📢 Feed da Cidade</p>
@@ -1432,7 +1432,7 @@ export default function HomePage() {
           {lojasFiltradas.length === 0 ? (
             <HomeEmptyState busca={busca} />
           ) : (
-            <section className="space-y-3 rounded-3xl border border-stone-200 bg-white/95 px-3.5 py-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]">
+            <section className="space-y-3 border-t border-stone-200 pt-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-medium text-stone-600">
                   {lojasFiltradas.length} loja{lojasFiltradas.length !== 1 ? 's' : ''} encontrada{lojasFiltradas.length !== 1 ? 's' : ''}

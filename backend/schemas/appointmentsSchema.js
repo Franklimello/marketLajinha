@@ -37,6 +37,14 @@ const schemaProviderDayOccupancyUpdate = z.object({
   occupied: z.boolean(),
 });
 
+const schemaProviderDefaultScheduleUpdate = z.object({
+  start_time: z.string().regex(timeRegex, 'Hora inicial inválida. Use HH:mm.'),
+  end_time: z.string().regex(timeRegex, 'Hora final inválida. Use HH:mm.'),
+  date_from: z.string().regex(dateRegex, 'Data inicial inválida. Use YYYY-MM-DD.').optional(),
+  date_to: z.string().regex(dateRegex, 'Data final inválida. Use YYYY-MM-DD.').optional(),
+  except_sunday: z.boolean().optional().default(true),
+});
+
 const schemaAvailableSlotsQuery = z.object({
   service_id: z.string().cuid('Serviço inválido.'),
   date: z.string().regex(dateRegex, 'Data inválida. Use YYYY-MM-DD.'),
@@ -49,5 +57,6 @@ module.exports = {
   schemaCancelAppointment,
   schemaProviderSlotUpdate,
   schemaProviderDayOccupancyUpdate,
+  schemaProviderDefaultScheduleUpdate,
   schemaAvailableSlotsQuery,
 };

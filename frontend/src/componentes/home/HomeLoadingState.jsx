@@ -1,7 +1,7 @@
 export default function HomeLoadingState() {
   return (
     <div className="max-w-lg mx-auto px-4">
-      <section className="mb-5 rounded-[30px] border border-stone-200 bg-white px-4 py-4 shadow-[0_16px_36px_-34px_rgba(15,23,42,0.55)]">
+      <section className="mb-5 px-1 py-2">
         <h2 className="text-xl font-black tracking-tight text-stone-900 mb-1">Carregando lojas</h2>
         <p className="text-sm text-stone-500 mb-4">Buscando os melhores estabelecimentos da sua cidade...</p>
         <div className="skeleton h-6 rounded w-40 mb-1" />
@@ -9,7 +9,7 @@ export default function HomeLoadingState() {
         <div className="h-12 skeleton rounded-2xl mb-4" />
       </section>
 
-      <section className="mb-6 rounded-3xl border border-stone-200 bg-white/90 p-3.5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.45)]">
+      <section className="mb-6 border-t border-stone-200 pt-4">
         <div className="skeleton h-4 rounded w-32 mb-3" />
         <div className="flex gap-4 overflow-hidden">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -21,7 +21,7 @@ export default function HomeLoadingState() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-stone-200 bg-white p-3.5 shadow-[0_14px_30px_-32px_rgba(15,23,42,0.5)]">
+      <section className="border-t border-stone-200 pt-4">
         <div className="skeleton h-4 rounded w-44 mb-3" />
         <div className="space-y-1">
           {Array.from({ length: 5 }).map((_, i) => (

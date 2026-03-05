@@ -4,7 +4,7 @@ import { FaWhatsapp } from 'react-icons/fa'
 export default function HomeBottomSupport({ suporteWhatsapp, suporteInstagram }) {
   return (
     <>
-      <div className="mt-8 mb-4 relative overflow-hidden rounded-3xl border border-stone-200 bg-linear-to-br from-stone-900 via-stone-950 to-stone-900 p-5 text-white animate-fade-in-up shadow-[0_24px_50px_-36px_rgba(15,23,42,0.75)]">
+      <div className="mt-8 mb-4 relative overflow-hidden rounded-2xl border border-stone-200 bg-linear-to-br from-stone-900 via-stone-950 to-stone-900 p-5 text-white animate-fade-in-up">
         <span className="pointer-events-none absolute -top-12 -right-12 w-36 h-36 rounded-full bg-red-500/30 blur-3xl" />
         <span className="pointer-events-none absolute -bottom-14 -left-10 w-36 h-36 rounded-full bg-amber-400/25 blur-3xl" />
         <div className="relative">

@@ -9,7 +9,7 @@ export default function HomeSearchBar({ busca, onChangeBusca, onClearBusca }) {
         value={busca}
         onChange={(e) => onChangeBusca(e.target.value)}
         placeholder="Buscar lojas e restaurantes"
-        className="w-full pl-12 pr-12 py-3.5 bg-white border border-stone-200 rounded-2xl text-sm text-stone-900 placeholder:text-stone-400 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.35)] focus:outline-none focus:ring-2 focus:ring-amber-500/35 focus:border-amber-300"
+        className="w-full pl-12 pr-12 py-3.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-300"
       />
       {busca && (
         <button

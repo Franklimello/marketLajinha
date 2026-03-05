@@ -31,7 +31,7 @@ export default function HomeGreeting({
           {suggestion}
         </p>
       )}
-      <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold shadow-xs backdrop-blur-sm ${
+      <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
         temLojaAberta ? 'border-emerald-200 bg-emerald-50/80' : 'border-stone-200 bg-stone-100/80'
       }`}>
         <FiClock className={temLojaAberta ? 'text-emerald-600' : 'text-stone-500'} />

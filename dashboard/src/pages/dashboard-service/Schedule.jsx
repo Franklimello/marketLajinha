@@ -127,6 +127,9 @@ export default function ServiceSchedulePage() {
   const [error, setError] = useState('')
   const [busySlotKey, setBusySlotKey] = useState('')
   const [busyDayAction, setBusyDayAction] = useState(false)
+  const [busyDefaultApply, setBusyDefaultApply] = useState(false)
+  const [defaultStartTime, setDefaultStartTime] = useState('08:00')
+  const [defaultEndTime, setDefaultEndTime] = useState('18:00')
 
   const range = useMemo(() => {
     if (viewMode === 'day') return { from: dayRef, to: dayRef }
@@ -215,6 +218,35 @@ export default function ServiceSchedulePage() {
       setError(err.message || 'Nao foi possivel atualizar os horarios deste dia.')
     } finally {
       setBusyDayAction(false)
+    }
+  }
+
+  async function handleApplyDefaultSchedule() {
+    setBusyDefaultApply(true)
+    setError('')
+    try {
+      await api.appointments.providerApplyDefaultSchedule({
+        start_time: defaultStartTime,
+        end_time: defaultEndTime,
+        date_from: range.from,
+        date_to: range.to,
+        except_sunday: true,
+      })
+
+      const res = await api.appointments.providerSchedule(range.from, range.to)
+      const appointmentsData = Array.isArray(res)
+        ? res
+        : (Array.isArray(res?.appointments) ? res.appointments : [])
+      const blockedData = Array.isArray(res?.blocked_slots)
+        ? res.blocked_slots
+        : []
+
+      setAppointments(appointmentsData)
+      setBlockedSlots(blockedData)
+    } catch (err) {
+      setError(err.message || 'Nao foi possivel aplicar o horario padrao.')
+    } finally {
+      setBusyDefaultApply(false)
     }
   }
 
@@ -405,6 +437,12 @@ export default function ServiceSchedulePage() {
           onSelectedDateChange={setDayRef}
           onToggleSlot={handleToggleSlot}
           onToggleDay={handleToggleDay}
+          defaultStartTime={defaultStartTime}
+          defaultEndTime={defaultEndTime}
+          onDefaultStartTimeChange={setDefaultStartTime}
+          onDefaultEndTimeChange={setDefaultEndTime}
+          onApplyDefaultSchedule={handleApplyDefaultSchedule}
+          busyDefaultApply={busyDefaultApply}
           busySlotKey={busySlotKey}
           busyDayAction={busyDayAction}
         />

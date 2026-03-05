@@ -44,7 +44,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
   const isFotoPadrao = (foto) => !foto || String(foto).trim() === '/avatar-default.png'
 
   return (
-    <section className="rounded-3xl border border-stone-200/90 bg-white/90 px-3.5 py-3.5 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.45)]">
+    <section className="border-t border-stone-200 pt-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-black tracking-tight text-stone-900 truncate whitespace-nowrap">
@@ -86,7 +86,7 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
           <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2">Carregando ranking...</p>
         )}
         {!ranking.isLoading && (
-          <div className="rounded-2xl border border-stone-200 bg-linear-to-b from-stone-50 to-white px-1.5 pb-2 pt-2">
+          <div className="rounded-2xl border border-stone-200 bg-stone-50/70 px-1.5 pb-2 pt-2">
             <div className="grid grid-cols-3 items-end gap-2">
               {podiumSlots.map(({ posicao, user }) => {
                 const { nomeExibicao, fotoExibicao } = getDisplayUser({
