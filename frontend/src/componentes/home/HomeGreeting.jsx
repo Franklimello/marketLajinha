@@ -1,7 +1,7 @@
 import { FiClock, FiMapPin } from 'react-icons/fi'
 
 export default function HomeGreeting({
-  saudacaoTexto,
+  greeting,
   cliente,
   lojasAbertasCount,
   cidadeSelecionada,
@@ -10,14 +10,27 @@ export default function HomeGreeting({
 }) {
   const cidadeAtual = cidadeSelecionada || cidadeGeo || cidadePadrao
   const primeiroNome = String(cliente?.nome || '').trim().split(' ')[0]
-  const saudacaoFinal = String(saudacaoTexto || '').replace('__NOME__', primeiroNome ? `${primeiroNome} ` : '')
   const temLojaAberta = lojasAbertasCount > 0
+  const title = String(greeting?.title || 'Olá')
+  const subtitle = String(greeting?.subtitle || '')
+  const suggestion = String(greeting?.suggestion || '')
+  const titleWithName = primeiroNome ? `${title}, ${primeiroNome}` : title
 
   return (
     <div>
       <h2 className="text-[1.95rem] leading-[1.12] font-black tracking-tight text-stone-900">
-        {saudacaoFinal}
+        {titleWithName}
       </h2>
+      {subtitle && (
+        <p className="mt-1 text-sm text-stone-600">
+          {subtitle}
+        </p>
+      )}
+      {suggestion && (
+        <p className="mt-1 text-sm font-semibold text-red-700">
+          {suggestion}
+        </p>
+      )}
       <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold shadow-xs backdrop-blur-sm ${
         temLojaAberta ? 'border-emerald-200 bg-emerald-50/80' : 'border-stone-200 bg-stone-100/80'
       }`}>

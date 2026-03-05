@@ -26,6 +26,7 @@ import { useDebounce } from '../hooks/useDebounce'
 import { usePrefetchLoja } from '../hooks/usePrefetch'
 import SEO from '../componentes/SEO'
 import HomeGreeting from '../componentes/home/HomeGreeting'
+import useDynamicGreeting from '../hooks/useDynamicGreeting'
 import HomeSearchBar from '../componentes/home/HomeSearchBar'
 import HomeBottomSupport from '../componentes/home/HomeBottomSupport'
 import HomeStoriesSection from '../componentes/home/HomeStoriesSection'
@@ -1066,6 +1067,11 @@ export default function HomePage() {
     const cidadeBase = String(cidadeSelecionada || cidadeGeo || cidadePadrao || '').trim()
     return resolveFeedCityFromStores(lojas, cidadeBase)
   }, [lojas, cidadeSelecionada, cidadeGeo, cidadePadrao])
+  const greetingCity = useMemo(
+    () => String(cidadeSelecionada || cidadeGeo || cidadePadrao || '').trim(),
+    [cidadeSelecionada, cidadeGeo, cidadePadrao]
+  )
+  const dynamicGreeting = useDynamicGreeting(greetingCity)
 
   const lojasFiltradas = useMemo(() => {
     let lista = lojasSeparadas.ordenadas
@@ -1366,7 +1372,7 @@ export default function HomePage() {
 
         <div className="relative space-y-4">
           <HomeGreeting
-            saudacaoTexto={saudacao()}
+            greeting={dynamicGreeting}
             cliente={cliente}
             lojasAbertasCount={lojasAbertas.length}
             cidadeSelecionada={cidadeSelecionada}
