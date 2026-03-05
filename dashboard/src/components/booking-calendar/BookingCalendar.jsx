@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiCalendar, FiClock } from 'react-icons/fi'
 
 function buildSlots(startHour = 6, endHour = 22, stepMinutes = 30) {
@@ -59,6 +59,8 @@ export default function BookingCalendar({
 }) {
   const [internalSelectedDate, setInternalSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [mapModalOpen, setMapModalOpen] = useState(false)
+  const modalRef = useRef(null)
+  const closeButtonRef = useRef(null)
 
   useEffect(() => {
     if (!mapModalOpen) return
@@ -73,7 +75,44 @@ export default function BookingCalendar({
     document.documentElement.style.overflow = 'hidden'
     document.documentElement.style.overscrollBehavior = 'none'
 
+    const focusables = () => {
+      if (!modalRef.current) return []
+      return Array.from(
+        modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.hasAttribute('disabled'))
+    }
+
+    const handleKeydown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setMapModalOpen(false)
+        return
+      }
+
+      if (event.key !== 'Tab') return
+      const nodes = focusables()
+      if (nodes.length === 0) return
+
+      const first = nodes[0]
+      const last = nodes[nodes.length - 1]
+      const active = document.activeElement
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeydown)
+    requestAnimationFrame(() => closeButtonRef.current?.focus())
+
     return () => {
+      document.removeEventListener('keydown', handleKeydown)
       document.body.style.overflow = prevBodyOverflow
       document.body.style.overscrollBehavior = prevBodyOverscroll
       document.documentElement.style.overflow = prevHtmlOverflow
@@ -379,15 +418,22 @@ export default function BookingCalendar({
         <div className="fixed inset-0 z-130 bg-black/55 flex items-center justify-center p-3 sm:p-4 overscroll-contain">
           <div className="absolute inset-0" onClick={() => setMapModalOpen(false)} />
 
-          <div className="relative z-10 bg-white border border-stone-200 w-full max-w-3xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain rounded-2xl p-2.5 space-y-2">
+          <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="schedule-map-title"
+            className="relative z-10 bg-white border border-stone-200 w-full max-w-3xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain rounded-2xl p-2.5 space-y-2"
+          >
             <div className="mx-auto h-1 w-10 rounded-full bg-stone-300 sm:hidden" />
 
             <div className="flex items-center justify-between gap-3">
-              <h4 className="text-xs sm:text-sm font-semibold text-stone-900">
+              <h4 id="schedule-map-title" className="text-xs sm:text-sm font-semibold text-stone-900">
                 Mapa de horarios ({formatDate(selectedDate)})
               </h4>
 
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => setMapModalOpen(false)}
                 className="rounded-lg border border-stone-300 px-2 py-1 text-[10px] font-medium text-stone-700 hover:bg-stone-50"

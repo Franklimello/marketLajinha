@@ -65,17 +65,34 @@ function timeToMinutes(time) {
   return h * 60 + m;
 }
 
-function dateAtTimeUtc(date, time) {
-  const dayKey = formatDateToKey(date);
-  const parsed = new Date(`${dayKey}T${cleanText(time)}:00.000Z`);
-  if (!Number.isFinite(parsed.getTime())) return null;
-  return parsed;
+function getSaoPauloNowParts() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+
+  const byType = Object.fromEntries(parts.map((item) => [item.type, item.value]));
+  const dateKey = `${byType.year}-${byType.month}-${byType.day}`;
+  const timeKey = `${byType.hour}:${byType.minute}`;
+
+  return { dateKey, timeKey };
 }
 
 function isPastDateTime(date, time) {
-  const target = dateAtTimeUtc(date, time);
-  if (!target) return false;
-  return target.getTime() <= Date.now();
+  const targetDateKey = formatDateToKey(date);
+  const targetTime = cleanText(time);
+  if (!isValidTime(targetTime)) return false;
+
+  const now = getSaoPauloNowParts();
+  if (targetDateKey < now.dateKey) return true;
+  if (targetDateKey > now.dateKey) return false;
+  return targetTime <= now.timeKey;
 }
 
 function minutesToTime(minutes) {
@@ -1141,7 +1158,7 @@ async function setProviderDefaultSchedule(providerAccount, payload) {
         ? []
         : allSlots.filter((slot) => {
           const minutes = timeToMinutes(slot);
-          return minutes >= startMinutes && minutes <= endMinutes;
+          return minutes >= startMinutes && minutes < endMinutes;
         })
     );
 
