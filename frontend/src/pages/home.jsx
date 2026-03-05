@@ -138,12 +138,123 @@ const CATEGORIA_CORES_FALLBACK = [
   '#06b6d4',
 ]
 
+const MENSAGENS_BOM_DIA = [
+  'Bom dia ?? Comece o dia com boas escolhas.',
+  'Bom dia! Que hoje seja leve e produtivo.',
+  'Bom dia ?? Um novo dia, novas possibilidades.',
+  'Bom dia! Aproveite o melhor do seu dia.',
+  'Bom dia ?? Mais um dia para simplificar sua rotina.',
+  'Bom dia! Que hoje tudo flua bem.',
+  'Bom dia ?? Que seu dia comece da melhor forma.',
+  'Bom dia! Mais praticidade para o seu dia.',
+  'Bom dia ?? Um ?timo come?o de dia para voc?.',
+  'Bom dia! Aproveite cada momento.',
+  'Bom dia ?? Seu dia pode ser mais simples.',
+  'Bom dia! Hoje promete ser um bom dia.',
+  'Bom dia ?? Comece o dia com energia positiva.',
+  'Bom dia! Mais um dia cheio de oportunidades.',
+  'Bom dia ?? Fa?a deste dia um grande dia.',
+  'Bom dia! Que nada atrapalhe seu dia.',
+  'Bom dia ?? Tudo pronto para come?ar?',
+  'Bom dia! Que hoje seja incr?vel.',
+  'Bom dia ?? Seu dia come?a agora.',
+  'Bom dia! Um dia produtivo te espera.',
+  'Bom dia ?? Hora de aproveitar o dia.',
+  'Bom dia! Um ?timo dia para voc?.',
+  'Bom dia ?? Simplicidade para o seu dia.',
+  'Bom dia! Que o dia comece bem.',
+  'Bom dia ?? Mais um dia para conquistar coisas boas.',
+  'Bom dia! Que seu dia seja tranquilo.',
+  'Bom dia ?? Aproveite o melhor do dia.',
+  'Bom dia! Tudo pode dar certo hoje.',
+  'Bom dia ?? Um dia cheio de possibilidades.',
+  'Bom dia! Que seu dia seja leve.',
+  'Bom dia ?? Um ?timo come?o para voc?.',
+]
+
+const MENSAGENS_BOA_TARDE = [
+  'Boa tarde ?? Como est? seu dia?',
+  'Boa tarde! Continue o dia com energia.',
+  'Boa tarde ?? Ainda d? tempo de fazer muita coisa.',
+  'Boa tarde! Que sua tarde seja produtiva.',
+  'Boa tarde ?? Aproveite bem a tarde.',
+  'Boa tarde! Mais praticidade para voc?.',
+  'Boa tarde ?? Seu dia ainda pode melhorar.',
+  'Boa tarde! Continue firme hoje.',
+  'Boa tarde ?? Que sua tarde seja leve.',
+  'Boa tarde! Aproveite o restante do dia.',
+  'Boa tarde ?? Que sua tarde seja tranquila.',
+  'Boa tarde! Um ?timo restante de dia.',
+  'Boa tarde ?? Continue fazendo boas escolhas.',
+  'Boa tarde! Seu dia ainda rende muito.',
+  'Boa tarde ?? Aproveite cada momento.',
+  'Boa tarde! Mais uma tarde produtiva.',
+  'Boa tarde ?? Que tudo siga bem.',
+  'Boa tarde! Continue seu dia com calma.',
+  'Boa tarde ?? Seu tempo vale muito.',
+  'Boa tarde! Aproveite o melhor da tarde.',
+  'Boa tarde ?? Continue fazendo o dia valer a pena.',
+  'Boa tarde! Ainda d? tempo de resolver tudo.',
+  'Boa tarde ?? Que sua tarde seja ?tima.',
+  'Boa tarde! Aproveite o momento.',
+  'Boa tarde ?? Que sua tarde seja agrad?vel.',
+  'Boa tarde! Mais uma ?tima tarde para voc?.',
+  'Boa tarde ?? Continue o dia bem.',
+  'Boa tarde! Que a tarde seja produtiva.',
+  'Boa tarde ?? Um ?timo restante de dia.',
+  'Boa tarde! Siga aproveitando seu dia.',
+  'Boa tarde ?? Que sua tarde seja leve.',
+]
+
+const MENSAGENS_BOA_NOITE = [
+  'Boa noite ?? Hora de relaxar.',
+  'Boa noite! Que sua noite seja tranquila.',
+  'Boa noite ?? Aproveite o momento.',
+  'Boa noite! Hora de desacelerar.',
+  'Boa noite ?? Que sua noite seja leve.',
+  'Boa noite! Aproveite a noite.',
+  'Boa noite ?? Um ?timo descanso para voc?.',
+  'Boa noite! Que tudo fique mais calmo agora.',
+  'Boa noite ?? Hora de descansar.',
+  'Boa noite! Aproveite sua noite.',
+  'Boa noite ?? Que sua noite seja agrad?vel.',
+  'Boa noite! Um momento de paz.',
+  'Boa noite ?? Que a noite seja tranquila.',
+  'Boa noite! Aproveite o descanso.',
+  'Boa noite ?? Um ?timo final de dia.',
+  'Boa noite! Que sua noite seja confort?vel.',
+  'Boa noite ?? Hora de relaxar um pouco.',
+  'Boa noite! Aproveite o sil?ncio da noite.',
+  'Boa noite ?? Um ?timo descanso.',
+  'Boa noite! Que sua noite seja boa.',
+  'Boa noite ?? Mais uma noite tranquila.',
+  'Boa noite! Relaxe e aproveite.',
+  'Boa noite ?? Um ?timo momento de descanso.',
+  'Boa noite! Que a noite seja leve.',
+  'Boa noite ?? Aproveite o final do dia.',
+  'Boa noite! Hora de descansar a mente.',
+  'Boa noite ?? Tenha uma noite tranquila.',
+  'Boa noite! Que tudo fique em paz agora.',
+  'Boa noite ?? Aproveite a calma da noite.',
+  'Boa noite! Um ?timo descanso para voc?.',
+  'Boa noite ?? Obrigado por estar aqui hoje',
+]
+
 function saudacao() {
-  const h = new Date().getHours()
-  
-  if (h < 12) return 'Bom dia ☀️ __NOME__Bora começar o dia com algo gostoso?'
-  if (h < 18) return 'Boa tarde 🍔 __NOME__Que tal aquele lanche agora?'
-  return 'Boa noite 🌙 __NOME__Já escolheu o jantar de hoje?'
+  const agora = new Date()
+  const h = agora.getHours()
+  const diaIndice = (agora.getDate() - 1) % 31
+
+  const incluirNome = (mensagem) => (
+    String(mensagem || '')
+      .replace(/^Bom dia\b/i, 'Bom dia, __NOME__')
+      .replace(/^Boa tarde\b/i, 'Boa tarde, __NOME__')
+      .replace(/^Boa noite\b/i, 'Boa noite, __NOME__')
+  )
+
+  if (h < 12) return incluirNome(MENSAGENS_BOM_DIA[diaIndice])
+  if (h < 18) return incluirNome(MENSAGENS_BOA_TARDE[diaIndice])
+  return incluirNome(MENSAGENS_BOA_NOITE[diaIndice])
 }
 
 function resolverCidadePadraoCliente(cliente) {
