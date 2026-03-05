@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { FiCalendar, FiClock } from 'react-icons/fi'
 
 function buildSlots(startHour = 6, endHour = 22, stepMinutes = 30) {
@@ -414,7 +415,7 @@ export default function BookingCalendar({
         </div>
       </div>
 
-      {mapModalOpen && (
+      {mapModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-130 bg-black/55 flex items-center justify-center p-3 sm:p-4 overscroll-contain">
           <div className="absolute inset-0" onClick={() => setMapModalOpen(false)} />
 
@@ -448,7 +449,8 @@ export default function BookingCalendar({
 
             {renderSlotsMap()}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   )

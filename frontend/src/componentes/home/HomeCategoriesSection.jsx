@@ -9,6 +9,7 @@ export default function HomeCategoriesSection({
   categoriaCardComponent,
 }) {
   const CategoriaCard = categoriaCardComponent
+  const categoriaAtiva = categoriasDinamicas.find((item) => item.nome === categoriaSel)
 
   return (
     <section className="mb-5 border-t border-stone-200 pt-4">
@@ -41,7 +42,7 @@ export default function HomeCategoriesSection({
             onClick={onClearCategoria}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-semibold hover:bg-red-100 transition-colors"
           >
-            <span>{categoriaSel}</span>
+            <span>{categoriaAtiva?.emoji || '🏬'} {categoriaSel}</span>
             <span className="inline-flex transition-transform duration-150 hover:scale-105 active:scale-95">
               <FiX size={14} />
             </span>

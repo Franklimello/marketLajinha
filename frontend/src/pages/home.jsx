@@ -341,6 +341,27 @@ function formatarNomeCategoria(nome) {
     .replace(/(^|\s)\S/g, (char) => char.toLocaleUpperCase('pt-BR'))
 }
 
+function emojiDaCategoria(nome) {
+  const n = normalizeText(nome)
+  if (!n) return '🏬'
+
+  if (n.includes('pizza')) return '🍕'
+  if (n.includes('hamb')) return '🍔'
+  if (n.includes('acai')) return '🍧'
+  if (n.includes('bebida')) return '🥤'
+  if (n.includes('farm')) return '💊'
+  if (n.includes('roup')) return '👕'
+  if (n.includes('merce')) return '🛒'
+  if (n.includes('marmita')) return '🍱'
+  if (n.includes('sushi') || n.includes('japones')) return '🍣'
+  if (n.includes('lanche')) return '🌭'
+  if (n.includes('doc')) return '🍰'
+  if (n.includes('padar')) return '🥖'
+  if (n.includes('sorvet')) return '🍦'
+  if (n.includes('restaurante') || n.includes('comida')) return '🍽️'
+  return '🏬'
+}
+
 function extrairCategorias(lojas) {
   const categoriasMap = new Map()
   for (const loja of lojas || []) {
@@ -357,7 +378,12 @@ function extrairCategorias(lojas) {
   }
   return Array.from(categoriasMap.values())
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-    .map((nome) => ({ nome, Icon: iconCategoria(nome), cor: corDaCategoria(nome) }))
+    .map((nome) => ({
+      nome,
+      emoji: emojiDaCategoria(nome),
+      Icon: iconCategoria(nome),
+      cor: corDaCategoria(nome),
+    }))
 }
 
 const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggle }) {
@@ -391,6 +417,7 @@ const CategoriaCard = memo(function CategoriaCard({ categoria, isActive, onToggl
             <Icon size={22} weight={isActive ? 'fill' : 'duotone'} />
           </div>
           <span className={`font-heading text-[11px] font-bold tracking-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-stone-700'}`}>
+            <span className="mr-1">{categoria.emoji || '🏬'}</span>
             {categoria.nome}
           </span>
         </div>
