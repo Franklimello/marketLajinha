@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FiDownload } from 'react-icons/fi'
+import { FiDownload, FiLoader } from 'react-icons/fi'
 import { usePWA } from '../hooks/usePWA'
 
 export default function Header() {
@@ -29,9 +29,10 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 bg-stone-950 border-b border-stone-800/80 ${isStandalone ? 'h-[calc(5rem+env(safe-area-inset-top))]' : 'h-20'
+      className={`fixed top-0 left-0 right-0 z-50 border-b border-stone-800/70 bg-stone-950/92 backdrop-blur-xl ${isStandalone ? 'h-[calc(4.9rem+env(safe-area-inset-top))]' : 'h-[4.9rem]'
         }`}
     >
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-red-500/60 to-transparent" />
       <div
         className={`max-w-lg mx-auto px-4 h-full flex items-center justify-between ${isStandalone ? 'pt-[env(safe-area-inset-top)]' : ''
           }`}
@@ -39,22 +40,24 @@ export default function Header() {
         {/* Logo / link para home */}
         <Link
           to="/"
-          className="flex items-center gap-2 transition-opacity hover:opacity-90"
+          className="group flex items-center gap-2.5 transition-opacity hover:opacity-95"
           aria-label="UaiFood - Ir para início"
         >
           <img
             src="/icons/novalogo.png"
             alt=""
-            className="h-20 w-20"
-            width="80"
-            height="80"
+            className="h-[62px] w-[62px] transition-transform duration-200 group-hover:scale-[1.03]"
+            width="62"
+            height="62"
             fetchPriority="high"
             decoding="sync"
           />
-          <div className="flex items-baseline gap-0">
-            <span className="text-[22px] font-extrabold tracking-tight text-red-500">Uai</span>
-            <span className="text-[22px] font-extrabold tracking-tight text-yellow-400">food</span>
-            <span className="text-[10px] font-medium text-stone-500 ml-1.5 tracking-wider">delivery</span>
+          <div className="leading-tight">
+            <div className="flex items-baseline gap-0">
+              <span className="text-[22px] font-extrabold tracking-tight text-red-500">Uai</span>
+              <span className="text-[22px] font-extrabold tracking-tight text-yellow-400">food</span>
+            </div>
+            <p className="text-[10px] font-semibold text-stone-400 tracking-wide">delivery local</p>
           </div>
         </Link>
 
@@ -64,9 +67,9 @@ export default function Header() {
             onClick={handleInstall}
             disabled={installing}
             aria-label="Instalar aplicativo UaiFood"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-400/45 bg-linear-to-r from-red-600 to-red-500 text-white text-xs font-semibold hover:from-red-700 hover:to-red-600 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_10px_24px_-18px_rgba(239,68,68,0.9)]"
           >
-            <FiDownload size={14} />
+            {installing ? <FiLoader size={14} className="animate-spin" /> : <FiDownload size={14} />}
             {installing ? 'Aguarde...' : 'Instalar App'}
           </button>
         )}
