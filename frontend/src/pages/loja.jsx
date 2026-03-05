@@ -2158,7 +2158,7 @@ export default function LojaPage() {
         {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
-      <div className="mx-4 -mt-9 md:-mt-12 px-4 pt-4 pb-4 relative z-20 rounded-[1.8rem] border border-white/70 bg-white/86 backdrop-blur-xl shadow-[0_30px_54px_-42px_rgba(15,23,42,0.95)]">
+      <div className="mx-4 mt-3 md:-mt-12 px-4 pt-4 pb-4 relative z-20 rounded-[1.8rem] border border-white/70 bg-white/86 backdrop-blur-xl shadow-[0_30px_54px_-42px_rgba(15,23,42,0.95)]">
         <h1 className="text-[1.7rem] font-black text-stone-900 leading-tight tracking-tight">{loja.nome}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {loja.cidade && (
