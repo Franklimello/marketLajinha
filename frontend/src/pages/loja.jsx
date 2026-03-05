@@ -2175,7 +2175,7 @@ export default function LojaPage() {
         </button>
 
         <div className="relative rounded-[2rem] border border-white/80 bg-white/94 px-4 pt-5 pb-4 shadow-[0_30px_52px_-40px_rgba(15,23,42,0.95)]">
-          <div className="absolute -top-6 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-[0_22px_36px_-22px_rgba(15,23,42,0.8)] md:hidden">
+          <div className="absolute -top-10 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-[0_22px_36px_-22px_rgba(15,23,42,0.8)] md:hidden">
             <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
             <div className="w-full h-full items-center justify-center text-xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
           </div>
@@ -2609,7 +2609,7 @@ export default function LojaPage() {
 
       {showInfo && (
         <div
-          className="fixed inset-0 z-110 bg-black/45 backdrop-blur-[1px] flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 z-110 bg-black/45 backdrop-blur-[1px] flex items-center justify-center p-4"
           onClick={() => setShowInfo(false)}
         >
           <div
