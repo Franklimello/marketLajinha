@@ -23,6 +23,11 @@ const PAGAMENTO_MAP = {
   CASH: 'Dinheiro',
 }
 const PIX_ONLINE_TAG = '[PIX ONLINE]'
+const STATUS_PROGRESSAO = {
+  PENDING: 'APPROVED',
+  APPROVED: 'IN_ROUTE',
+  IN_ROUTE: 'DELIVERED',
+}
 
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -32,6 +37,19 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function formatTempoDecorrido(d) {
+  const data = new Date(d)
+  if (Number.isNaN(data.getTime())) return '-'
+  const diffMs = Date.now() - data.getTime()
+  const diffMin = Math.max(0, Math.floor(diffMs / 60000))
+  if (diffMin < 1) return 'agora'
+  if (diffMin < 60) return `ha ${diffMin} min`
+  const diffHora = Math.floor(diffMin / 60)
+  if (diffHora < 24) return `ha ${diffHora} h`
+  const diffDia = Math.floor(diffHora / 24)
+  return `ha ${diffDia} d`
 }
 
 function isPixOnline(pedido) {
@@ -209,6 +227,7 @@ export default function Pedidos() {
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
   const [wsConectado, setWsConectado] = useState(false)
   const [feedback, setFeedback] = useState(null)
+  const [acaoRapidaId, setAcaoRapidaId] = useState('')
   const audioRef = useRef(null)
   const socketRef = useRef(null)
   const intervaloRef = useRef(null)
@@ -400,6 +419,18 @@ export default function Pedidos() {
     }
   }
 
+  async function aplicarStatusRapido(event, pedidoId, novoStatus) {
+    event.stopPropagation()
+    const chave = `${pedidoId}:${novoStatus}`
+    if (acaoRapidaId) return
+    setAcaoRapidaId(chave)
+    try {
+      await mudarStatus(pedidoId, novoStatus)
+    } finally {
+      setAcaoRapidaId('')
+    }
+  }
+
   const filtrados = pedidos
     .filter((p) => {
       if (filtroStatus === 'ATIVOS') return !isStatusFinalizado(p.status)
@@ -417,99 +448,141 @@ export default function Pedidos() {
     })
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
+  const filtrosStatus = Object.entries({
+    ATIVOS: 'Ativos',
+    TODOS: 'Todos',
+    ...Object.fromEntries(Object.entries(STATUS_MAP).map(([k, v]) => [k, v.label])),
+  })
+
+  const cardsResumo = [
+    { chave: 'ATIVOS', label: 'Pedidos ativos', cor: 'text-amber-700 bg-amber-50 border-amber-200' },
+    { chave: 'PENDING', label: 'Pendentes', cor: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
+    { chave: 'APPROVED', label: 'Em preparo', cor: 'text-blue-700 bg-blue-50 border-blue-200' },
+    { chave: 'IN_ROUTE', label: 'Em entrega', cor: 'text-purple-700 bg-purple-50 border-purple-200' },
+  ]
+
   if (carregando) {
     return <div className="flex items-center justify-center py-20 text-stone-400">Carregando pedidos...</div>
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center justify-between">
-          <div>
+    <div className="space-y-5">
+      <section className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-5 shadow-[0_16px_30px_-26px_rgba(15,23,42,0.65)]">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-stone-900">Pedidos</h1>
-            <p className="text-stone-500 text-sm mt-1">
+            <p className="text-sm text-stone-500 mt-1">
               {pedidos.length} pedido(s) no total
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {ultimaAtualizacao && (
-                <span className="ml-2 text-xs text-stone-400">
-                  · atualizado às {ultimaAtualizacao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                <span className="text-xs text-stone-500 bg-stone-100 rounded-full px-2.5 py-1">
+                  Atualizado as {ultimaAtualizacao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               )}
-              <span className={`ml-2 inline-flex items-center gap-1 text-xs ${wsConectado ? 'text-green-500' : 'text-stone-400'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${wsConectado ? 'bg-green-500' : 'bg-stone-300'}`} />
-                {wsConectado ? 'Ao vivo' : 'Offline'}
+              <span className={`inline-flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 ${wsConectado ? 'text-green-700 bg-green-50' : 'text-stone-500 bg-stone-100'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${wsConectado ? 'bg-green-500' : 'bg-stone-400'}`} />
+                {wsConectado ? 'Conexao ao vivo' : 'Sem conexao'}
               </span>
-            </p>
+            </div>
           </div>
-          <button onClick={() => carregarPedidos(true)} title="Atualizar agora" className="p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition">
-            <FiRefreshCw size={20} />
+          <button
+            onClick={() => carregarPedidos(true)}
+            title="Atualizar agora"
+            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100 transition-colors"
+          >
+            <FiRefreshCw size={16} />
+            Atualizar
           </button>
         </div>
         <audio ref={audioRef} src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2JkZWTjHxybG16iJSdnpiQg3VtcIGRnaalm5CDdG90gZGfo6Sgk4R2cXSCkZ+koZiMfnRyeYiXoaOemIyCdnN3hZSfoaCXi392c3eElp+joZiMfnZzeIWWoaOel4t+dXJ3" preload="auto" />
-      </div>
+      </section>
 
-      {/* Filtros por status */}
-      <div className="flex flex-wrap gap-2">
-        {Object.entries({ ATIVOS: 'Ativos', TODOS: 'Todos', ...Object.fromEntries(Object.entries(STATUS_MAP).map(([k, v]) => [k, v.label])) }).map(
-          ([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setFiltroStatus(key)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                filtroStatus === key
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
-              }`}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <span>{label}</span>
-                <span
-                  className={`inline-flex min-w-[1.4rem] h-5 px-1.5 rounded-full text-xs font-semibold items-center justify-center ${
-                    filtroStatus === key
-                      ? 'bg-white/20 text-white'
-                      : 'bg-stone-100 text-stone-700'
-                  }`}
-                >
-                  {String(Number(contadores[key] || 0))}
+      <section className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {cardsResumo.map((card) => (
+          <div key={card.chave} className={`rounded-xl border px-3 py-3 ${card.cor}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{card.label}</p>
+            <p className="text-2xl font-bold mt-1">{Number(contadores[card.chave] || 0)}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="sticky top-2 z-20 rounded-2xl border border-stone-200 bg-white/95 backdrop-blur-sm p-3 sm:p-4 shadow-[0_16px_28px_-24px_rgba(15,23,42,0.75)]">
+        <div className="overflow-x-auto pb-1">
+          <div className="flex min-w-max gap-2">
+            {filtrosStatus.map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFiltroStatus(key)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  filtroStatus === key
+                    ? 'bg-amber-600 text-white border-amber-600'
+                    : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                }`}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <span>{label}</span>
+                  <span
+                    className={`inline-flex min-w-[1.4rem] h-5 px-1.5 rounded-full text-xs font-semibold items-center justify-center ${
+                      filtroStatus === key
+                        ? 'bg-white/20 text-white'
+                        : 'bg-stone-100 text-stone-700'
+                    }`}
+                  >
+                    {String(Number(contadores[key] || 0))}
+                  </span>
                 </span>
-              </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative mt-3">
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+          <input
+            type="text"
+            placeholder="Buscar por nome, telefone ou ID do pedido"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="w-full pl-10 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-lg leading-none"
+              aria-label="Limpar busca"
+            >
+              &times;
             </button>
-          )
-        )}
-      </div>
+          )}
+        </div>
+      </section>
 
-      {/* Busca */}
-      <div className="relative">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-        <input
-          type="text"
-          placeholder="Buscar por nome, telefone ou ID..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-        />
-      </div>
-
-      {/* Lista */}
       {filtrados.length === 0 ? (
         <div className="bg-white rounded-xl border border-stone-200 p-12 text-center">
           <FiFilter className="text-3xl text-stone-300 mx-auto mb-3" />
-          <p className="text-stone-400">Nenhum pedido encontrado.</p>
+          <p className="text-stone-500 font-medium">Nenhum pedido encontrado neste filtro.</p>
+          <p className="text-sm text-stone-400 mt-1">Tente outro status ou ajuste a busca.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 xl:grid-cols-2">
           {filtrados.map((p) => {
             const st = STATUS_MAP[p.status] || STATUS_MAP.PENDING
             const pixOnline = isPixOnline(p)
-            const pedidoColapsado = p.status === 'DELIVERED' || p.status === 'CANCELLED'
+            const pedidoColapsado = isStatusFinalizado(p.status)
             const riscoAlerta = getRiscoAlerta(p)
+            const proximoStatus = STATUS_PROGRESSAO[p.status]
+            const carregandoAcaoPrimaria = acaoRapidaId === `${p.id}:${proximoStatus}`
+            const carregandoAcaoCancelar = acaoRapidaId === `${p.id}:CANCELLED`
             return (
-              <div
+              <article
                 key={p.id}
                 onClick={() => {
                   setPedidoAberto(p)
                   setNaoLidasMap((prev) => ({ ...prev, [p.id]: 0 }))
                 }}
-                className="bg-white rounded-xl border border-stone-200 p-4 hover:border-amber-300 hover:shadow-sm transition-all cursor-pointer"
+                className="bg-white rounded-xl border border-stone-200 p-4 hover:border-amber-300 hover:shadow-md transition-all cursor-pointer"
               >
                 {riscoAlerta && (
                   <div
@@ -519,19 +592,16 @@ export default function Pedidos() {
                         : 'bg-amber-50 border-amber-300'
                     }`}
                   >
-                    <p
-                      className={`text-xs font-semibold leading-relaxed ${
-                        riscoAlerta.tipo === 'alto' ? 'text-red-800' : 'text-amber-800'
-                      }`}
-                    >
+                    <p className={`text-xs font-semibold leading-relaxed ${riscoAlerta.tipo === 'alto' ? 'text-red-800' : 'text-amber-800'}`}>
                       {riscoAlerta.texto}
                     </p>
                   </div>
                 )}
-                <div className="flex items-start justify-between gap-4">
+
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-stone-900">{p.nome_cliente}</span>
+                      <span className="font-semibold text-stone-900 truncate">{p.nome_cliente || 'Cliente'}</span>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${st.cor}`}>
                         {st.label}
                       </span>
@@ -545,18 +615,20 @@ export default function Pedidos() {
                           PIX online - conferir comprovante
                         </span>
                       )}
-                      {pedidoColapsado && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-600">
-                          Recolhido
-                        </span>
-                      )}
                     </div>
-                    <p className="text-sm text-stone-400 mt-1">{formatDate(p.created_at)}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="text-xs text-stone-500 inline-flex items-center gap-1">
+                        <FiClock size={12} />
+                        {formatTempoDecorrido(p.created_at)}
+                      </p>
+                      <p className="text-xs text-stone-400">{formatDate(p.created_at)}</p>
+                      <p className="text-xs text-stone-400 font-mono">#{String(p.id || '').slice(-8)}</p>
+                    </div>
                     {!pedidoColapsado && (
-                      <p className="text-sm text-stone-500 mt-1 truncate">
+                      <p className="text-sm text-stone-600 mt-2 break-words">
                         {p.tipo_entrega === 'RETIRADA'
-                          ? <span className="text-purple-600 font-medium">Retirada no balcão</span>
-                          : <>{p.endereco || '—'}{p.bairro ? ` · ${p.bairro}` : ''}</>}
+                          ? <span className="text-purple-700 font-medium">Retirada no balcao</span>
+                          : <>{p.endereco || '-'}{p.bairro ? ` - ${p.bairro}` : ''}</>}
                       </p>
                     )}
                   </div>
@@ -566,27 +638,61 @@ export default function Pedidos() {
                   </div>
                 </div>
 
-                {!pedidoColapsado && p.itens && p.itens.length > 0 && (
+                {p.itens && p.itens.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-stone-100">
                     <p className="text-xs text-stone-400 mb-1">{p.itens.length} item(ns)</p>
                     <div className="flex flex-wrap gap-1">
                       {p.itens.slice(0, 4).map((item, i) => (
-                        <span key={i} className="text-xs bg-stone-50 text-stone-600 px-2 py-0.5 rounded">
+                        <span key={i} className="text-xs bg-stone-50 text-stone-700 px-2 py-0.5 rounded-md border border-stone-200">
                           {item.quantidade}x {item.produto?.nome || 'Produto'}
                         </span>
                       ))}
                       {p.itens.length > 4 && (
-                        <span className="text-xs text-stone-400">+{p.itens.length - 4} mais</span>
+                        <span className="text-xs text-stone-500">+{p.itens.length - 4} mais</span>
                       )}
                     </div>
                   </div>
                 )}
-              </div>
+
+                <div className="mt-3 pt-3 border-t border-stone-100 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPedidoAberto(p)
+                      setNaoLidasMap((prev) => ({ ...prev, [p.id]: 0 }))
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-stone-200 bg-white text-stone-700 hover:bg-stone-50"
+                  >
+                    Ver detalhes
+                  </button>
+                  {proximoStatus && (
+                    <button
+                      type="button"
+                      onClick={(event) => aplicarStatusRapido(event, p.id, proximoStatus)}
+                      disabled={!!acaoRapidaId}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      <FiCheckCircle size={13} />
+                      {carregandoAcaoPrimaria ? 'Atualizando...' : `Avancar para ${STATUS_MAP[proximoStatus]?.label || proximoStatus}`}
+                    </button>
+                  )}
+                  {!pedidoColapsado && (
+                    <button
+                      type="button"
+                      onClick={(event) => aplicarStatusRapido(event, p.id, 'CANCELLED')}
+                      disabled={!!acaoRapidaId}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-60"
+                    >
+                      <FiXCircle size={13} />
+                      {carregandoAcaoCancelar ? 'Cancelando...' : 'Cancelar'}
+                    </button>
+                  )}
+                </div>
+              </article>
             )
           })}
         </div>
       )}
-
       {/* Modal detalhes */}
       {pedidoAberto && (
         <ModalDetalhePedido
