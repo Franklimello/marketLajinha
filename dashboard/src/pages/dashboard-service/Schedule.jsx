@@ -5,7 +5,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiClock,
-  FiRotateCw,
+  FiSlash,
 } from 'react-icons/fi'
 import { api } from '../../api/client'
 import BookingCalendar from '../../components/booking-calendar/BookingCalendar'
@@ -64,11 +64,17 @@ function StatCard({ icon, label, value, helper, tone }) {
   )
 }
 
+function slotKey(date, time) {
+  return `${String(date || '')}__${String(time || '')}`
+}
+
 export default function ServiceSchedulePage() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
   const [appointments, setAppointments] = useState([])
+  const [blockedSlots, setBlockedSlots] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [busySlotKey, setBusySlotKey] = useState('')
 
   const range = useMemo(() => monthBounds(month), [month])
 
@@ -80,7 +86,18 @@ export default function ServiceSchedulePage() {
       setError('')
       try {
         const res = await api.appointments.providerSchedule(range.from, range.to)
-        if (!cancelled) setAppointments(Array.isArray(res) ? res : [])
+        if (cancelled) return
+
+        const appointmentsData = Array.isArray(res)
+          ? res
+          : (Array.isArray(res?.appointments) ? res.appointments : [])
+
+        const blockedData = Array.isArray(res?.blocked_slots)
+          ? res.blocked_slots
+          : []
+
+        setAppointments(appointmentsData)
+        setBlockedSlots(blockedData)
       } catch (err) {
         if (!cancelled) setError(err.message || 'Nao foi possivel carregar a agenda.')
       } finally {
@@ -92,11 +109,45 @@ export default function ServiceSchedulePage() {
     return () => { cancelled = true }
   }, [range.from, range.to])
 
+  async function handleToggleSlot({ date, time, occupied }) {
+    const key = slotKey(date, time)
+    setBusySlotKey(key)
+    setError('')
+
+    try {
+      const res = await api.appointments.providerUpdateSlot({ date, time, occupied })
+      const nextDate = String(res?.date || date || '')
+      const nextTime = String(res?.time || time || '')
+
+      if (String(res?.source || '') === 'appointment') return
+
+      setBlockedSlots((prev) => {
+        const filtered = prev.filter((item) => slotKey(item.date, item.time) !== slotKey(nextDate, nextTime))
+        if (!res?.occupied) return filtered
+
+        return [
+          ...filtered,
+          {
+            id: String(res?.id || `manual-${slotKey(nextDate, nextTime)}`),
+            date: nextDate,
+            time: nextTime,
+          },
+        ]
+      })
+    } catch (err) {
+      setError(err.message || 'Nao foi possivel atualizar este horario.')
+    } finally {
+      setBusySlotKey('')
+    }
+  }
+
   const metrics = useMemo(() => {
     const confirmed = appointments.filter((item) => item.status === 'confirmed' || item.status === 'accepted').length
     const pending = appointments.filter((item) => item.status === 'pending').length
-    const counter = appointments.filter((item) => item.status === 'counter_offer').length
-    const occupiedDays = new Set(appointments.map((item) => item.date).filter(Boolean)).size
+    const occupiedDays = new Set([
+      ...appointments.map((item) => item.date).filter(Boolean),
+      ...blockedSlots.map((item) => item.date).filter(Boolean),
+    ]).size
 
     return [
       {
@@ -121,14 +172,14 @@ export default function ServiceSchedulePage() {
         tone: 'border-blue-200 bg-blue-50 text-blue-800',
       },
       {
-        label: 'Contraproposta',
-        value: counter,
-        helper: `${occupiedDays} dias ocupados`,
-        icon: FiRotateCw,
-        tone: 'border-amber-200 bg-amber-50 text-amber-800',
+        label: 'Bloqueios',
+        value: blockedSlots.length,
+        helper: `${occupiedDays} dias com ocupacao`,
+        icon: FiSlash,
+        tone: 'border-red-200 bg-red-50 text-red-800',
       },
     ]
-  }, [appointments])
+  }, [appointments, blockedSlots])
 
   return (
     <div className="space-y-4">
@@ -138,7 +189,7 @@ export default function ServiceSchedulePage() {
             <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Planejamento operacional</p>
             <h2 className="text-2xl font-semibold mt-1">Agenda</h2>
             <p className="text-sm text-stone-200 mt-2 max-w-2xl">
-              Controle ocupacao da agenda, identifique janelas livres e ajuste a capacidade do atendimento.
+              Clique no mapa para marcar horarios livres (verde) e ocupados (vermelho).
             </p>
           </div>
 
@@ -186,10 +237,14 @@ export default function ServiceSchedulePage() {
       {loading ? (
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Carregando agenda...</div>
       ) : (
-        <BookingCalendar appointments={appointments} />
+        <BookingCalendar
+          appointments={appointments}
+          blockedSlots={blockedSlots}
+          onToggleSlot={handleToggleSlot}
+          busySlotKey={busySlotKey}
+        />
       )}
     </div>
   )
 }
-
 

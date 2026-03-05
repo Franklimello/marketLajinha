@@ -1,5 +1,6 @@
 ﻿const appointmentsService = require('../services/appointmentsService');
 const userAccountsService = require('../services/userAccountsService');
+const { schemaAvailableSlotsQuery } = require('../schemas/appointmentsSchema');
 
 async function criar(req, res, next) {
   try {
@@ -74,12 +75,43 @@ async function prestadorAgenda(req, res, next) {
       return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
     }
     const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
-    const appointments = await appointmentsService.listProviderSchedule(
+    const schedule = await appointmentsService.listProviderSchedule(
       providerAccount,
       req.query.date_from,
       req.query.date_to
     );
-    res.json(appointments);
+    res.json(schedule);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
+async function prestadorAtualizarSlot(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
+    const updated = await appointmentsService.setProviderSlotOccupancy(providerAccount, req.validated);
+    res.json(updated);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
+async function horariosDisponiveis(req, res, next) {
+  try {
+    const parsed = schemaAvailableSlotsQuery.safeParse(req.query || {});
+    if (!parsed.success) {
+      const erros = parsed.error.issues || parsed.error.errors || [];
+      const detalhes = erros.map((item) => item.message).join('; ');
+      return res.status(400).json({ erro: 'Parâmetros inválidos.', detalhes });
+    }
+
+    const slots = await appointmentsService.listAvailableSlotsForService(parsed.data);
+    res.json(slots);
   } catch (e) {
     if (e.status) return res.status(e.status).json({ erro: e.message });
     next(e);
@@ -93,4 +125,6 @@ module.exports = {
   prestadorAcao,
   clienteResposta,
   prestadorAgenda,
+  prestadorAtualizarSlot,
+  horariosDisponiveis,
 };

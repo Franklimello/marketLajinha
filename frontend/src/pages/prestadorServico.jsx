@@ -40,6 +40,9 @@ export default function PrestadorServicoPage() {
   const [selectedService, setSelectedService] = useState(null)
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
+  const [availableSlots, setAvailableSlots] = useState([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [slotError, setSlotError] = useState('')
   const [loading, setLoading] = useState(true)
   const [booking, setBooking] = useState(false)
   const [error, setError] = useState('')
@@ -76,6 +79,50 @@ export default function PrestadorServicoPage() {
     loadProfile()
     return () => { cancelled = true }
   }, [providerId, city])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSlots() {
+      if (!selectedService?.id || !date) {
+        setAvailableSlots([])
+        setSlotError('')
+        return
+      }
+
+      setLoadingSlots(true)
+      setSlotError('')
+
+      try {
+        const res = await api.appointments.availableSlots(selectedService.id, date)
+        if (cancelled) return
+        setAvailableSlots(Array.isArray(res?.slots) ? res.slots : [])
+      } catch (err) {
+        if (!cancelled) {
+          setAvailableSlots([])
+          setSlotError(err.message || 'Nao foi possivel carregar os horarios livres.')
+        }
+      } finally {
+        if (!cancelled) setLoadingSlots(false)
+      }
+    }
+
+    loadSlots()
+    return () => { cancelled = true }
+  }, [selectedService?.id, date])
+
+  const freeSlots = useMemo(() => {
+    return availableSlots
+      .filter((item) => item?.available)
+      .map((item) => String(item.time || '').trim())
+      .filter(Boolean)
+  }, [availableSlots])
+
+  useEffect(() => {
+    if (!time) return
+    if (freeSlots.includes(time)) return
+    setTime('')
+  }, [freeSlots, time])
 
   async function handleBook(e) {
     e.preventDefault()
@@ -225,31 +272,56 @@ export default function PrestadorServicoPage() {
               Serviço selecionado: {selectedService?.name || 'nenhum serviço'}
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-xs text-stone-600 space-y-1">
-                <span className="inline-flex items-center gap-1"><FiCalendar /> Data</span>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full border border-stone-300 px-2 py-2 text-sm"
-                  required
-                />
-              </label>
+            <label className="text-xs text-stone-600 space-y-1 block">
+              <span className="inline-flex items-center gap-1"><FiCalendar /> Data</span>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full border border-stone-300 px-2 py-2 text-sm"
+                required
+              />
+            </label>
 
-              <label className="text-xs text-stone-600 space-y-1">
-                <span className="inline-flex items-center gap-1"><FiClock /> Horário</span>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full border border-stone-300 px-2 py-2 text-sm"
-                  required
-                />
-              </label>
+            <div className="space-y-2">
+              <p className="text-xs text-stone-600 inline-flex items-center gap-1"><FiClock /> Horarios livres</p>
+
+              {!selectedService ? (
+                <p className="text-xs text-stone-500">Selecione um servico para ver os horarios disponiveis.</p>
+              ) : !date ? (
+                <p className="text-xs text-stone-500">Selecione uma data para carregar os horarios livres.</p>
+              ) : loadingSlots ? (
+                <p className="text-xs text-stone-500">Carregando horarios...</p>
+              ) : freeSlots.length === 0 ? (
+                <p className="text-xs text-red-600">Sem horarios livres para este dia.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {freeSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setTime(slot)}
+                      className={`border px-2.5 py-1.5 text-xs font-semibold ${
+                        time === slot
+                          ? 'border-green-600 bg-green-50 text-green-700'
+                          : 'border-green-300 bg-white text-green-700 hover:border-green-500'
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {time && (
+                <p className="text-xs text-green-700">
+                  Horario selecionado: <strong>{time}</strong>
+                </p>
+              )}
             </div>
 
             {message && <p className="text-sm text-green-700">{message}</p>}
+            {slotError && <p className="text-sm text-red-700">{slotError}</p>}
             {error && <p className="text-sm text-red-700">{error}</p>}
 
             <button

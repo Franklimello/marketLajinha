@@ -16,6 +16,10 @@ const BLOCKING_STATUSES = [
   STATUS.CONFIRMED,
 ];
 
+const SLOT_START_HOUR = 8;
+const SLOT_END_HOUR = 20;
+const SLOT_STEP_MINUTES = 30;
+
 function cleanText(value) {
   return String(value || '').trim();
 }
@@ -65,6 +69,14 @@ function minutesToTime(minutes) {
 
 function hasOverlap(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
+}
+
+function buildDefaultSlots(startHour = SLOT_START_HOUR, endHour = SLOT_END_HOUR, stepMinutes = SLOT_STEP_MINUTES) {
+  const slots = [];
+  for (let minutes = startHour * 60; minutes <= endHour * 60; minutes += stepMinutes) {
+    slots.push(minutesToTime(minutes));
+  }
+  return slots;
 }
 
 function getEffectiveTime(appointment) {
@@ -134,6 +146,16 @@ function mapAppointment(appointment) {
   };
 }
 
+function mapBlockedSlot(slot) {
+  return {
+    id: slot.id,
+    provider_id: slot.provider_id,
+    date: formatDateToKey(slot.date),
+    time: slot.time,
+    created_at: slot.created_at,
+  };
+}
+
 async function ensureClientFromFirebase(firebaseUid) {
   const cliente = await prisma.clientes.findUnique({
     where: { firebase_uid: firebaseUid },
@@ -154,6 +176,64 @@ async function ensureClientFromFirebase(firebaseUid) {
   return cliente;
 }
 
+async function loadBlockingWindows({ providerId, date, excludeAppointmentId = null }) {
+  const [appointments, blockedSlots] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        provider_id: providerId,
+        date,
+        status: { in: BLOCKING_STATUSES },
+        ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
+      },
+      include: {
+        service: {
+          select: { duration_minutes: true },
+        },
+      },
+    }),
+    prisma.providerBlockedSlot.findMany({
+      where: {
+        provider_id: providerId,
+        date,
+      },
+      select: {
+        id: true,
+        provider_id: true,
+        date: true,
+        time: true,
+        created_at: true,
+      },
+    }),
+  ]);
+
+  const windows = [];
+
+  for (const item of appointments) {
+    const start = timeToMinutes(getEffectiveTime(item));
+    const end = start + Number(item?.service?.duration_minutes || 0);
+    windows.push({
+      start,
+      end,
+      type: 'appointment',
+      appointment_id: item.id,
+    });
+  }
+
+  for (const slot of blockedSlots) {
+    const start = timeToMinutes(slot.time);
+    const end = start + SLOT_STEP_MINUTES;
+    windows.push({
+      start,
+      end,
+      type: 'manual_block',
+      slot_id: slot.id,
+      time: slot.time,
+    });
+  }
+
+  return { windows, appointments, blockedSlots };
+}
+
 async function assertProviderAvailability({
   providerId,
   date,
@@ -161,30 +241,17 @@ async function assertProviderAvailability({
   durationMinutes,
   excludeAppointmentId = null,
 }) {
-  const existing = await prisma.appointment.findMany({
-    where: {
-      provider_id: providerId,
-      date,
-      status: { in: BLOCKING_STATUSES },
-      ...(excludeAppointmentId
-        ? { id: { not: excludeAppointmentId } }
-        : {}),
-    },
-    include: {
-      service: {
-        select: { duration_minutes: true },
-      },
-    },
+  const { windows } = await loadBlockingWindows({
+    providerId,
+    date,
+    excludeAppointmentId,
   });
 
   const targetStart = timeToMinutes(time);
   const targetEnd = targetStart + Number(durationMinutes || 0);
 
-  for (const item of existing) {
-    const start = timeToMinutes(getEffectiveTime(item));
-    const end = start + Number(item?.service?.duration_minutes || 0);
-
-    if (hasOverlap(targetStart, targetEnd, start, end)) {
+  for (const window of windows) {
+    if (hasOverlap(targetStart, targetEnd, window.start, window.end)) {
       const err = new Error('Horário indisponível. Escolha outro horário.');
       err.status = 409;
       throw err;
@@ -503,29 +570,174 @@ async function listProviderSchedule(providerAccount, dateFromRaw, dateToRaw) {
     throw err;
   }
 
+  const [appointments, blockedSlots] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        provider_id: providerAccount.id,
+        date: {
+          gte: from,
+          lte: to,
+        },
+        status: {
+          notIn: [STATUS.REJECTED, STATUS.CANCELLED],
+        },
+      },
+      include: {
+        service: true,
+        client: { select: { id: true, nome: true, email: true, telefone: true } },
+        provider: { select: { id: true, name: true, city: true } },
+      },
+      orderBy: [
+        { date: 'asc' },
+        { created_at: 'asc' },
+      ],
+    }),
+    prisma.providerBlockedSlot.findMany({
+      where: {
+        provider_id: providerAccount.id,
+        date: {
+          gte: from,
+          lte: to,
+        },
+      },
+      orderBy: [
+        { date: 'asc' },
+        { time: 'asc' },
+      ],
+    }),
+  ]);
+
+  return {
+    appointments: appointments.map(mapAppointment),
+    blocked_slots: blockedSlots.map(mapBlockedSlot),
+  };
+}
+
+async function setProviderSlotOccupancy(providerAccount, payload) {
+  const date = parseDateOnly(payload.date);
+  const time = cleanText(payload.time);
+  const occupied = !!payload.occupied;
+
+  if (!isValidTime(time)) {
+    const err = new Error('Hora inválida. Use HH:mm.');
+    err.status = 400;
+    throw err;
+  }
+
+  const start = timeToMinutes(time);
+  const end = start + SLOT_STEP_MINUTES;
+
   const appointments = await prisma.appointment.findMany({
     where: {
       provider_id: providerAccount.id,
-      date: {
-        gte: from,
-        lte: to,
-      },
-      status: {
-        notIn: [STATUS.REJECTED, STATUS.CANCELLED],
-      },
+      date,
+      status: { in: BLOCKING_STATUSES },
     },
     include: {
-      service: true,
-      client: { select: { id: true, nome: true, email: true, telefone: true } },
-      provider: { select: { id: true, name: true, city: true } },
+      service: {
+        select: { duration_minutes: true },
+      },
     },
-    orderBy: [
-      { date: 'asc' },
-      { created_at: 'asc' },
-    ],
   });
 
-  return appointments.map(mapAppointment);
+  const bookedByAppointment = appointments.some((item) => {
+    const appointmentStart = timeToMinutes(getEffectiveTime(item));
+    const appointmentEnd = appointmentStart + Number(item?.service?.duration_minutes || 0);
+    return hasOverlap(start, end, appointmentStart, appointmentEnd);
+  });
+
+  if (bookedByAppointment && !occupied) {
+    const err = new Error('Este horário está ocupado por um agendamento e não pode ser liberado.');
+    err.status = 409;
+    throw err;
+  }
+
+  if (bookedByAppointment && occupied) {
+    return {
+      date: formatDateToKey(date),
+      time,
+      occupied: true,
+      source: 'appointment',
+    };
+  }
+
+  const existing = await prisma.providerBlockedSlot.findFirst({
+    where: {
+      provider_id: providerAccount.id,
+      date,
+      time,
+    },
+  });
+
+  if (occupied && !existing) {
+    await prisma.providerBlockedSlot.create({
+      data: {
+        provider_id: providerAccount.id,
+        date,
+        time,
+      },
+    });
+  }
+
+  if (!occupied && existing) {
+    await prisma.providerBlockedSlot.delete({
+      where: { id: existing.id },
+    });
+  }
+
+  return {
+    date: formatDateToKey(date),
+    time,
+    occupied,
+    source: occupied ? 'manual_block' : 'free',
+  };
+}
+
+async function listAvailableSlotsForService(payload) {
+  const service = await prisma.service.findUnique({
+    where: { id: payload.service_id },
+    include: {
+      provider: {
+        select: { id: true, name: true, city: true },
+      },
+    },
+  });
+
+  if (!service) {
+    const err = new Error('Serviço não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+
+  const date = parseDateOnly(payload.date);
+  const duration = Number(service.duration_minutes || 0);
+  const slots = buildDefaultSlots();
+
+  const { windows } = await loadBlockingWindows({
+    providerId: service.provider_id,
+    date,
+  });
+
+  const mappedSlots = slots.map((slotTime) => {
+    const start = timeToMinutes(slotTime);
+    const end = start + duration;
+    const occupied = windows.some((window) => hasOverlap(start, end, window.start, window.end));
+
+    return {
+      time: slotTime,
+      available: !occupied,
+    };
+  });
+
+  return {
+    service_id: service.id,
+    provider_id: service.provider_id,
+    city: service.city,
+    date: formatDateToKey(date),
+    duration_minutes: duration,
+    slots: mappedSlots,
+    free_slots: mappedSlots.filter((slot) => slot.available).map((slot) => slot.time),
+  };
 }
 
 module.exports = {
@@ -536,4 +748,6 @@ module.exports = {
   providerAction,
   clientResponse,
   listProviderSchedule,
+  setProviderSlotOccupancy,
+  listAvailableSlotsForService,
 };

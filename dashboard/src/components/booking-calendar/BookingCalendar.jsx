@@ -37,7 +37,16 @@ function statusColor(status) {
   return 'border-stone-200 bg-stone-50 text-stone-700'
 }
 
-export default function BookingCalendar({ appointments = [] }) {
+function keyOf(date, time) {
+  return `${String(date || '')}__${String(time || '')}`
+}
+
+export default function BookingCalendar({
+  appointments = [],
+  blockedSlots = [],
+  onToggleSlot = null,
+  busySlotKey = '',
+}) {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   const dayAppointments = useMemo(() => {
@@ -45,6 +54,14 @@ export default function BookingCalendar({ appointments = [] }) {
       .filter((item) => item.date === selectedDate)
       .sort((a, b) => String(a.effective_time || a.time || '').localeCompare(String(b.effective_time || b.time || '')))
   }, [appointments, selectedDate])
+
+  const manualBlockedSet = useMemo(() => {
+    return new Set(
+      blockedSlots
+        .filter((item) => item.date === selectedDate)
+        .map((item) => keyOf(item.date, item.time))
+    )
+  }, [blockedSlots, selectedDate])
 
   const slots = useMemo(() => buildSlots(), [])
 
@@ -82,12 +99,25 @@ export default function BookingCalendar({ appointments = [] }) {
   }, [dayAppointments])
 
   const occupiedCount = useMemo(() => {
-    return slots.filter((slot) => slotMeta.has(slot)).length
-  }, [slots, slotMeta])
+    return slots.filter((slot) => slotMeta.has(slot) || manualBlockedSet.has(keyOf(selectedDate, slot))).length
+  }, [slots, slotMeta, manualBlockedSet, selectedDate])
 
   const occupancyPct = slots.length === 0
     ? 0
     : Math.round((occupiedCount / slots.length) * 100)
+
+  const manualBlockedList = useMemo(() => {
+    return slots.filter((slot) => manualBlockedSet.has(keyOf(selectedDate, slot)))
+  }, [slots, manualBlockedSet, selectedDate])
+
+  async function handleSlotClick(slotTime, isAppointmentBusy, isManualBlocked) {
+    if (!onToggleSlot || isAppointmentBusy) return
+    await onToggleSlot({
+      date: selectedDate,
+      time: slotTime,
+      occupied: !isManualBlocked,
+    })
+  }
 
   return (
     <section className="border border-stone-200 bg-white p-4 space-y-4">
@@ -103,7 +133,7 @@ export default function BookingCalendar({ appointments = [] }) {
         </label>
 
         <div className="min-w-44">
-          <p className="text-xs text-stone-500">Ocupação em {formatDate(selectedDate)}</p>
+          <p className="text-xs text-stone-500">Ocupacao em {formatDate(selectedDate)}</p>
           <div className="mt-1 h-2 border border-stone-300 bg-stone-100 overflow-hidden">
             <div className="h-full bg-amber-500" style={{ width: `${occupancyPct}%` }} />
           </div>
@@ -126,42 +156,63 @@ export default function BookingCalendar({ appointments = [] }) {
                   <p className="font-semibold">
                     {appointment.effective_time || appointment.time} - {appointment.end_time}
                   </p>
-                  <p>{appointment.client?.nome || 'Cliente'} • {appointment.service?.name || 'Serviço'}</p>
+                  <p>{appointment.client?.nome || 'Cliente'} • {appointment.service?.name || 'Servico'}</p>
                 </article>
               ))}
             </div>
           )}
+
+          <div className="border border-stone-200 bg-stone-50 p-3">
+            <p className="text-xs font-semibold text-stone-700">Bloqueios manuais</p>
+            {manualBlockedList.length === 0 ? (
+              <p className="text-xs text-stone-500 mt-1">Nenhum bloqueio manual para este dia.</p>
+            ) : (
+              <p className="text-xs text-stone-700 mt-1">{manualBlockedList.join(', ')}</p>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-stone-900">Mapa de horários</h4>
+          <h4 className="text-sm font-semibold text-stone-900">Mapa de horarios (clicavel)</h4>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {slots.map((slot) => {
               const meta = slotMeta.get(slot)
               const appointment = meta?.appointment
+              const isAppointmentBusy = !!meta
+              const isManualBlocked = manualBlockedSet.has(keyOf(selectedDate, slot))
+              const isBusy = isAppointmentBusy || isManualBlocked
+              const slotBusyKey = keyOf(selectedDate, slot)
+              const isUpdating = busySlotKey === slotBusyKey
 
-              const tone = !meta
-                ? 'border-stone-300 bg-white text-stone-700'
-                : meta.isStart
-                  ? 'border-amber-400 bg-amber-50 text-amber-800'
-                  : 'border-stone-300 bg-stone-100 text-stone-500'
+              const tone = isBusy
+                ? 'border-red-300 bg-red-50 text-red-800'
+                : 'border-green-300 bg-green-50 text-green-800'
 
               return (
-                <div key={slot} className={`border p-2 min-h-16 ${tone}`}>
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => handleSlotClick(slot, isAppointmentBusy, isManualBlocked)}
+                  disabled={!onToggleSlot || isAppointmentBusy || isUpdating}
+                  className={`border p-2 min-h-16 text-left ${tone} ${!isAppointmentBusy ? 'hover:opacity-85 cursor-pointer' : 'cursor-not-allowed'} disabled:opacity-60`}
+                  title={isAppointmentBusy ? 'Horario ocupado por agendamento' : 'Clique para alternar ocupacao'}
+                >
                   <p className="text-xs font-semibold font-numeric">{slot}</p>
                   <p className="text-[11px] mt-1 leading-tight">
-                    {!meta
-                      ? 'Livre'
-                      : (meta.isStart
-                        ? `${appointment?.client?.nome || 'Cliente'} • ${appointment?.service?.name || 'Serviço'}`
-                        : 'Ocupado')}
+                    {isUpdating
+                      ? 'Atualizando...'
+                      : (isAppointmentBusy
+                        ? `${appointment?.client?.nome || 'Cliente'} • ${appointment?.service?.name || 'Servico'}`
+                        : (isManualBlocked ? 'Ocupado (manual)' : 'Livre'))}
                   </p>
-                </div>
+                </button>
               )
             })}
           </div>
+          <p className="text-[11px] text-stone-500">Livre = verde. Ocupado = vermelho.</p>
         </div>
       </div>
     </section>
   )
 }
+

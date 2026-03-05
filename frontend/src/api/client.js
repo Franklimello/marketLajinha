@@ -151,6 +151,8 @@ export const api = {
   appointments: {
     criar: (data) => request('/appointments', { method: 'POST', body: JSON.stringify(data) }),
     minhas: () => request('/appointments/mine'),
+    availableSlots: (serviceId, date) =>
+      request(`/appointments/available-slots?service_id=${encodeURIComponent(String(serviceId || ''))}&date=${encodeURIComponent(String(date || ''))}`),
     clientResponse: (id, data) =>
       request(`/appointments/${id}/client-response`, { method: 'PATCH', body: JSON.stringify(data) }),
   },

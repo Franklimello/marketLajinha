@@ -183,5 +183,7 @@ export const api = {
       const sufixo = qs.toString() ? `?${qs.toString()}` : ''
       return request(`/appointments/provider/schedule${sufixo}`)
     },
+    providerUpdateSlot: (data) =>
+      request('/appointments/provider/slots', { method: 'PATCH', body: JSON.stringify(data) }),
   },
 }

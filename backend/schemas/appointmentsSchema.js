@@ -22,8 +22,21 @@ const schemaClientResponse = z.object({
   action: z.enum(['accept', 'reject']),
 });
 
+const schemaProviderSlotUpdate = z.object({
+  date: z.string().regex(dateRegex, 'Data inválida. Use YYYY-MM-DD.'),
+  time: z.string().regex(timeRegex, 'Hora inválida. Use HH:mm.'),
+  occupied: z.boolean(),
+});
+
+const schemaAvailableSlotsQuery = z.object({
+  service_id: z.string().cuid('Serviço inválido.'),
+  date: z.string().regex(dateRegex, 'Data inválida. Use YYYY-MM-DD.'),
+});
+
 module.exports = {
   schemaCreateAppointment,
   schemaProviderAction,
   schemaClientResponse,
+  schemaProviderSlotUpdate,
+  schemaAvailableSlotsQuery,
 };

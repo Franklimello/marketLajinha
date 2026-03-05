@@ -676,6 +676,7 @@ model UserAccount {
 
   services               Service[]
   appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
+  blocked_slots          ProviderBlockedSlot[]
 
   @@index([account_type])
   @@index([city])
@@ -719,6 +720,20 @@ model Appointment {
   @@index([client_id, created_at])
   @@index([service_id, status])
   @@map("appointments")
+}
+
+model ProviderBlockedSlot {
+  id         String   @id @default(cuid())
+  provider_id String
+  date       DateTime
+  time       String
+  created_at DateTime @default(now())
+
+  provider UserAccount @relation(fields: [provider_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider_id, date, time])
+  @@index([provider_id, date])
+  @@map("provider_blocked_slots")
 }
 
 model Promocao {
