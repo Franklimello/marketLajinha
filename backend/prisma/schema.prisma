@@ -663,6 +663,7 @@ model UserAccount {
   email        String   @default("")
   name         String   @default("")
   account_type String   @default("store")
+  is_active    Boolean  @default(true)
   city         String   @default("")
   profile_image_url String @default("")
   about        String   @default("")
@@ -679,6 +680,7 @@ model UserAccount {
   blocked_slots          ProviderBlockedSlot[]
 
   @@index([account_type])
+  @@index([account_type, is_active])
   @@index([city])
   @@map("users")
 }

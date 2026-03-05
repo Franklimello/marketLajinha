@@ -29,11 +29,14 @@ function formatDateBR(v) {
 export default function AdminSistema() {
   const [stats, setStats] = useState(null)
   const [lojas, setLojas] = useState([])
+  const [prestadores, setPrestadores] = useState([])
   const [filtro, setFiltro] = useState('')
+  const [filtroPrestador, setFiltroPrestador] = useState('')
   const [expandida, setExpandida] = useState(null)
   const [detalheLoja, setDetalheLoja] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [modal, setModal] = useState(null)
+  const [modalPrestador, setModalPrestador] = useState(null)
   const [processando, setProcessando] = useState(false)
   const [modalCobranca, setModalCobranca] = useState(null)
   const [processandoCobrancaLoja, setProcessandoCobrancaLoja] = useState(false)
@@ -43,9 +46,14 @@ export default function AdminSistema() {
 
   const carregar = useCallback(async () => {
     try {
-      const [s, l] = await Promise.all([api.admin.stats(), api.admin.listarLojas()])
+      const [s, l, p] = await Promise.all([
+        api.admin.stats(),
+        api.admin.listarLojas(),
+        api.admin.listarPrestadores(),
+      ])
       setStats(s)
       setLojas(l)
+      setPrestadores(Array.isArray(p) ? p : [])
     } catch (e) {
       console.error(e)
     } finally {
@@ -84,6 +92,38 @@ export default function AdminSistema() {
       setModal(null)
       setExpandida(null)
       setDetalheLoja(null)
+    } catch (e) {
+      alert(e.message)
+    } finally { setProcessando(false) }
+  }
+
+  async function handleAtivarPrestador(id) {
+    setProcessando(true)
+    try {
+      await api.admin.ativarPrestador(id)
+      await carregar()
+    } catch (e) {
+      alert(e.message)
+    } finally { setProcessando(false) }
+  }
+
+  async function handleDesativarPrestador(id) {
+    setProcessando(true)
+    try {
+      await api.admin.desativarPrestador(id)
+      await carregar()
+      setModalPrestador(null)
+    } catch (e) {
+      alert(e.message)
+    } finally { setProcessando(false) }
+  }
+
+  async function handleExcluirPrestador(id) {
+    setProcessando(true)
+    try {
+      await api.admin.excluirPrestador(id)
+      await carregar()
+      setModalPrestador(null)
     } catch (e) {
       alert(e.message)
     } finally { setProcessando(false) }
@@ -163,6 +203,12 @@ export default function AdminSistema() {
       l.cidade?.toLowerCase().includes(filtro.toLowerCase())
   )
 
+  const prestadoresFiltrados = prestadores.filter((p) =>
+    String(p?.name || '').toLowerCase().includes(filtroPrestador.toLowerCase()) ||
+    String(p?.email || '').toLowerCase().includes(filtroPrestador.toLowerCase()) ||
+    String(p?.city || '').toLowerCase().includes(filtroPrestador.toLowerCase())
+  )
+
   if (carregando) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -186,8 +232,9 @@ export default function AdminSistema() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
           <StatCard icon={FiShoppingBag} label="Lojas" value={stats.lojas} sub={`${stats.lojasAtivas} ativas`} color="amber" />
+          <StatCard icon={FiUsers} label="Prestadores" value={stats.prestadores || 0} sub={`${stats.prestadoresAtivos || 0} ativos`} color="teal" />
           <StatCard icon={FiUsers} label="Usuários" value={stats.usuarios} color="blue" />
           <StatCard icon={FiPackage} label="Produtos" value={stats.produtos} color="green" />
           <StatCard icon={FiClipboard} label="Pedidos" value={stats.pedidos} color="purple" />
@@ -441,6 +488,87 @@ export default function AdminSistema() {
         )}
       </div>
 
+      {/* Prestadores */}
+      <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-stone-200 bg-stone-50 flex items-center justify-between gap-3">
+          <h2 className="font-semibold text-stone-700 text-sm">
+            Prestadores de serviço ({prestadoresFiltrados.length})
+          </h2>
+        </div>
+
+        <div className="p-4 border-b border-stone-100">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              type="text"
+              placeholder="Buscar prestador por nome, email ou cidade..."
+              value={filtroPrestador}
+              onChange={(e) => setFiltroPrestador(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+          </div>
+        </div>
+
+        {prestadoresFiltrados.length === 0 ? (
+          <div className="p-8 text-center text-stone-400 text-sm">Nenhum prestador encontrado.</div>
+        ) : (
+          <div className="divide-y divide-stone-100">
+            {prestadoresFiltrados.map((prestador) => (
+              <div key={prestador.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-stone-50">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-stone-900 text-sm truncate">{prestador.name || prestador.email}</p>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                      prestador.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {prestador.is_active ? 'Ativo' : 'Desativado'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 mt-0.5">{prestador.email || 'Sem e-mail'} {prestador.city ? `• ${prestador.city}` : ''}</p>
+                  <div className="text-[11px] mt-1 flex flex-wrap gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">
+                      Serviços: {prestador._count?.services || 0}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
+                      Agendamentos: {prestador._count?.appointmentsAsProvider || 0}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {prestador.is_active ? (
+                    <button
+                      onClick={() => setModalPrestador({ tipo: 'desativar', prestador })}
+                      className="p-2 rounded-lg text-amber-500 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                      title="Desativar prestador"
+                    >
+                      <FiLock />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleAtivarPrestador(prestador.id)}
+                      disabled={processando}
+                      className="p-2 rounded-lg text-green-500 hover:bg-green-50 hover:text-green-700 transition-colors disabled:opacity-50"
+                      title="Ativar prestador"
+                    >
+                      <FiUnlock />
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setModalPrestador({ tipo: 'excluir', prestador })}
+                    className="p-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                    title="Excluir prestador"
+                  >
+                    <FiTrash2 />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Modal de confirmação */}
       {modal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !processando && setModal(null)}>
@@ -488,6 +616,58 @@ export default function AdminSistema() {
                 } disabled:opacity-50`}
               >
                 {processando ? 'Processando...' : modal.tipo === 'excluir' ? 'Excluir' : 'Bloquear'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalPrestador && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !processando && setModalPrestador(null)}>
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-2 rounded-lg ${modalPrestador.tipo === 'excluir' ? 'bg-red-100' : 'bg-amber-100'}`}>
+                <FiAlertTriangle className={`text-xl ${modalPrestador.tipo === 'excluir' ? 'text-red-600' : 'text-amber-600'}`} />
+              </div>
+              <h3 className="font-semibold text-stone-900">
+                {modalPrestador.tipo === 'excluir' ? 'Excluir prestador' : 'Desativar prestador'}
+              </h3>
+            </div>
+
+            <p className="text-sm text-stone-600 mb-1">
+              {modalPrestador.tipo === 'excluir'
+                ? `Tem certeza que deseja excluir permanentemente "${modalPrestador.prestador.name}"?`
+                : `Deseja desativar "${modalPrestador.prestador.name}"?`}
+            </p>
+
+            {modalPrestador.tipo === 'excluir' && (
+              <p className="text-xs text-red-500 mb-4">
+                Esta ação é irreversível e remove serviços e agendamentos vinculados.
+              </p>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setModalPrestador(null)}
+                disabled={processando}
+                className="flex-1 px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() =>
+                  modalPrestador.tipo === 'excluir'
+                    ? handleExcluirPrestador(modalPrestador.prestador.id)
+                    : handleDesativarPrestador(modalPrestador.prestador.id)
+                }
+                disabled={processando}
+                className={`flex-1 px-4 py-2 text-sm rounded-lg text-white font-medium transition-colors ${
+                  modalPrestador.tipo === 'excluir'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                } disabled:opacity-50`}
+              >
+                {processando ? 'Processando...' : modalPrestador.tipo === 'excluir' ? 'Excluir' : 'Desativar'}
               </button>
             </div>
           </div>
@@ -754,6 +934,7 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
     rose: 'bg-rose-50 text-rose-600',
     indigo: 'bg-indigo-50 text-indigo-600',
     emerald: 'bg-emerald-50 text-emerald-600',
+    teal: 'bg-teal-50 text-teal-600',
   }
   return (
     <div className="bg-white rounded-xl border border-stone-200 p-4">

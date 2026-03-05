@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   FiAtSign,
   FiCamera,
@@ -171,7 +171,8 @@ export default function ServiceSettingsPage() {
 
       if (imageFile) {
         const providerId = normalize(account?.id) || 'prestador'
-        const path = `services/providers/${providerId}/perfil-${Date.now()}.webp`
+        // Usa prefixo já permitido nas regras atuais do Storage.
+        const path = `produtos/providers/${providerId}/perfil-${Date.now()}.webp`
         profileImageUrl = await uploadImagem(imageFile, path, { isLogo: true })
       }
 

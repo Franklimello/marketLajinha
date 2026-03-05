@@ -28,6 +28,10 @@ router.get('/motoboys', adminController.listarMotoboys);
 router.patch('/motoboys/:id/reset-senha', adminController.resetSenhaMotoboy);
 router.get('/lojistas', adminController.listarLojistas);
 router.patch('/lojistas/:id/reset-senha', adminController.resetSenhaLojista);
+router.get('/prestadores', adminController.listarPrestadores);
+router.patch('/prestadores/:id/ativar', adminController.ativarPrestador);
+router.patch('/prestadores/:id/desativar', adminController.desativarPrestador);
+router.delete('/prestadores/:id', adminController.excluirPrestador);
 
 router.post('/cache/flush', adminController.flushCache);
 

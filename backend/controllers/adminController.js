@@ -202,13 +202,15 @@ async function estatisticas(req, res, next) {
     const inicio30Dias = new Date();
     inicio30Dias.setDate(inicio30Dias.getDate() - 30);
 
-    const [lojas, usuarios, produtos, pedidos, clientes, lojasAtivas, faturamentoAgg, pedidos30d, faturamento30dAgg] = await Promise.all([
+    const [lojas, usuarios, produtos, pedidos, clientes, lojasAtivas, prestadores, prestadoresAtivos, faturamentoAgg, pedidos30d, faturamento30dAgg] = await Promise.all([
       prisma.lojas.count(),
       prisma.usuarios.count(),
       prisma.produtos.count(),
       prisma.pedidos.count(),
       prisma.clientes.count(),
       prisma.lojas.count({ where: { ativa: true } }),
+      prisma.userAccount.count({ where: { account_type: 'service' } }),
+      prisma.userAccount.count({ where: { account_type: 'service', is_active: true } }),
       prisma.pedidos.aggregate({
         where: { status: { not: 'CANCELLED' } },
         _sum: { total: true },
@@ -223,6 +225,8 @@ async function estatisticas(req, res, next) {
     res.json({
       lojas,
       lojasAtivas,
+      prestadores,
+      prestadoresAtivos,
       usuarios,
       produtos,
       pedidos,
@@ -280,6 +284,96 @@ async function listarLojistas(req, res, next) {
       select: { id: true, nome: true, email: true, role: true, firebase_uid: true, loja_id: true, loja: { select: { nome: true } } },
     });
     res.json(usuarios);
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function listarPrestadores(req, res, next) {
+  try {
+    const prestadores = await prisma.userAccount.findMany({
+      where: { account_type: 'service' },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        firebase_uid: true,
+        city: true,
+        is_active: true,
+        created_at: true,
+        _count: {
+          select: {
+            services: true,
+            appointmentsAsProvider: true,
+          },
+        },
+      },
+    });
+    res.json(prestadores);
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function ativarPrestador(req, res, next) {
+  try {
+    const prestador = await prisma.userAccount.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, account_type: true },
+    });
+    if (!prestador || prestador.account_type !== 'service') {
+      return res.status(404).json({ erro: 'Prestador não encontrado.' });
+    }
+    const atualizado = await prisma.userAccount.update({
+      where: { id: req.params.id },
+      data: { is_active: true },
+      select: { id: true, name: true, is_active: true },
+    });
+    res.json({ mensagem: `Prestador "${atualizado.name}" ativado.`, prestador: atualizado });
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function desativarPrestador(req, res, next) {
+  try {
+    const prestador = await prisma.userAccount.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, account_type: true },
+    });
+    if (!prestador || prestador.account_type !== 'service') {
+      return res.status(404).json({ erro: 'Prestador não encontrado.' });
+    }
+    const atualizado = await prisma.userAccount.update({
+      where: { id: req.params.id },
+      data: { is_active: false },
+      select: { id: true, name: true, is_active: true },
+    });
+    res.json({ mensagem: `Prestador "${atualizado.name}" desativado.`, prestador: atualizado });
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function excluirPrestador(req, res, next) {
+  try {
+    const prestador = await prisma.userAccount.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, firebase_uid: true, account_type: true },
+    });
+    if (!prestador || prestador.account_type !== 'service') {
+      return res.status(404).json({ erro: 'Prestador não encontrado.' });
+    }
+
+    await prisma.userAccount.delete({ where: { id: prestador.id } });
+    try {
+      await getAuth().deleteUser(prestador.firebase_uid);
+    } catch (err) {
+      if (err?.code !== 'auth/user-not-found') throw err;
+    }
+
+    res.json({ mensagem: `Prestador "${prestador.name}" excluído permanentemente.` });
   } catch (e) {
     next(e);
   }
@@ -485,6 +579,10 @@ module.exports = {
   listarMotoboys,
   resetSenhaMotoboy,
   listarLojistas,
+  listarPrestadores,
+  ativarPrestador,
+  desativarPrestador,
+  excluirPrestador,
   resetSenhaLojista,
   flushCache,
   gerarCobrancaLoja,

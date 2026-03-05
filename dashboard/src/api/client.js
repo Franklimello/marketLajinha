@@ -153,6 +153,10 @@ export const api = {
     resetSenhaMotoboy: (id, novaSenha) => request(`/admin/motoboys/${id}/reset-senha`, { method: 'PATCH', body: JSON.stringify({ novaSenha }) }),
     listarLojistas: () => request('/admin/lojistas'),
     resetSenhaLojista: (id, novaSenha) => request(`/admin/lojistas/${id}/reset-senha`, { method: 'PATCH', body: JSON.stringify({ novaSenha }) }),
+    listarPrestadores: () => request('/admin/prestadores'),
+    ativarPrestador: (id) => request(`/admin/prestadores/${id}/ativar`, { method: 'PATCH' }),
+    desativarPrestador: (id) => request(`/admin/prestadores/${id}/desativar`, { method: 'PATCH' }),
+    excluirPrestador: (id) => request(`/admin/prestadores/${id}`, { method: 'DELETE' }),
   },
   users: {
     me: () => request('/users/me'),

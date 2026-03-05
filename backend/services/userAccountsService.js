@@ -1,4 +1,4 @@
-﻿const { prisma } = require('../config/database');
+const { prisma } = require('../config/database');
 
 const ACCOUNT_TYPES = new Set(['store', 'service']);
 
@@ -101,6 +101,11 @@ async function requireServiceProvider(firebaseDecoded) {
     err.status = 403;
     throw err;
   }
+  if (account.is_active === false) {
+    const err = new Error('Conta de prestador desativada pelo administrador.');
+    err.status = 403;
+    throw err;
+  }
   return account;
 }
 
@@ -112,6 +117,7 @@ function toPublicAccount(account) {
     name: account.name,
     email: account.email,
     accountType: account.account_type,
+    is_active: account.is_active !== false,
     city: account.city,
     profile_image_url: account.profile_image_url || '',
     about: account.about || '',

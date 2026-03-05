@@ -37,6 +37,7 @@ async function listProvidersByCity(city) {
   const providers = await prisma.userAccount.findMany({
     where: {
       account_type: 'service',
+      is_active: true,
       city: { equals: cityClean, mode: 'insensitive' },
       services: { some: {} },
     },
@@ -77,6 +78,7 @@ async function getProviderProfile(providerId, city) {
     where: {
       id: providerId,
       account_type: 'service',
+      is_active: true,
       city: { equals: cityClean, mode: 'insensitive' },
     },
     select: {
