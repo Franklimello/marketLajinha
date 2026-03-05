@@ -114,6 +114,20 @@ async function prestadorAtualizarSlot(req, res, next) {
   }
 }
 
+async function prestadorAtualizarDia(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
+    const updated = await appointmentsService.setProviderDayOccupancy(providerAccount, req.validated);
+    res.json(updated);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
 async function prestadorCancelar(req, res, next) {
   try {
     if (!req.firebaseDecoded) {
@@ -122,6 +136,34 @@ async function prestadorCancelar(req, res, next) {
     const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
     const appointment = await appointmentsService.providerCancel(providerAccount, req.params.id, req.validated);
     res.json(appointment);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
+async function prestadorConcluir(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
+    const appointment = await appointmentsService.providerComplete(providerAccount, req.params.id);
+    res.json(appointment);
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
+    next(e);
+  }
+}
+
+async function prestadorClientes(req, res, next) {
+  try {
+    if (!req.firebaseDecoded) {
+      return res.status(401).json({ erro: 'Token Firebase obrigatório.' });
+    }
+    const providerAccount = await userAccountsService.requireServiceProvider(req.firebaseDecoded);
+    const clients = await appointmentsService.listProviderClients(providerAccount);
+    res.json(clients);
   } catch (e) {
     if (e.status) return res.status(e.status).json({ erro: e.message });
     next(e);
@@ -154,6 +196,9 @@ module.exports = {
   clienteCancelar,
   prestadorAgenda,
   prestadorAtualizarSlot,
+  prestadorAtualizarDia,
   prestadorCancelar,
+  prestadorConcluir,
+  prestadorClientes,
   horariosDisponiveis,
 };

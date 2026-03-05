@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FiSearch } from 'react-icons/fi'
 import { api } from '../../api/client'
+import { uploadImagem } from '../../config/firebase'
 import ServiceForm from '../../components/service-form/ServiceForm'
 import ServiceCard from '../../components/service-card/ServiceCard'
+import { useAuth } from '../../context/AuthContext'
 
 export default function ServiceMyServicesPage() {
+  const { account } = useAuth()
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -68,13 +71,25 @@ export default function ServiceMyServicesPage() {
     }
   }
 
+  async function handleUploadImage(file) {
+    const providerId = String(account?.id || '').trim()
+    if (!providerId) {
+      throw new Error('Conta de prestador não identificada para upload.')
+    }
+    const safeName = String(file?.name || 'servico').replace(/[^\w.-]/g, '')
+    const fileName = `servico-${Date.now()}-${safeName}`
+    const path = `produtos/${providerId}/${fileName}`
+    return uploadImagem(file, path)
+  }
+
   const filteredServices = useMemo(() => {
     const text = String(query || '').trim().toLowerCase()
     if (!text) return services
     return services.filter((service) => {
       const name = String(service?.name || '').toLowerCase()
+      const category = String(service?.category || '').toLowerCase()
       const description = String(service?.description || '').toLowerCase()
-      return name.includes(text) || description.includes(text)
+      return name.includes(text) || category.includes(text) || description.includes(text)
     })
   }, [services, query])
 
@@ -90,6 +105,7 @@ export default function ServiceMyServicesPage() {
           <ServiceForm
             service={editingService}
             onSubmit={editingService ? handleUpdate : handleCreate}
+            onUploadImage={handleUploadImage}
             onCancel={() => setEditingService(null)}
             loading={saving}
           />
@@ -106,7 +122,7 @@ export default function ServiceMyServicesPage() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar por nome ou descrição"
+                placeholder="Buscar por nome, categoria ou descrição"
                 className="w-full border border-stone-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-amber-500"
               />
             </label>

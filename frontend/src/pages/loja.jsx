@@ -2174,7 +2174,7 @@ export default function LojaPage() {
       </Link>
 
       {/* Banner */}
-      <div className="relative w-full h-72 bg-stone-200 overflow-hidden rounded-b-[2.5rem] border border-white/45 shadow-[0_28px_58px_-40px_rgba(15,23,42,0.85)]">
+      <div className="relative w-full h-72 bg-stone-200 overflow-hidden rounded-b-[2rem] border border-white/45 shadow-[0_28px_58px_-40px_rgba(15,23,42,0.85)]">
         {String(loja.banner_url || '').trim() ? (
           <img
             src={loja.banner_url}
@@ -2212,7 +2212,7 @@ export default function LojaPage() {
         {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
       </div>
 
-      <div className="mx-4 mt-3 mb-4 relative z-20">
+      <div className="mx-4 mt-2 mb-3 relative z-20">
         <button
           type="button"
           onClick={() => notaMedia.total > 0 && setShowAvaliacoes(!showAvaliacoes)}
@@ -2228,7 +2228,7 @@ export default function LojaPage() {
           {notaMedia.total > 0 && <FiChevronRight className={`text-[12px] transition-transform ${showAvaliacoes ? 'rotate-90' : ''}`} />}
         </button>
 
-        <div className="relative rounded-[2rem] border border-white/80 bg-white/94 px-4 pt-5 pb-4 shadow-[0_30px_52px_-40px_rgba(15,23,42,0.95)]">
+        <div className="relative rounded-[1.5rem] border border-white/80 bg-white/94 px-4 pt-4 pb-3.5 shadow-[0_30px_52px_-40px_rgba(15,23,42,0.95)]">
           <div className="absolute -top-12 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-[0_22px_36px_-22px_rgba(15,23,42,0.8)] md:hidden">
             <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
             <div className="w-full h-full items-center justify-center text-xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
@@ -2287,8 +2287,8 @@ export default function LojaPage() {
 
       {/* Avaliações */}
       {showAvaliacoes && avaliacoes.length > 0 && (
-        <div className="px-4 pb-5">
-          <div className="bg-white/92 backdrop-blur-sm rounded-2xl border border-stone-200 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.85)] p-4">
+        <div className="px-4 pb-3">
+          <div className="bg-white/92 backdrop-blur-sm rounded-xl border border-stone-200 shadow-[0_20px_34px_-28px_rgba(15,23,42,0.85)] p-3.5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-stone-900">Avaliações</h3>
               <div className="flex items-center gap-1">
@@ -2318,13 +2318,13 @@ export default function LojaPage() {
 
       {/* Pedido mínimo */}
       {Number(loja.pedido_minimo || 0) > 0 && totalItens > 0 && subtotal < Number(loja.pedido_minimo) && (
-        <div className="mx-4 mb-3 bg-linear-to-r from-red-50 to-amber-50 border border-red-200 rounded-2xl p-3 text-center shadow-[0_16px_26px_-24px_rgba(220,38,38,0.9)]">
+        <div className="mx-4 mb-2.5 bg-linear-to-r from-red-50 to-amber-50 border border-red-200 rounded-xl p-2.5 text-center shadow-[0_16px_26px_-24px_rgba(220,38,38,0.9)]">
           <p className="text-xs text-red-700 font-medium">Pedido mínimo: R$ {Number(loja.pedido_minimo).toFixed(2).replace('.', ',')} — faltam R$ {(Number(loja.pedido_minimo) - subtotal).toFixed(2).replace('.', ',')}</p>
         </div>
       )}
 
       {!aberta && (
-        <div className="mx-4 mb-4 bg-stone-100/90 border border-stone-200 rounded-2xl p-3.5 text-center shadow-[0_16px_26px_-24px_rgba(15,23,42,0.85)]">
+        <div className="mx-4 mb-3 bg-stone-100/90 border border-stone-200 rounded-xl p-3 text-center shadow-[0_16px_26px_-24px_rgba(15,23,42,0.85)]">
           <p className="text-stone-600 font-medium text-sm">Loja fechada no momento</p>
           <p className="text-stone-400 text-xs mt-0.5">
             {(() => {
@@ -2345,9 +2345,9 @@ export default function LojaPage() {
 
       <div className="mx-4 h-px bg-linear-to-r from-transparent via-stone-200/70 to-transparent" />
 
-      <div className={`mx-4 mt-4 rounded-[1.8rem] border border-white/75 bg-white/82 backdrop-blur-xl px-4 pt-4 pb-5 shadow-[0_28px_52px_-44px_rgba(15,23,42,0.95)] ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`mx-4 mt-3 rounded-[1.4rem] border border-white/75 bg-white/82 backdrop-blur-xl px-3.5 pt-3.5 pb-4 shadow-[0_28px_52px_-44px_rgba(15,23,42,0.95)] ${!aberta ? 'opacity-50 pointer-events-none' : ''}`}>
         {!produtosCarregando && categoriaSel === null && Array.isArray(promocoes) && promocoes.length > 0 && (
-          <div className="mb-6">
+          <div className="mb-4">
             <div className="flex items-center gap-2 mb-3">
               <FiTag className="text-red-500" />
               <h2 className="text-base font-bold text-stone-900">Promoções do dia</h2>
@@ -2434,7 +2434,7 @@ export default function LojaPage() {
 
         {/* Combos em destaque */}
         {!produtosCarregando && combos.length > 0 && categoriaSel === null && (
-          <div className="mb-6">
+          <div className="mb-4">
             <div className="flex items-center justify-between gap-2 mb-3">
               <FiGift className="text-red-500" />
               <h2 className="text-base font-bold text-stone-900">Combos</h2>
@@ -2447,7 +2447,7 @@ export default function LojaPage() {
                 const economia = original - Number(c.preco)
                 const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
                 return (
-                  <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50/95 via-white to-amber-50/95 rounded-3xl border border-white/85 shadow-[0_20px_36px_-26px_rgba(15,23,42,0.9)] overflow-hidden">
+                  <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50/95 via-white to-amber-50/95 rounded-2xl border border-white/85 shadow-[0_20px_36px_-26px_rgba(15,23,42,0.9)] overflow-hidden">
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <h3 className="text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
@@ -2486,14 +2486,14 @@ export default function LojaPage() {
         )}
 
         {!produtosCarregando && (
-          <div className="mb-3">
+          <div className="mb-2.5">
             <div className="relative">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm" />
               <input
                 value={buscaProdutoLoja}
                 onChange={(e) => { setBuscaProdutoLoja(e.target.value); setCategoriaSel(null) }}
                 placeholder="Buscar produto pelo nome"
-                className="w-full pl-9 pr-3.5 py-3.5 rounded-2xl border border-white/85 bg-white/90 backdrop-blur-sm text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.95)]"
+                className="w-full pl-9 pr-3.5 py-3 rounded-xl border border-white/85 bg-white/90 backdrop-blur-sm text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-300 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.95)]"
               />
             </div>
           </div>
@@ -2507,7 +2507,7 @@ export default function LojaPage() {
                 {produtosBusca.length} item{produtosBusca.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div className="space-y-2 animate-fade-in-up">
+            <div className="space-y-1.5 animate-fade-in-up">
               {produtosBusca.length === 0 ? (
                 <p className="text-sm text-stone-400">Nenhum produto encontrado para essa busca.</p>
               ) : produtosBusca.map((p, idx) => {
@@ -2516,7 +2516,7 @@ export default function LojaPage() {
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
-                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3.5 rounded-2xl border p-3.5 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-white/85 bg-white/90 hover:-translate-y-0.5 hover:border-red-100 active:scale-[0.99] hover:shadow-[0_24px_44px_-30px_rgba(220,38,38,0.35)]'}`}>
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-white/85 bg-white/90 hover:-translate-y-0.5 hover:border-red-100 active:scale-[0.99] hover:shadow-[0_24px_44px_-30px_rgba(220,38,38,0.35)]'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
@@ -2559,14 +2559,14 @@ export default function LojaPage() {
                 {categorias.length} categoria{categorias.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               {categorias.map((cat) => {
                 const qtdCat = produtosPorCategoria[cat].length
                 return (
                   <button
                     key={cat}
                     onClick={() => setCategoriaSel(cat)}
-                    className="group w-full h-full bg-linear-to-br from-white to-red-50/45 rounded-2xl border border-white/85 p-3.5 hover:border-red-200 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_22px_36px_-30px_rgba(15,23,42,0.8)]"
+                    className="group w-full h-full bg-linear-to-br from-white to-red-50/45 rounded-xl border border-white/85 p-3 hover:border-red-200 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 text-left shadow-[0_22px_36px_-30px_rgba(15,23,42,0.8)]"
                   >
                     <div className="h-full flex flex-col">
                       <div className="flex-1 min-w-0">
@@ -2595,7 +2595,7 @@ export default function LojaPage() {
               <span aria-hidden="true" className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(254,202,202,0.8)]" />
               <span>{categoriaSel}</span>
             </h2>
-            <div key={categoriaSel} className="space-y-2 animate-fade-in-up">
+            <div key={categoriaSel} className="space-y-1.5 animate-fade-in-up">
               {(produtosPorCategoria[categoriaSel] || []).map((p, idx) => {
                 const qtd = qtdMap[p.id] || 0
                 const temConfig = (p.variacoes?.length > 0) || (p.adicionais?.length > 0)
@@ -2603,7 +2603,7 @@ export default function LojaPage() {
                 const semEstoque = p.controla_estoque && Number(p.estoque || 0) <= 0
                 const temPromocao = isPromocaoAtiva(p) && !(p.variacoes?.length > 0)
                 return (
-                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3.5 rounded-2xl border p-3.5 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-white/85 bg-white/90 hover:-translate-y-0.5 hover:border-red-100 active:scale-[0.99] hover:shadow-[0_24px_44px_-30px_rgba(220,38,38,0.35)]'}`}>
+                  <button key={p.id} onClick={() => addItemDireto(p)} className={`w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${semEstoque ? 'border-stone-200/80 bg-stone-100/60 opacity-60' : 'border-white/85 bg-white/90 hover:-translate-y-0.5 hover:border-red-100 active:scale-[0.99] hover:shadow-[0_24px_44px_-30px_rgba(220,38,38,0.35)]'}`}>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-stone-900">{p.nome}</h3>
                       {p.descricao && <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{p.descricao}</p>}
@@ -2651,8 +2651,8 @@ export default function LojaPage() {
 
       {totalItens > 0 && aberta && (
         <div className="fixed bottom-16 left-0 right-0 z-60 px-4 pb-2">
-          <div className="mx-auto max-w-xl rounded-3xl border border-white/70 bg-white/55 backdrop-blur-xl p-2 shadow-[0_26px_52px_-34px_rgba(15,23,42,0.9)]">
-            <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-5 py-3.5 rounded-2xl border border-red-400/40 shadow-[0_22px_48px_-30px_rgba(220,38,38,0.95)] hover:from-red-700 hover:to-red-600 transition-all">
+          <div className="mx-auto max-w-xl rounded-2xl border border-white/70 bg-white/55 backdrop-blur-xl p-2 shadow-[0_26px_52px_-34px_rgba(15,23,42,0.9)]">
+            <button ref={cartButtonRef} onClick={irParaCheckout} className="w-full flex items-center justify-between bg-linear-to-r from-red-600 to-red-500 text-white px-5 py-3 rounded-xl border border-red-400/40 shadow-[0_22px_48px_-30px_rgba(220,38,38,0.95)] hover:from-red-700 hover:to-red-600 transition-all">
             <div className="flex items-center gap-2"><FiShoppingBag /><span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{totalItens}</span></div>
             <span className="font-semibold text-sm">{Number(loja.pedido_minimo || 0) > 0 && subtotal < Number(loja.pedido_minimo) ? `Mín. R$ ${Number(loja.pedido_minimo).toFixed(0)}` : 'Ver carrinho'}</span>
             <span className="font-bold font-numeric">R$ {Number(totalAnim || subtotal).toFixed(2).replace('.', ',')}</span>

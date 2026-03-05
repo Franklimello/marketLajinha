@@ -346,8 +346,8 @@ export default function ModalPizza({ lojaId, produto, onFechar, onSalvo }) {
       for (const [idx, sabor] of pizza.sabores.entries()) {
         let imagemUrl = normalizarImagemUrl(sabor.imagem_url)
         if (sabor.imagemFile) {
-          const nomeArquivo = `${Date.now()}-${idx}-${slugArquivo(sabor.nome || `sabor-${idx + 1}`)}.jpg`
-          const path = `produtos/${lojaId}/pizzas/sabores/${produto?.id || 'novo'}/${nomeArquivo}`
+          const nomeArquivo = `pizza-sabor-${produto?.id || 'novo'}-${Date.now()}-${idx}-${slugArquivo(sabor.nome || `sabor-${idx + 1}`)}.jpg`
+          const path = `produtos/${lojaId}/${nomeArquivo}`
           imagemUrl = await uploadImagem(sabor.imagemFile, path)
         }
         adicionais.push({

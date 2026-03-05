@@ -689,7 +689,9 @@ model Service {
   id               String   @id @default(cuid())
   provider_id      String
   name             String
+  category         String   @default("")
   description      String   @default("")
+  images_urls_json String   @default("[]")
   price            Decimal  @default(0)
   duration_minutes Int
   city             String
@@ -712,6 +714,8 @@ model Appointment {
   time                  String
   status                String   @default("pending")
   counter_proposed_time String   @default("")
+  reminder_24h_sent_at  DateTime?
+  reminder_2h_sent_at   DateTime?
   created_at            DateTime @default(now())
 
   service  Service     @relation(fields: [service_id], references: [id], onDelete: Cascade)

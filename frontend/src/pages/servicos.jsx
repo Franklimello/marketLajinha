@@ -24,6 +24,7 @@ function excerpt(text, max = 120) {
 export default function ServicosPage() {
   const { cliente } = useAuth()
   const [providers, setProviders] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -58,6 +59,16 @@ export default function ServicosPage() {
     return () => { cancelled = true }
   }, [city])
 
+  const categories = useMemo(() => {
+    const all = providers.flatMap((provider) => (Array.isArray(provider.categories) ? provider.categories : []))
+    return Array.from(new Set(all.filter(Boolean))).sort((a, b) => a.localeCompare(b))
+  }, [providers])
+
+  const filteredProviders = useMemo(() => {
+    if (selectedCategory === 'all') return providers
+    return providers.filter((provider) => (provider.categories || []).includes(selectedCategory))
+  }, [providers, selectedCategory])
+
   return (
     <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
       <SEO title="Serviços locais" description="Encontre profissionais e agende serviços na sua cidade." />
@@ -91,7 +102,7 @@ export default function ServicosPage() {
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2.5">
             <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
-              <p className="font-numeric text-base font-black text-stone-900">{providers.length}</p>
+              <p className="font-numeric text-base font-black text-stone-900">{filteredProviders.length}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">prestadores</p>
             </div>
             <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
@@ -110,15 +121,48 @@ export default function ServicosPage() {
 
       {error && <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700 rounded-xl mb-4">{error}</div>}
 
+      {categories.length > 0 && (
+        <section className="mb-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500 mb-1.5">Filtrar por categoria</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('all')}
+              className={`text-xs px-2.5 py-1 rounded-full border ${
+                selectedCategory === 'all'
+                  ? 'border-red-300 bg-red-50 text-red-700'
+                  : 'border-stone-300 bg-white text-stone-600'
+              }`}
+            >
+              Todas
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setSelectedCategory(category)}
+                className={`text-xs px-2.5 py-1 rounded-full border ${
+                  selectedCategory === category
+                    ? 'border-red-300 bg-red-50 text-red-700'
+                    : 'border-stone-300 bg-white text-stone-600'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {loading ? (
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">Carregando prestadores...</div>
-      ) : providers.length === 0 ? (
+      ) : filteredProviders.length === 0 ? (
         <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500 rounded-2xl shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
-          Nenhum prestador disponível para {city || 'sua cidade'}.
+          Nenhum prestador disponível para esse filtro em {city || 'sua cidade'}.
         </div>
       ) : (
         <div className="space-y-3">
-          {providers.map((provider) => (
+          {filteredProviders.map((provider) => (
             <Link
               key={provider.id}
               to={`/servicos/profissional/${provider.id}`}
@@ -136,6 +180,11 @@ export default function ServicosPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-stone-900">{provider.name}</p>
                   <p className="text-xs text-stone-500 mt-1">{provider.city} • {provider.services_count} serviço(s)</p>
+                  {Array.isArray(provider.categories) && provider.categories.length > 0 && (
+                    <p className="text-[11px] text-stone-500 mt-1 truncate">
+                      Categorias: {provider.categories.join(', ')}
+                    </p>
+                  )}
 
                   {provider.about && (
                     <p className="text-xs text-stone-600 mt-2 leading-relaxed">{excerpt(provider.about)}</p>

@@ -45,7 +45,9 @@ export default function BookingCalendar({
   appointments = [],
   blockedSlots = [],
   onToggleSlot = null,
+  onToggleDay = null,
   busySlotKey = '',
+  busyDayAction = false,
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [mapModalOpen, setMapModalOpen] = useState(false)
@@ -111,6 +113,13 @@ export default function BookingCalendar({
     return slots.filter((slot) => manualBlockedSet.has(keyOf(selectedDate, slot)))
   }, [slots, manualBlockedSet, selectedDate])
 
+  const allFreeSlotsBlocked = useMemo(() => {
+    const appointmentBlockedTimes = new Set(Array.from(slotMeta.keys()))
+    const freeSlots = slots.filter((slot) => !appointmentBlockedTimes.has(slot))
+    if (freeSlots.length === 0) return false
+    return freeSlots.every((slot) => manualBlockedSet.has(keyOf(selectedDate, slot)))
+  }, [slots, slotMeta, manualBlockedSet, selectedDate])
+
   async function handleSlotClick(slotTime, isAppointmentBusy, isManualBlocked) {
     if (!onToggleSlot || isAppointmentBusy) return
     await onToggleSlot({
@@ -122,7 +131,7 @@ export default function BookingCalendar({
 
   function renderSlotsMap() {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
         {slots.map((slot) => {
           const meta = slotMeta.get(slot)
           const appointment = meta?.appointment
@@ -142,11 +151,11 @@ export default function BookingCalendar({
               type="button"
               onClick={() => handleSlotClick(slot, isAppointmentBusy, isManualBlocked)}
               disabled={!onToggleSlot || isAppointmentBusy || isUpdating}
-              className={`border p-2 min-h-16 text-left ${tone} ${!isAppointmentBusy ? 'hover:opacity-85 cursor-pointer' : 'cursor-not-allowed'} disabled:opacity-60`}
+              className={`border p-1.5 min-h-12 text-left ${tone} ${!isAppointmentBusy ? 'hover:opacity-85 cursor-pointer' : 'cursor-not-allowed'} disabled:opacity-60`}
               title={isAppointmentBusy ? 'Horario ocupado por agendamento' : 'Clique para alternar ocupacao'}
             >
-              <p className="text-xs font-semibold font-numeric">{slot}</p>
-              <p className="text-[11px] mt-1 leading-tight">
+              <p className="text-[11px] font-semibold font-numeric">{slot}</p>
+              <p className="text-[10px] mt-0.5 leading-tight">
                 {isUpdating
                   ? 'Atualizando...'
                   : (isAppointmentBusy
@@ -182,8 +191,29 @@ export default function BookingCalendar({
         </div>
       </div>
 
+      {onToggleDay && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onToggleDay({ date: selectedDate, occupied: true })}
+            disabled={busyDayAction || allFreeSlotsBlocked}
+            className="inline-flex items-center gap-1.5 border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+          >
+            {busyDayAction ? 'Processando...' : 'Desativar todos os horários do dia'}
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleDay({ date: selectedDate, occupied: false })}
+            disabled={busyDayAction || manualBlockedList.length === 0}
+            className="inline-flex items-center gap-1.5 border border-green-300 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 hover:bg-green-100 disabled:opacity-50"
+          >
+            Liberar horários manuais do dia
+          </button>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4">
-        <div className="space-y-2">
+        <div className="space-y-2 order-2 lg:order-1">
           <h4 className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
             <FiClock size={14} /> Agenda do dia
           </h4>
@@ -213,31 +243,31 @@ export default function BookingCalendar({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-stone-900">Mapa de horarios (clicavel)</h4>
+        <div className="space-y-2 order-1 lg:order-2">
+          <h4 className="text-sm font-semibold text-stone-900">Selecionar horários disponíveis</h4>
           <button
             type="button"
             onClick={() => setMapModalOpen(true)}
-            className="w-full border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100"
+            className="w-full border border-stone-300 bg-stone-50 px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100"
           >
-            Abrir mapa de horários
+            Selecionar horários disponíveis
           </button>
           <p className="text-[11px] text-stone-500">Livre = verde. Ocupado = vermelho.</p>
         </div>
       </div>
 
       {mapModalOpen && (
-        <div className="fixed inset-0 z-120 bg-black/50 p-4 flex items-center justify-center">
+        <div className="fixed inset-0 z-120 bg-black/50 p-4 pt-14 flex items-start justify-center">
           <div className="absolute inset-0" onClick={() => setMapModalOpen(false)} />
-          <div className="relative z-10 bg-white border border-stone-200 w-full max-w-3xl max-h-[85vh] overflow-y-auto p-4 space-y-3">
+          <div className="relative z-10 bg-white border border-stone-200 w-full max-w-2xl max-h-[78vh] overflow-y-auto p-3 space-y-2.5">
             <div className="flex items-center justify-between gap-3">
               <h4 className="text-sm font-semibold text-stone-900">
-                Mapa de horários ({formatDate(selectedDate)})
+                Selecionar horários disponíveis ({formatDate(selectedDate)})
               </h4>
               <button
                 type="button"
                 onClick={() => setMapModalOpen(false)}
-                className="border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                className="border border-stone-300 px-2.5 py-1 text-[11px] font-medium text-stone-700 hover:bg-stone-50"
               >
                 Fechar
               </button>

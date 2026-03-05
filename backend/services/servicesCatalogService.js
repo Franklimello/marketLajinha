@@ -8,13 +8,32 @@ function toMoneyNumber(value) {
   return Number(value || 0);
 }
 
+function normalizeImagesUrls(value) {
+  const list = Array.isArray(value) ? value : [];
+  return list
+    .map((item) => cleanText(item))
+    .filter((item) => /^https?:\/\//i.test(item))
+    .slice(0, 10);
+}
+
+function parseImagesUrls(jsonValue) {
+  try {
+    const parsed = JSON.parse(String(jsonValue || '[]'));
+    return normalizeImagesUrls(parsed);
+  } catch {
+    return [];
+  }
+}
+
 function serviceToJson(service) {
   if (!service) return null;
   return {
     id: service.id,
     provider_id: service.provider_id,
     name: service.name,
+    category: service.category || '',
     description: service.description,
+    images_urls: parseImagesUrls(service.images_urls_json),
     price: toMoneyNumber(service.price),
     duration_minutes: Number(service.duration_minutes || 0),
     city: service.city,
@@ -52,6 +71,11 @@ async function listProvidersByCity(city) {
       instagram: true,
       created_at: true,
       _count: { select: { services: true } },
+      services: {
+        select: {
+          category: true,
+        },
+      },
     },
     orderBy: { name: 'asc' },
   });
@@ -65,6 +89,13 @@ async function listProvidersByCity(city) {
     phone: provider.phone || '',
     whatsapp: provider.whatsapp || '',
     instagram: provider.instagram || '',
+    categories: Array.from(
+      new Set(
+        (provider.services || [])
+          .map((service) => cleanText(service?.category))
+          .filter(Boolean)
+      )
+    ),
     services_count: Number(provider._count?.services || 0),
     created_at: provider.created_at,
   }));
@@ -99,7 +130,9 @@ async function getProviderProfile(providerId, city) {
           id: true,
           provider_id: true,
           name: true,
+          category: true,
           description: true,
+          images_urls_json: true,
           price: true,
           duration_minutes: true,
           city: true,
@@ -153,7 +186,9 @@ async function createService(providerAccount, payload) {
     data: {
       provider_id: providerAccount.id,
       name: cleanText(payload.name),
+      category: cleanText(payload.category),
       description: cleanText(payload.description),
+      images_urls_json: JSON.stringify(normalizeImagesUrls(payload.images_urls)),
       price: Number(payload.price || 0),
       duration_minutes: Number(payload.duration_minutes || 0),
       city,
@@ -187,7 +222,11 @@ async function updateService(providerId, serviceId, payload) {
 
   const data = {};
   if (payload.name !== undefined) data.name = cleanText(payload.name);
+  if (payload.category !== undefined) data.category = cleanText(payload.category);
   if (payload.description !== undefined) data.description = cleanText(payload.description);
+  if (payload.images_urls !== undefined) {
+    data.images_urls_json = JSON.stringify(normalizeImagesUrls(payload.images_urls));
+  }
   if (payload.price !== undefined) data.price = Number(payload.price || 0);
   if (payload.duration_minutes !== undefined) data.duration_minutes = Number(payload.duration_minutes || 0);
 

@@ -183,6 +183,10 @@ export const api = {
       request(`/appointments/${id}/provider-action`, { method: 'PATCH', body: JSON.stringify(data) }),
     providerCancel: (id, data = {}) =>
       request(`/appointments/${id}/provider-cancel`, { method: 'PATCH', body: JSON.stringify(data) }),
+    providerComplete: (id) =>
+      request(`/appointments/${id}/provider-complete`, { method: 'PATCH' }),
+    providerClients: () =>
+      request('/appointments/provider/clients'),
     clientResponse: (id, data) =>
       request(`/appointments/${id}/client-response`, { method: 'PATCH', body: JSON.stringify(data) }),
     providerSchedule: (dateFrom, dateTo) => {
@@ -194,5 +198,7 @@ export const api = {
     },
     providerUpdateSlot: (data) =>
       request('/appointments/provider/slots', { method: 'PATCH', body: JSON.stringify(data) }),
+    providerUpdateDay: (data) =>
+      request('/appointments/provider/day-occupancy', { method: 'PATCH', body: JSON.stringify(data) }),
   },
 }

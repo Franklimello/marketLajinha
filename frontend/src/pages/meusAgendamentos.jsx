@@ -11,6 +11,7 @@ function statusLabel(status) {
     accepted: 'Aceito pelo prestador',
     counter_offer: 'Contraproposta',
     confirmed: 'Confirmado',
+    completed: 'Concluído',
     rejected: 'Recusado',
     cancelled: 'Cancelado',
   }
@@ -18,7 +19,7 @@ function statusLabel(status) {
 }
 
 function statusTone(status) {
-  if (status === 'confirmed' || status === 'accepted') return 'bg-emerald-50 border-emerald-200 text-emerald-700'
+  if (status === 'confirmed' || status === 'accepted' || status === 'completed') return 'bg-emerald-50 border-emerald-200 text-emerald-700'
   if (status === 'counter_offer') return 'bg-amber-50 border-amber-200 text-amber-700'
   if (status === 'pending') return 'bg-sky-50 border-sky-200 text-sky-700'
   if (status === 'rejected' || status === 'cancelled') return 'bg-red-50 border-red-200 text-red-700'

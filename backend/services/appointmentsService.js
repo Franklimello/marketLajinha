@@ -9,6 +9,7 @@ const STATUS = {
   ACCEPTED: 'accepted',
   COUNTER_OFFER: 'counter_offer',
   CONFIRMED: 'confirmed',
+  COMPLETED: 'completed',
   REJECTED: 'rejected',
   CANCELLED: 'cancelled',
 };
@@ -160,8 +161,20 @@ function mapBlockedSlot(slot) {
   };
 }
 
+function getAppointmentStartDateTime(appointment) {
+  const dateKey = formatDateToKey(appointment?.date);
+  const time = getEffectiveTime(appointment);
+  const start = new Date(`${dateKey}T${time}:00.000Z`);
+  if (!Number.isFinite(start.getTime())) return null;
+  return start;
+}
+
 function canCancelStatus(status) {
   return [STATUS.PENDING, STATUS.ACCEPTED, STATUS.COUNTER_OFFER, STATUS.CONFIRMED].includes(status);
+}
+
+function canCompleteStatus(status) {
+  return [STATUS.ACCEPTED, STATUS.CONFIRMED].includes(status);
 }
 
 function safePush(promise) {
@@ -706,6 +719,118 @@ async function providerCancel(providerAccount, appointmentId, payload = {}) {
   return mapAppointment(updated);
 }
 
+async function providerComplete(providerAccount, appointmentId) {
+  const appointment = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    include: {
+      service: true,
+      client: { select: { id: true, nome: true, email: true, telefone: true } },
+      provider: { select: { id: true, name: true, city: true } },
+    },
+  });
+
+  if (!appointment) {
+    const err = new Error('Agendamento não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+
+  if (appointment.provider_id !== providerAccount.id) {
+    const err = new Error('Você não pode concluir este agendamento.');
+    err.status = 403;
+    throw err;
+  }
+
+  if (!canCompleteStatus(appointment.status)) {
+    const err = new Error('Somente agendamentos aceitos/confirmados podem ser concluídos.');
+    err.status = 400;
+    throw err;
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { id: appointment.id },
+    data: {
+      status: STATUS.COMPLETED,
+      counter_proposed_time: '',
+    },
+    include: {
+      service: true,
+      client: { select: { id: true, nome: true, email: true, telefone: true } },
+      provider: { select: { id: true, name: true, city: true } },
+    },
+  });
+
+  await safePush(notificarClienteAgendamento(updated.client_id, {
+    title: 'Atendimento concluído',
+    body: `${updated.provider?.name || 'Prestador'} concluiu ${updated.service?.name || 'seu agendamento'}.`,
+    appointmentId: updated.id,
+    url: '/meus-agendamentos',
+  }));
+
+  return mapAppointment(updated);
+}
+
+async function listProviderClients(providerAccount) {
+  const appointments = await prisma.appointment.findMany({
+    where: { provider_id: providerAccount.id },
+    include: {
+      service: {
+        select: { id: true, name: true, duration_minutes: true, price: true },
+      },
+      client: {
+        select: { id: true, nome: true, email: true, telefone: true },
+      },
+    },
+    orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
+  });
+
+  const map = new Map();
+  for (const item of appointments) {
+    if (!item.client_id || !item.client) continue;
+    const key = item.client_id;
+    const current = map.get(key) || {
+      client_id: item.client.id,
+      nome: item.client.nome || '',
+      email: item.client.email || '',
+      telefone: item.client.telefone || '',
+      total_agendamentos: 0,
+      concluidos: 0,
+      cancelados: 0,
+      recusados: 0,
+      pendentes: 0,
+      historico: [],
+      ultimo_agendamento_em: null,
+    };
+
+    current.total_agendamentos += 1;
+    if (item.status === STATUS.COMPLETED) current.concluidos += 1;
+    if (item.status === STATUS.CANCELLED) current.cancelados += 1;
+    if (item.status === STATUS.REJECTED) current.recusados += 1;
+    if ([STATUS.PENDING, STATUS.ACCEPTED, STATUS.COUNTER_OFFER, STATUS.CONFIRMED].includes(item.status)) {
+      current.pendentes += 1;
+    }
+    if (!current.ultimo_agendamento_em) current.ultimo_agendamento_em = formatDateToKey(item.date);
+
+    current.historico.push({
+      id: item.id,
+      date: formatDateToKey(item.date),
+      time: item.time,
+      status: item.status,
+      service: item.service
+        ? {
+          id: item.service.id,
+          name: item.service.name,
+          duration_minutes: Number(item.service.duration_minutes || 0),
+          price: Number(item.service.price || 0),
+        }
+        : null,
+    });
+    map.set(key, current);
+  }
+
+  return Array.from(map.values());
+}
+
 async function listProviderSchedule(providerAccount, dateFromRaw, dateToRaw) {
   let from = dateFromRaw ? parseDateOnly(dateFromRaw) : null;
   let to = dateToRaw ? parseDateOnly(dateToRaw) : null;
@@ -847,6 +972,90 @@ async function setProviderSlotOccupancy(providerAccount, payload) {
   };
 }
 
+async function setProviderDayOccupancy(providerAccount, payload) {
+  const date = parseDateOnly(payload.date);
+  const occupied = !!payload.occupied;
+  const dayKey = formatDateToKey(date);
+
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      provider_id: providerAccount.id,
+      date,
+      status: { in: BLOCKING_STATUSES },
+    },
+    include: {
+      service: {
+        select: { duration_minutes: true },
+      },
+    },
+  });
+
+  const appointmentBlockedSet = new Set();
+  for (const item of appointments) {
+    const start = timeToMinutes(getEffectiveTime(item));
+    const end = start + Number(item?.service?.duration_minutes || 0);
+    for (let cursor = start; cursor < end; cursor += SLOT_STEP_MINUTES) {
+      appointmentBlockedSet.add(minutesToTime(cursor));
+    }
+  }
+
+  const allSlots = buildDefaultSlots();
+  const targetSlots = allSlots.filter((slot) => !appointmentBlockedSet.has(slot));
+
+  if (targetSlots.length > 0) {
+    if (occupied) {
+      await prisma.$transaction(
+        targetSlots.map((time) => prisma.providerBlockedSlot.upsert({
+          where: {
+            provider_id_date_time: {
+              provider_id: providerAccount.id,
+              date,
+              time,
+            },
+          },
+          create: {
+            provider_id: providerAccount.id,
+            date,
+            time,
+          },
+          update: {},
+        }))
+      );
+    } else {
+      await prisma.providerBlockedSlot.deleteMany({
+        where: {
+          provider_id: providerAccount.id,
+          date,
+          time: { in: targetSlots },
+        },
+      });
+    }
+  }
+
+  const blockedSlots = await prisma.providerBlockedSlot.findMany({
+    where: {
+      provider_id: providerAccount.id,
+      date,
+    },
+    orderBy: { time: 'asc' },
+    select: {
+      id: true,
+      provider_id: true,
+      date: true,
+      time: true,
+      created_at: true,
+    },
+  });
+
+  return {
+    date: dayKey,
+    occupied,
+    updated_slots: targetSlots.length,
+    appointment_locked_slots: appointmentBlockedSet.size,
+    blocked_slots_current_day: blockedSlots.map(mapBlockedSlot),
+  };
+}
+
 async function listAvailableSlotsForService(payload) {
   const service = await prisma.service.findUnique({
     where: { id: payload.service_id },
@@ -894,6 +1103,88 @@ async function listAvailableSlotsForService(payload) {
   };
 }
 
+async function sendDueAppointmentReminders() {
+  const now = new Date();
+  const next24h = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      status: { in: [STATUS.ACCEPTED, STATUS.CONFIRMED] },
+      date: { lte: next24h },
+      OR: [
+        { reminder_24h_sent_at: null },
+        { reminder_2h_sent_at: null },
+      ],
+    },
+    include: {
+      service: true,
+      client: { select: { id: true, nome: true, email: true, telefone: true } },
+      provider: { select: { id: true, name: true, city: true } },
+    },
+  });
+
+  for (const appointment of appointments) {
+    const startsAt = getAppointmentStartDateTime(appointment);
+    if (!startsAt) continue;
+    const diffMs = startsAt.getTime() - now.getTime();
+    if (diffMs <= 0) continue;
+
+    const should24h =
+      !appointment.reminder_24h_sent_at
+      && diffMs <= 24 * 60 * 60 * 1000
+      && diffMs > 23 * 60 * 60 * 1000;
+
+    const should2h =
+      !appointment.reminder_2h_sent_at
+      && diffMs <= 2 * 60 * 60 * 1000
+      && diffMs > 90 * 60 * 1000;
+
+    if (!should24h && !should2h) continue;
+
+    const dateText = formatDateToKey(appointment.date);
+    const timeText = getEffectiveTime(appointment);
+    const serviceName = appointment.service?.name || 'serviço';
+    const providerName = appointment.provider?.name || 'Prestador';
+    const clientName = appointment.client?.nome || 'Cliente';
+
+    if (should24h) {
+      await safePush(notificarClienteAgendamento(appointment.client_id, {
+        title: 'Lembrete: seu atendimento é amanhã',
+        body: `${serviceName} com ${providerName} em ${dateText} às ${timeText}.`,
+        appointmentId: appointment.id,
+        url: '/meus-agendamentos',
+      }));
+      await safePush(notificarPrestadorAgendamento(appointment.provider_id, {
+        title: 'Lembrete de atendimento (24h)',
+        body: `${clientName} • ${serviceName} em ${dateText} às ${timeText}.`,
+        appointmentId: appointment.id,
+      }));
+    }
+
+    if (should2h) {
+      await safePush(notificarClienteAgendamento(appointment.client_id, {
+        title: 'Lembrete: faltam 2 horas',
+        body: `${serviceName} com ${providerName} às ${timeText}.`,
+        appointmentId: appointment.id,
+        url: '/meus-agendamentos',
+      }));
+      await safePush(notificarPrestadorAgendamento(appointment.provider_id, {
+        title: 'Lembrete de atendimento (2h)',
+        body: `${clientName} • ${serviceName} às ${timeText}.`,
+        appointmentId: appointment.id,
+      }));
+    }
+
+    await prisma.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        ...(should24h ? { reminder_24h_sent_at: new Date() } : {}),
+        ...(should2h ? { reminder_2h_sent_at: new Date() } : {}),
+      },
+    });
+  }
+}
+
 module.exports = {
   STATUS,
   createAppointment,
@@ -903,7 +1194,11 @@ module.exports = {
   clientResponse,
   clientCancel,
   providerCancel,
+  providerComplete,
+  listProviderClients,
   listProviderSchedule,
   setProviderSlotOccupancy,
+  setProviderDayOccupancy,
   listAvailableSlotsForService,
+  sendDueAppointmentReminders,
 };

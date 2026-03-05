@@ -7,6 +7,7 @@ function statusLabel(status) {
     accepted: 'Aceito',
     counter_offer: 'Contraproposta',
     confirmed: 'Confirmado',
+    completed: 'Concluído',
     rejected: 'Recusado',
     cancelled: 'Cancelado',
   }
@@ -17,6 +18,7 @@ function statusClass(status) {
   if (status === 'confirmed' || status === 'accepted') return 'border-green-200 bg-green-50 text-green-700'
   if (status === 'counter_offer') return 'border-amber-200 bg-amber-50 text-amber-700'
   if (status === 'pending') return 'border-blue-200 bg-blue-50 text-blue-700'
+  if (status === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (status === 'rejected' || status === 'cancelled') return 'border-red-200 bg-red-50 text-red-700'
   return 'border-stone-200 bg-stone-50 text-stone-600'
 }
@@ -27,6 +29,7 @@ export default function BookingRequestCard({
   onReject,
   onSuggestTime,
   onCancelAppointment,
+  onCompleteAppointment,
   busy = false,
 }) {
   const [counterTime, setCounterTime] = useState('')
@@ -36,6 +39,7 @@ export default function BookingRequestCard({
 
   const canManage = appointment.status === 'pending' || appointment.status === 'counter_offer'
   const canCancel = ['pending', 'counter_offer', 'accepted', 'confirmed'].includes(appointment.status)
+  const canComplete = ['accepted', 'confirmed'].includes(appointment.status)
 
   async function handleSuggest() {
     const time = String(counterTime || '').trim()
@@ -110,6 +114,17 @@ export default function BookingRequestCard({
           className="w-full border border-red-300 text-red-700 text-xs py-2 font-semibold bg-red-50 hover:bg-red-100 disabled:opacity-50"
         >
           Cancelar agendamento
+        </button>
+      )}
+
+      {canComplete && (
+        <button
+          type="button"
+          onClick={onCompleteAppointment}
+          disabled={busy}
+          className="w-full border border-emerald-300 text-emerald-700 text-xs py-2 font-semibold bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50"
+        >
+          Marcar como concluído
         </button>
       )}
 

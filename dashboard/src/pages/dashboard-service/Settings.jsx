@@ -171,8 +171,9 @@ export default function ServiceSettingsPage() {
 
       if (imageFile) {
         const providerId = normalize(account?.id) || 'prestador'
-        // Usa prefixo já permitido nas regras atuais do Storage.
-        const path = `produtos/providers/${providerId}/perfil-${Date.now()}.webp`
+        // Regra atual do Storage aceita somente: produtos/{lojaId}/{fileName}
+        const fileName = `perfil-${providerId}-${Date.now()}.webp`
+        const path = `produtos/${providerId}/${fileName}`
         profileImageUrl = await uploadImagem(imageFile, path, { isLogo: true })
       }
 
@@ -201,7 +202,7 @@ export default function ServiceSettingsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="border border-stone-300 bg-gradient-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
+      <section className="border border-stone-300 bg-linear-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
         <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Perfil profissional</p>
         <h2 className="text-2xl font-semibold mt-1">Configuracoes</h2>
         <p className="text-sm text-stone-200 mt-2 max-w-2xl">

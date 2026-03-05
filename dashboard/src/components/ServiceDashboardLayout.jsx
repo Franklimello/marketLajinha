@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import {
   FiBriefcase,
@@ -9,6 +9,7 @@ import {
   FiMapPin,
   FiMenu,
   FiSettings,
+  FiUsers,
   FiX,
 } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext'
@@ -17,6 +18,7 @@ const MENU = [
   { to: '/dashboard-service', label: 'Painel', icon: FiGrid },
   { to: '/dashboard-service/services', label: 'Meus Servicos', icon: FiBriefcase },
   { to: '/dashboard-service/bookings', label: 'Agendamentos', icon: FiCalendar },
+  { to: '/dashboard-service/clients', label: 'Clientes', icon: FiUsers },
   { to: '/dashboard-service/schedule', label: 'Agenda', icon: FiClock },
   { to: '/dashboard-service/settings', label: 'Configuracoes', icon: FiSettings },
 ]
@@ -82,7 +84,7 @@ export default function ServiceDashboardLayout() {
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900">
-      <header className="border-b border-stone-300 bg-gradient-to-r from-stone-950 via-stone-900 to-stone-800 text-white">
+      <header className="fixed top-0 inset-x-0 z-50 border-b border-stone-300 bg-gradient-to-r from-stone-950 via-stone-900 to-stone-800 text-white">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
@@ -124,12 +126,12 @@ export default function ServiceDashboardLayout() {
         <button
           type="button"
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-[73px] bg-black/40 z-40 lg:hidden"
           aria-label="Fechar menu"
         />
       )}
 
-      <aside className={`fixed top-0 left-0 z-50 h-full w-72 bg-stone-100 border-r border-stone-300 px-4 py-4 transform transition-transform lg:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed top-[73px] left-0 z-50 h-[calc(100%-73px)] w-72 bg-stone-100 border-r border-stone-300 px-4 py-4 transform transition-transform lg:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-semibold text-stone-900">Menu</p>
           <button
@@ -144,7 +146,7 @@ export default function ServiceDashboardLayout() {
         <SideNav onNavigate={() => setMobileMenuOpen(false)} />
       </aside>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 grid lg:grid-cols-[240px_1fr] gap-4">
+      <div className="max-w-7xl mx-auto px-4 pt-[89px] pb-4 grid lg:grid-cols-[240px_1fr] gap-4">
         <aside className="hidden lg:block">
           <div className="sticky top-4 border border-stone-200 bg-white p-3 space-y-3">
             <div className="border border-stone-200 bg-stone-50 p-3">

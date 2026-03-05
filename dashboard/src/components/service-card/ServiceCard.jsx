@@ -1,4 +1,4 @@
-import { FiClock, FiEdit2, FiMapPin, FiTag, FiTrash2 } from 'react-icons/fi'
+import { FiClock, FiEdit2, FiImage, FiMapPin, FiTag, FiTrash2 } from 'react-icons/fi'
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-BR', {
@@ -32,6 +32,25 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
       <p className="text-sm text-stone-600 whitespace-pre-wrap min-h-10">
         {service.description || 'Sem descrição informada.'}
       </p>
+
+      {service.category && (
+        <p className="text-xs inline-flex items-center gap-1 border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">
+          <FiTag size={11} /> {service.category}
+        </p>
+      )}
+
+      {Array.isArray(service.images_urls) && service.images_urls.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] uppercase tracking-wide text-stone-500 inline-flex items-center gap-1">
+            <FiImage size={11} /> Imagens ({service.images_urls.length}/10)
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {service.images_urls.map((url) => (
+              <img key={url} src={url} alt={service.name} className="w-16 h-16 object-cover border border-stone-200 shrink-0" />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <div className="border border-stone-200 bg-stone-50 p-2.5">

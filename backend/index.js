@@ -28,6 +28,7 @@ const { getRedis } = require('./config/redis');
 const { startWeeklyReportJob } = require('./jobs/weeklyReportJob');
 const { startStoriesExpirationJob } = require('./jobs/storiesExpirationJob');
 const { startCachePrewarmJob } = require('./jobs/cachePrewarmJob');
+const { startAppointmentReminderJob } = require('./jobs/appointmentReminderJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -171,6 +172,7 @@ function startServer() {
     startWeeklyReportJob();
     startStoriesExpirationJob();
     startCachePrewarmJob();
+    startAppointmentReminderJob();
   });
 
   return server;

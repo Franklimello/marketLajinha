@@ -16,6 +16,7 @@ const FILTERS = [
   { value: 'counter_offer', label: 'Contraproposta' },
   { value: 'accepted', label: 'Aceitos' },
   { value: 'confirmed', label: 'Confirmados' },
+  { value: 'completed', label: 'Concluídos' },
   { value: 'rejected', label: 'Recusados' },
 ]
 
@@ -26,6 +27,7 @@ function statusCounts(bookings) {
     counter_offer: bookings.filter((item) => item.status === 'counter_offer').length,
     accepted: bookings.filter((item) => item.status === 'accepted').length,
     confirmed: bookings.filter((item) => item.status === 'confirmed').length,
+    completed: bookings.filter((item) => item.status === 'completed').length,
     rejected: bookings.filter((item) => item.status === 'rejected' || item.status === 'cancelled').length,
   }
 }
@@ -93,6 +95,19 @@ export default function ServiceBookingsPage() {
     }
   }
 
+  async function completeBooking(id) {
+    setBusyId(id)
+    setError('')
+    try {
+      const updated = await api.appointments.providerComplete(id)
+      setBookings((prev) => prev.map((item) => (item.id === id ? updated : item)))
+    } catch (err) {
+      setError(err.message || 'Nao foi possivel concluir este agendamento.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
   const counts = useMemo(() => statusCounts(bookings), [bookings])
 
   const metrics = useMemo(() => {
@@ -110,6 +125,13 @@ export default function ServiceBookingsPage() {
         helper: 'Com horario definido',
         icon: FiCheckCircle,
         tone: 'border-green-200 bg-green-50 text-green-800',
+      },
+      {
+        label: 'Concluídos',
+        value: counts.completed,
+        helper: 'Finalizados com sucesso',
+        icon: FiCheckCircle,
+        tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
       },
       {
         label: 'Negociacao',
@@ -139,7 +161,7 @@ export default function ServiceBookingsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="border border-stone-300 bg-gradient-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
+      <section className="border border-stone-300 bg-linear-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Central de solicitacoes</p>
@@ -212,6 +234,7 @@ export default function ServiceBookingsPage() {
               onReject={() => runAction(booking.id, { action: 'reject' })}
               onSuggestTime={(time) => runAction(booking.id, { action: 'counter_offer', new_time: time })}
               onCancelAppointment={() => cancelBooking(booking.id)}
+              onCompleteAppointment={() => completeBooking(booking.id)}
             />
           ))}
         </div>

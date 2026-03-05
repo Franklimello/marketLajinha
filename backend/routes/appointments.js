@@ -8,6 +8,7 @@ const {
   schemaClientResponse,
   schemaCancelAppointment,
   schemaProviderSlotUpdate,
+  schemaProviderDayOccupancyUpdate,
 } = require('../schemas/appointmentsSchema');
 
 router.get('/available-slots', ctrl.horariosDisponiveis);
@@ -16,9 +17,12 @@ router.get('/mine', authMiddleware, ctrl.minhas);
 
 router.get('/provider', authMiddleware, ctrl.prestadorListar);
 router.get('/provider/schedule', authMiddleware, ctrl.prestadorAgenda);
+router.get('/provider/clients', authMiddleware, ctrl.prestadorClientes);
 router.patch('/provider/slots', authMiddleware, validar(schemaProviderSlotUpdate), ctrl.prestadorAtualizarSlot);
+router.patch('/provider/day-occupancy', authMiddleware, validar(schemaProviderDayOccupancyUpdate), ctrl.prestadorAtualizarDia);
 router.patch('/:id/provider-action', authMiddleware, validar(schemaProviderAction), ctrl.prestadorAcao);
 router.patch('/:id/provider-cancel', authMiddleware, validar(schemaCancelAppointment), ctrl.prestadorCancelar);
+router.patch('/:id/provider-complete', authMiddleware, ctrl.prestadorConcluir);
 
 router.patch('/:id/client-response', authMiddleware, validar(schemaClientResponse), ctrl.clienteResposta);
 router.patch('/:id/client-cancel', authMiddleware, validar(schemaCancelAppointment), ctrl.clienteCancelar);

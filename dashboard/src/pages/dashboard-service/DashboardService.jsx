@@ -1,4 +1,4 @@
-﻿import { createElement, useEffect, useMemo, useState } from 'react'
+import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   FiAlertCircle,
   FiBriefcase,
@@ -22,6 +22,7 @@ function statusLabel(status) {
     accepted: 'Aceito',
     counter_offer: 'Contraproposta',
     confirmed: 'Confirmado',
+    completed: 'Concluído',
     rejected: 'Recusado',
     cancelled: 'Cancelado',
   }
@@ -31,6 +32,7 @@ function statusLabel(status) {
 function statusChipClass(status) {
   if (status === 'confirmed' || status === 'accepted') return 'border-green-200 bg-green-50 text-green-700'
   if (status === 'counter_offer') return 'border-amber-200 bg-amber-50 text-amber-700'
+  if (status === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (status === 'pending') return 'border-blue-200 bg-blue-50 text-blue-700'
   return 'border-stone-200 bg-stone-50 text-stone-600'
 }
@@ -89,7 +91,8 @@ export default function DashboardServicePage() {
     const active = bookings.filter((b) => b.status === 'accepted' || b.status === 'confirmed').length
     const counter = bookings.filter((b) => b.status === 'counter_offer').length
     const rejected = bookings.filter((b) => b.status === 'rejected' || b.status === 'cancelled').length
-    return { pending, active, counter, rejected }
+    const completed = bookings.filter((b) => b.status === 'completed').length
+    return { pending, active, counter, rejected, completed }
   }, [bookings])
 
   const nextBookings = useMemo(() => {
@@ -144,6 +147,12 @@ export default function DashboardServicePage() {
           value={metrics.active}
           icon={FiClock}
           description="Aceitos e confirmados"
+        />
+        <MetricCard
+          label="Concluídos"
+          value={metrics.completed}
+          icon={FiCheckCircle}
+          description="Atendimentos finalizados"
         />
         <MetricCard
           label="Risco"

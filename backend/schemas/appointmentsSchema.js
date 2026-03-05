@@ -32,6 +32,11 @@ const schemaProviderSlotUpdate = z.object({
   occupied: z.boolean(),
 });
 
+const schemaProviderDayOccupancyUpdate = z.object({
+  date: z.string().regex(dateRegex, 'Data inválida. Use YYYY-MM-DD.'),
+  occupied: z.boolean(),
+});
+
 const schemaAvailableSlotsQuery = z.object({
   service_id: z.string().cuid('Serviço inválido.'),
   date: z.string().regex(dateRegex, 'Data inválida. Use YYYY-MM-DD.'),
@@ -43,5 +48,6 @@ module.exports = {
   schemaClientResponse,
   schemaCancelAppointment,
   schemaProviderSlotUpdate,
+  schemaProviderDayOccupancyUpdate,
   schemaAvailableSlotsQuery,
 };

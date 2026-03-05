@@ -25,6 +25,7 @@ import Posts from './pages/Posts'
 import DashboardServicePage from './pages/dashboard-service/DashboardService'
 import ServiceMyServicesPage from './pages/dashboard-service/MyServices'
 import ServiceBookingsPage from './pages/dashboard-service/Bookings'
+import ServiceClientsPage from './pages/dashboard-service/Clients'
 import ServiceSchedulePage from './pages/dashboard-service/Schedule'
 import ServiceSettingsPage from './pages/dashboard-service/Settings'
 
@@ -94,6 +95,7 @@ export default function App() {
             <Route index element={<DashboardServicePage />} />
             <Route path="services" element={<ServiceMyServicesPage />} />
             <Route path="bookings" element={<ServiceBookingsPage />} />
+            <Route path="clients" element={<ServiceClientsPage />} />
             <Route path="schedule" element={<ServiceSchedulePage />} />
             <Route path="settings" element={<ServiceSettingsPage />} />
           </Route>
