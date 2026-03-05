@@ -433,20 +433,24 @@ const HomeCarousel = memo(function HomeCarousel() {
   }, [])
 
   return (
-    <section className="mb-5" aria-label="Destaques do UaiFood">
-      <div className="relative overflow-hidden rounded-3xl border border-stone-100 shadow-sm">
+    <section className="mb-6" aria-label="Destaques do UaiFood">
+      <div className="relative overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_45px_-35px_rgba(15,23,42,0.55)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_5%,rgba(255,255,255,0.35),transparent_40%)]" />
         <div
-          className="flex transition-transform duration-500 ease-out"
+          className="relative flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${slideAtivo * 100}%)` }}
         >
           {HOME_BANNERS.map((banner) => (
-            <div key={banner.id} className={`min-w-full p-5 text-white bg-linear-to-r ${banner.gradiente}`}>
+            <div key={banner.id} className={`min-w-full px-5 py-6 text-white bg-linear-to-br ${banner.gradiente}`}>
               <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide">
-                UaiFood destaque
+                Curadoria UaiFood
               </span>
-              <h3 className="mt-3 text-xl font-extrabold leading-tight">{banner.titulo}</h3>
-              <p className="mt-1.5 text-sm text-white/90 leading-relaxed">{banner.subtitulo}</p>
-              <p className="mt-3 text-xs font-semibold text-white/95">{banner.destaque}</p>
+              <h3 className="mt-3 text-[1.9rem] font-black leading-[1.05] tracking-tight">{banner.titulo}</h3>
+              <p className="mt-2 text-sm text-white/95 leading-relaxed max-w-[290px]">{banner.subtitulo}</p>
+              <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white/95 rounded-full border border-white/35 px-2.5 py-1">
+                {banner.destaque}
+                <FiChevronRight size={13} />
+              </div>
             </div>
           ))}
         </div>
@@ -458,7 +462,7 @@ const HomeCarousel = memo(function HomeCarousel() {
               type="button"
               onClick={() => setSlideAtivo(idx)}
               aria-label={`Ir para banner ${idx + 1}`}
-              className={`h-2 rounded-full transition-all ${slideAtivo === idx ? 'w-6 bg-white' : 'w-2 bg-white/60 hover:bg-white/80'
+              className={`h-2 rounded-full transition-all ${slideAtivo === idx ? 'w-7 bg-white shadow-sm' : 'w-2 bg-white/65 hover:bg-white/85'
                 }`}
             />
           ))}
@@ -1190,37 +1194,46 @@ export default function HomePage() {
         jsonLd={jsonLd}
       />
 
-      <HomeGreeting
-        saudacaoTexto={saudacao()}
-        cliente={cliente}
-        lojasAbertasCount={lojasAbertas.length}
-        cidadeSelecionada={cidadeSelecionada}
-        cidadeGeo={cidadeGeo}
-        cidadePadrao={cidadePadrao}
-      />
+      <section className="relative mb-5 overflow-hidden rounded-[30px] border border-stone-200 bg-linear-to-b from-white via-white to-stone-50 px-4 py-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.5)]">
+        <span className="pointer-events-none absolute -top-14 -right-16 w-44 h-44 rounded-full bg-red-200/30 blur-3xl" />
+        <span className="pointer-events-none absolute -bottom-20 -left-14 w-40 h-40 rounded-full bg-amber-200/35 blur-3xl" />
 
-      <HomeSearchBar
-        busca={busca}
-        onChangeBusca={setBusca}
-        onClearBusca={() => setBusca('')}
-      />
+        <div className="relative space-y-4">
+          <HomeGreeting
+            saudacaoTexto={saudacao()}
+            cliente={cliente}
+            lojasAbertasCount={lojasAbertas.length}
+            cidadeSelecionada={cidadeSelecionada}
+            cidadeGeo={cidadeGeo}
+            cidadePadrao={cidadePadrao}
+          />
 
-      <Link
-        to="/feed-cidade"
-        className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 flex items-center justify-between hover:bg-red-100 transition-colors"
-      >
-        <div>
-          <p className="text-sm font-extrabold text-red-700">📢 Feed da Cidade</p>
-          <p className="text-xs text-red-600 mt-0.5">Novidades das lojas da sua cidade</p>
+          <HomeSearchBar
+            busca={busca}
+            onChangeBusca={setBusca}
+            onClearBusca={() => setBusca('')}
+          />
+
+          <Link
+            to="/feed-cidade"
+            className="group rounded-2xl border border-red-200 bg-linear-to-r from-red-50 via-white to-red-50 px-4 py-3.5 flex items-center justify-between hover:border-red-300 hover:shadow-sm transition-all"
+          >
+            <div>
+              <p className="text-sm font-black tracking-tight text-red-700">📢 Feed da Cidade</p>
+              <p className="text-xs text-red-600 mt-0.5">Novidades e ofertas das lojas da sua cidade</p>
+            </div>
+            <span className="w-8 h-8 rounded-full border border-red-200 bg-white text-red-600 inline-flex items-center justify-center text-base transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
+          </Link>
+
+          <HomeRanking
+            cidadeId={cidadeRanking?.id || ''}
+            cidadeNome={cidadeRanking?.nome || ''}
+            currentUserId={cliente?.id || ''}
+          />
         </div>
-        <span className="text-red-600 text-lg">→</span>
-      </Link>
-
-      <HomeRanking
-        cidadeId={cidadeRanking?.id || ''}
-        cidadeNome={cidadeRanking?.nome || ''}
-        currentUserId={cliente?.id || ''}
-      />
+      </section>
 
       {mostrarSecoesSecundarias ? (
         <>
