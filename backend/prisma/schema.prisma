@@ -212,6 +212,7 @@ model Clientes {
   postComments  PostComment[]
   postVotes     PostVote[]
   rankingsMensais RankingMensalUsuario[]
+  appointments Appointment[]
 }
 
 model FcmToken {
@@ -654,6 +655,63 @@ model CobrancaPedido {
 
   @@unique([cobranca_id, pedido_id])
   @@index([loja_id, pedido_criado_em])
+}
+
+model UserAccount {
+  id           String   @id @default(cuid())
+  firebase_uid String   @unique
+  email        String   @default("")
+  name         String   @default("")
+  account_type String   @default("store")
+  city         String   @default("")
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  services               Service[]
+  appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
+
+  @@index([account_type])
+  @@index([city])
+  @@map("users")
+}
+
+model Service {
+  id               String   @id @default(cuid())
+  provider_id      String
+  name             String
+  description      String   @default("")
+  price            Decimal  @default(0)
+  duration_minutes Int
+  city             String
+  created_at       DateTime @default(now())
+
+  provider     UserAccount   @relation(fields: [provider_id], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([provider_id, created_at])
+  @@index([city, created_at])
+  @@map("services")
+}
+
+model Appointment {
+  id                    String   @id @default(cuid())
+  service_id            String
+  client_id             String
+  provider_id           String
+  date                  DateTime
+  time                  String
+  status                String   @default("pending")
+  counter_proposed_time String   @default("")
+  created_at            DateTime @default(now())
+
+  service  Service     @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  client   Clientes    @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  provider UserAccount @relation("ProviderAppointments", fields: [provider_id], references: [id], onDelete: Cascade)
+
+  @@index([provider_id, date])
+  @@index([client_id, created_at])
+  @@index([service_id, status])
+  @@map("appointments")
 }
 
 model Promocao {

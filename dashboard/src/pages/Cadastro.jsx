@@ -5,9 +5,10 @@ import { useAuth } from '../context/AuthContext'
 export default function Cadastro() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [accountType, setAccountType] = useState('store')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const { cadastrar } = useAuth()
+  const { cadastrar, registrarTipoConta } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
@@ -16,7 +17,12 @@ export default function Cadastro() {
     setCarregando(true)
     try {
       await cadastrar(email, senha)
-      navigate('/cadastro-loja')
+      await registrarTipoConta({ accountType })
+      if (accountType === 'service') {
+        navigate('/dashboard-service', { replace: true })
+      } else {
+        navigate('/cadastro-loja', { replace: true })
+      }
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setErro('Este e-mail já está em uso. Faça login ou use outro.')
@@ -44,6 +50,35 @@ export default function Cadastro() {
               required
               className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-2">
+              Tipo de conta
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAccountType('store')}
+                className={`border px-3 py-2 text-sm font-medium ${
+                  accountType === 'store'
+                    ? 'border-amber-500 bg-amber-50 text-amber-700'
+                    : 'border-stone-300 text-stone-600'
+                }`}
+              >
+                Loja
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountType('service')}
+                className={`border px-3 py-2 text-sm font-medium ${
+                  accountType === 'service'
+                    ? 'border-amber-500 bg-amber-50 text-amber-700'
+                    : 'border-stone-300 text-stone-600'
+                }`}
+              >
+                Serviço
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">

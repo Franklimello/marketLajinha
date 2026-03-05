@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { getAnalyticsCompat } from './config/firebase'
 import Login from './pages/Login'
+import Cadastro from './pages/Cadastro'
 import CadastroLoja from './pages/CadastroLoja'
 import DashLayout from './components/DashLayout'
+import ServiceDashboardLayout from './components/ServiceDashboardLayout'
 import Dashboard from './pages/Dashboard'
 import MinhaLoja from './pages/MinhaLoja'
 import Produtos from './pages/Produtos'
@@ -20,6 +22,11 @@ import Combos from './pages/Combos'
 import Promocoes from './pages/Promocoes'
 import Stories from './pages/Stories'
 import Posts from './pages/Posts'
+import DashboardServicePage from './pages/dashboard-service/DashboardService'
+import ServiceMyServicesPage from './pages/dashboard-service/MyServices'
+import ServiceBookingsPage from './pages/dashboard-service/Bookings'
+import ServiceSchedulePage from './pages/dashboard-service/Schedule'
+import ServiceSettingsPage from './pages/dashboard-service/Settings'
 
 function AnalyticsTracker() {
   const location = useLocation()
@@ -49,6 +56,11 @@ function AnalyticsTracker() {
   return null
 }
 
+function FallbackRedirect() {
+  const { accountType } = useAuth()
+  return <Navigate to={accountType === 'service' ? '/dashboard-service' : '/pedidos'} replace />
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -56,7 +68,7 @@ export default function App() {
         <AnalyticsTracker />
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/cadastro" element={<CadastroLoja />} />
+          <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/cadastro-loja" element={<CadastroLoja />} />
 
           <Route element={<DashLayout />}>
@@ -78,7 +90,15 @@ export default function App() {
             <Route path="/admin" element={<AdminSistema />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/pedidos" replace />} />
+          <Route path="/dashboard-service" element={<ServiceDashboardLayout />}>
+            <Route index element={<DashboardServicePage />} />
+            <Route path="services" element={<ServiceMyServicesPage />} />
+            <Route path="bookings" element={<ServiceBookingsPage />} />
+            <Route path="schedule" element={<ServiceSchedulePage />} />
+            <Route path="settings" element={<ServiceSettingsPage />} />
+          </Route>
+
+          <Route path="*" element={<FallbackRedirect />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

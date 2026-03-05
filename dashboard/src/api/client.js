@@ -154,4 +154,34 @@ export const api = {
     listarLojistas: () => request('/admin/lojistas'),
     resetSenhaLojista: (id, novaSenha) => request(`/admin/lojistas/${id}/reset-senha`, { method: 'PATCH', body: JSON.stringify({ novaSenha }) }),
   },
+  users: {
+    me: () => request('/users/me'),
+    registerAccountType: (data) => request('/users/register-account-type', { method: 'POST', body: JSON.stringify(data) }),
+    atualizarMe: (data) => request('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
+  },
+  services: {
+    providers: (city) => request(`/services/providers?city=${encodeURIComponent(String(city || ''))}`),
+    providerProfile: (providerId, city) =>
+      request(`/services/providers/${providerId}?city=${encodeURIComponent(String(city || ''))}`),
+    mine: () => request('/services/mine'),
+    criar: (data) => request('/services', { method: 'POST', body: JSON.stringify(data) }),
+    atualizar: (id, data) => request(`/services/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+  appointments: {
+    criar: (data) => request('/appointments', { method: 'POST', body: JSON.stringify(data) }),
+    minhas: () => request('/appointments/mine'),
+    provider: (status = '') =>
+      request(`/appointments/provider${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+    providerAction: (id, data) =>
+      request(`/appointments/${id}/provider-action`, { method: 'PATCH', body: JSON.stringify(data) }),
+    clientResponse: (id, data) =>
+      request(`/appointments/${id}/client-response`, { method: 'PATCH', body: JSON.stringify(data) }),
+    providerSchedule: (dateFrom, dateTo) => {
+      const qs = new URLSearchParams()
+      if (dateFrom) qs.set('date_from', String(dateFrom))
+      if (dateTo) qs.set('date_to', String(dateTo))
+      const sufixo = qs.toString() ? `?${qs.toString()}` : ''
+      return request(`/appointments/provider/schedule${sufixo}`)
+    },
+  },
 }

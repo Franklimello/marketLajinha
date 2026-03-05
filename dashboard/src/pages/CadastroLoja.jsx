@@ -31,7 +31,7 @@ export default function CadastroLoja() {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [cidadesSugestoes, setCidadesSugestoes] = useState([])
-  const { user, loja, cadastrar, atualizarLoja } = useAuth()
+  const { user, loja, cadastrar, atualizarLoja, accountType } = useAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
 
@@ -59,6 +59,10 @@ export default function CadastroLoja() {
 
   if (user && loja) {
     navigate('/pedidos')
+    return null
+  }
+  if (user && accountType === 'service') {
+    navigate('/dashboard-service')
     return null
   }
 

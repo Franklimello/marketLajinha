@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
-import { FiHome, FiSearch, FiFileText, FiUser } from 'react-icons/fi'
+import { FiHome, FiSearch, FiFileText, FiUser, FiBriefcase } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext'
 
 const NAV_ITEMS = [
   { label: 'início', href: '/', icon: FiHome },
   { label: 'busca', href: '/busca', icon: FiSearch },
+  { label: 'serviços', href: '/servicos', icon: FiBriefcase },
   { label: 'pedidos', href: '/pedidos', icon: FiFileText, badge: true },
   { label: 'conta', href: '/perfil', icon: FiUser },
 ]
@@ -24,7 +25,7 @@ export default function Footer() {
         {NAV_ITEMS.map((item) => {
           const { label, href, badge } = item
           const IconComponent = item.icon
-          const isActive = location.pathname === href
+          const isActive = location.pathname === href || location.pathname.startsWith(`${href}/`)
           const count = badge ? pedidosAtivos : 0
           return (
             <Link

@@ -29,7 +29,7 @@ const NAV = [
 ]
 
 export default function DashLayout() {
-  const { user, loja, logout, loading, isSuperAdmin } = useAuth()
+  const { user, loja, logout, loading, isSuperAdmin, accountType } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [menuAberto, setMenuAberto] = useState(false)
@@ -45,10 +45,13 @@ export default function DashLayout() {
   const { canInstall, isIOS, installed, showIOSGuide, promptInstall, dismissIOSGuide } = usePWA()
   const showInstallBtn = canInstall || (isIOS && !installed)
   const isAdminPage = location.pathname.startsWith('/admin')
+  const isServiceAccount = accountType === 'service'
   const redirectPath = loading
     ? null
     : !user
       ? '/login'
+      : isServiceAccount
+        ? '/dashboard-service'
       : (!loja && !isSuperAdmin)
         ? '/cadastro-loja'
         : (!loja && isSuperAdmin && !isAdminPage)

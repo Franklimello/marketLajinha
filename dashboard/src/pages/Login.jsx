@@ -7,11 +7,15 @@ export default function Login() {
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const { user, loja, loading, isSuperAdmin, login } = useAuth()
+  const { user, loja, loading, isSuperAdmin, accountType, login } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (loading || !user) return
+    if (accountType === 'service') {
+      navigate('/dashboard-service', { replace: true })
+      return
+    }
     if (loja) {
       navigate('/pedidos', { replace: true })
       return
@@ -21,7 +25,7 @@ export default function Login() {
       return
     }
     navigate('/cadastro-loja', { replace: true })
-  }, [loading, user, loja, isSuperAdmin, navigate])
+  }, [loading, user, loja, isSuperAdmin, accountType, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()

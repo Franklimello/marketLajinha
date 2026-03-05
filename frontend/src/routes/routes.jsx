@@ -11,6 +11,9 @@ const LoginPage = lazy(() => import('../pages/login.jsx'))
 const CadastroPage = lazy(() => import('../pages/cadastro.jsx'))
 const SobrePage = lazy(() => import('../pages/sobre.jsx'))
 const FeedCidadePage = lazy(() => import('../pages/feedCidade.jsx'))
+const ServicosPage = lazy(() => import('../pages/servicos.jsx'))
+const PrestadorServicoPage = lazy(() => import('../pages/prestadorServico.jsx'))
+const MeusAgendamentosPage = lazy(() => import('../pages/meusAgendamentos.jsx'))
 const MotoboyLogin = lazy(() => import('../pages/motoboy/MotoboyLogin.jsx'))
 const MotoboyPedidos = lazy(() => import('../pages/motoboy/MotoboyPedidos.jsx'))
 
@@ -109,6 +112,9 @@ const router = createBrowserRouter([
       { path: '/cadastro', element: <Lazy><CadastroPage /></Lazy> },
       { path: '/sobre', element: <Lazy><SobrePage /></Lazy> },
       { path: '/feed-cidade', element: <Lazy><FeedCidadePage /></Lazy> },
+      { path: '/servicos', element: <Lazy><ServicosPage /></Lazy> },
+      { path: '/servicos/profissional/:providerId', element: <Lazy><PrestadorServicoPage /></Lazy> },
+      { path: '/meus-agendamentos', element: <Lazy><MeusAgendamentosPage /></Lazy> },
     ],
   },
   { path: '/motoboy', element: <Lazy><MotoboyLogin /></Lazy> },

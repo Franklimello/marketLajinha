@@ -305,6 +305,22 @@ async function criar(data, firebaseDecoded, bodyAdmin = {}) {
           role: 'ADMIN',
         },
       });
+      await prisma.userAccount.upsert({
+        where: { firebase_uid: firebaseDecoded.uid },
+        create: {
+          firebase_uid: firebaseDecoded.uid,
+          email: firebaseDecoded.email || bodyAdmin.email_admin || '',
+          name: firebaseDecoded.name || bodyAdmin.nome_admin || 'Admin',
+          account_type: 'store',
+          city: loja.cidade || '',
+        },
+        update: {
+          email: firebaseDecoded.email || bodyAdmin.email_admin || '',
+          name: firebaseDecoded.name || bodyAdmin.nome_admin || 'Admin',
+          account_type: 'store',
+          city: loja.cidade || '',
+        },
+      });
     } catch (err) {
       // Loja já criada; usuário pode ser vinculado depois
     }

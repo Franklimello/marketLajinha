@@ -143,6 +143,17 @@ export const api = {
   stories: {
     listarAtivas: () => request('/stories/active'),
   },
+  services: {
+    providers: (city) => request(`/services/providers?city=${encodeURIComponent(String(city || ''))}`),
+    providerProfile: (providerId, city) =>
+      request(`/services/providers/${providerId}?city=${encodeURIComponent(String(city || ''))}`),
+  },
+  appointments: {
+    criar: (data) => request('/appointments', { method: 'POST', body: JSON.stringify(data) }),
+    minhas: () => request('/appointments/mine'),
+    clientResponse: (id, data) =>
+      request(`/appointments/${id}/client-response`, { method: 'PATCH', body: JSON.stringify(data) }),
+  },
   pedidos: {
     criar: (data) => request('/pedidos', { method: 'POST', body: JSON.stringify(data) }),
     meus: () => request('/pedidos/meus'),

@@ -19,6 +19,7 @@ export function AuthProvider({ children }) {
   const [loja, setLoja] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [account, setAccount] = useState(null)
   const [messagingEnv, setMessagingEnv] = useState(null)
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         setLoja(null)
         setIsSuperAdmin(false)
+        setAccount(null)
         let idToken = null
         try {
           idToken = await firebaseUser.getIdToken()
@@ -97,6 +99,23 @@ export function AuthProvider({ children }) {
             await createSessionCookie(idToken)
           }
         } catch {}
+
+        let conta = null
+        try {
+          conta = await api.users.me()
+          setAccount(conta)
+        } catch {
+          conta = { accountType: 'store', name: firebaseUser.displayName || firebaseUser.email || 'Usuário' }
+          setAccount(conta)
+        }
+
+        const tipoConta = String(conta?.accountType || 'store')
+        if (tipoConta === 'service') {
+          setLoja(null)
+          setIsSuperAdmin(false)
+          setLoading(false)
+          return
+        }
 
         let minhaLoja = null
         try {
@@ -118,6 +137,7 @@ export function AuthProvider({ children }) {
       } else {
         setLoja(null)
         setIsSuperAdmin(false)
+        setAccount(null)
       }
       setLoading(false)
     })
@@ -156,6 +176,19 @@ export function AuthProvider({ children }) {
   }
 
   const atualizarLoja = (novaLoja) => setLoja(novaLoja)
+  const accountType = String(account?.accountType || 'store')
+
+  const registrarTipoConta = async (payload) => {
+    const conta = await api.users.registerAccountType(payload)
+    setAccount(conta)
+    return conta
+  }
+
+  const atualizarConta = async (payload) => {
+    const conta = await api.users.atualizarMe(payload)
+    setAccount(conta)
+    return conta
+  }
 
   useEffect(() => {
     if (!user) return undefined
@@ -171,7 +204,21 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loja, loading, login, loginGoogle, cadastrar, logout, atualizarLoja, isSuperAdmin }}
+      value={{
+        user,
+        loja,
+        loading,
+        login,
+        loginGoogle,
+        cadastrar,
+        logout,
+        atualizarLoja,
+        isSuperAdmin,
+        account,
+        accountType,
+        registrarTipoConta,
+        atualizarConta,
+      }}
     >
       {children}
     </AuthContext.Provider>
