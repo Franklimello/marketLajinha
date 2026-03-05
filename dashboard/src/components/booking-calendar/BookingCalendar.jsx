@@ -189,8 +189,8 @@ export default function BookingCalendar({
   }
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden max-w-full">
-      <div className="border-b border-stone-200 bg-linear-to-r from-stone-50 to-amber-50 p-4 space-y-3">
+    <section className="rounded-3xl border border-stone-200 bg-white shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] overflow-hidden max-w-full">
+      <div className="border-b border-stone-200 bg-linear-to-r from-stone-50 to-amber-50 p-3 sm:p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             <label className="inline-flex items-center gap-2 text-sm font-medium text-stone-700">
@@ -206,7 +206,7 @@ export default function BookingCalendar({
             <button
               type="button"
               onClick={() => updateSelectedDate(new Date().toISOString().slice(0, 10))}
-              className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+              className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-[11px] font-semibold text-stone-700 hover:bg-stone-50"
             >
               Hoje
             </button>
@@ -234,7 +234,7 @@ export default function BookingCalendar({
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-3 sm:p-4 space-y-4">
         {onToggleDay && (
           <div className="grid sm:grid-cols-2 gap-2">
             <button
@@ -257,7 +257,7 @@ export default function BookingCalendar({
           </div>
         )}
 
-        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4">
+        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-3 sm:gap-4">
           <div className="space-y-2 order-2 lg:order-1">
             <h4 className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
               <FiClock size={14} /> Atendimentos do dia
@@ -289,7 +289,7 @@ export default function BookingCalendar({
           </div>
 
           <div className="space-y-2 order-1 lg:order-2">
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+            <div className="rounded-2xl border border-amber-200 bg-linear-to-br from-amber-50 to-orange-50 p-3">
               <h4 className="text-sm font-semibold text-amber-900">Editor de horarios</h4>
               <p className="text-xs text-amber-800 mt-1">
                 Abra o mapa para tocar nos blocos de horario e liberar ou bloquear rapidamente.

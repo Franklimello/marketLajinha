@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   FiAtSign,
   FiCamera,
@@ -212,8 +212,10 @@ export default function ServiceSettingsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="border border-stone-300 bg-linear-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
+    <div className="space-y-5 pb-24 lg:pb-0">
+      <section className="relative overflow-hidden rounded-3xl border border-stone-300 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-5 shadow-lg">
+        <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-8 -bottom-12 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
         <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Perfil publico</p>
         <h2 className="text-2xl font-semibold mt-1">Configuracoes do prestador</h2>
         <p className="text-sm text-stone-200 mt-2 max-w-2xl">
@@ -222,37 +224,37 @@ export default function ServiceSettingsPage() {
       </section>
 
       <div className="grid xl:grid-cols-[1.4fr_1fr] gap-4 items-start">
-        <form onSubmit={handleSubmit} className="border border-stone-200 bg-white p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="rounded-3xl border border-stone-200 bg-white p-4 sm:p-5 space-y-4 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-stone-900">Dados exibidos para clientes</h3>
+              <h3 className="text-base font-semibold text-stone-900">Dados exibidos para clientes</h3>
               <p className="text-xs text-stone-500 mt-1">Mantenha estas informacoes atualizadas para aumentar a confianca e reduzir duvidas.</p>
             </div>
 
             {hasChanges ? (
-              <span className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">Alteracoes pendentes</span>
+              <span className="text-xs rounded-full border border-amber-200 bg-amber-50 text-amber-700 px-2.5 py-1">Alteracoes pendentes</span>
             ) : (
-              <span className="text-xs border border-green-200 bg-green-50 text-green-700 px-2 py-1">Tudo salvo</span>
+              <span className="text-xs rounded-full border border-green-200 bg-green-50 text-green-700 px-2.5 py-1">Tudo salvo</span>
             )}
           </div>
 
-          <div className="border border-stone-200 bg-stone-50 p-3 space-y-3">
+          <div className="rounded-2xl border border-stone-200 bg-linear-to-br from-stone-50 to-amber-50 p-3.5 space-y-3">
             <p className="text-xs font-semibold text-stone-700 uppercase tracking-wide">Foto ou logo</p>
 
             <div className="flex flex-wrap items-center gap-3">
               {profileImage ? (
-                <img src={profileImage} alt="Preview" className="w-20 h-20 object-cover border border-stone-300" />
+                <img src={profileImage} alt="Preview" className="w-20 h-20 object-cover border border-stone-300 rounded-2xl" />
               ) : (
-                <div className="w-20 h-20 border border-dashed border-stone-300 bg-white text-xs text-stone-400 flex items-center justify-center text-center p-2">
+                <div className="w-20 h-20 border border-dashed border-stone-300 bg-white text-xs text-stone-400 flex items-center justify-center text-center p-2 rounded-2xl">
                   Sem imagem
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700 hover:border-stone-400"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700 hover:border-stone-400 w-full sm:w-auto"
                 >
                   <FiCamera size={14} /> Enviar imagem
                 </button>
@@ -261,7 +263,7 @@ export default function ServiceSettingsPage() {
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="border border-red-300 bg-white px-3 py-2 text-sm text-red-700 hover:border-red-400"
+                    className="rounded-xl border border-red-300 bg-white px-3 py-2 text-sm text-red-700 hover:border-red-400 w-full sm:w-auto"
                   >
                     Remover
                   </button>
@@ -287,7 +289,7 @@ export default function ServiceSettingsPage() {
               <input
                 value={form.name}
                 onChange={(e) => updateField('name', e.target.value)}
-                className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
                 required
                 placeholder="Ex.: Joao Silva - Eletricista"
                 autoComplete="name"
@@ -303,7 +305,7 @@ export default function ServiceSettingsPage() {
                 list="service-city-list"
                 value={form.city}
                 onChange={(e) => updateField('city', e.target.value)}
-                className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
                 placeholder="Ex.: Vitoria"
                 required
                 autoComplete="address-level2"
@@ -330,7 +332,7 @@ export default function ServiceSettingsPage() {
                   key={item}
                   type="button"
                   onClick={() => updateField('city', item)}
-                  className={`border px-2.5 py-1 text-xs ${
+                  className={`rounded-full border px-2.5 py-1 text-xs ${
                     item.toLowerCase() === String(form.city || '').toLowerCase()
                       ? 'border-amber-500 bg-amber-50 text-amber-700'
                       : 'border-stone-300 text-stone-600 hover:border-stone-400'
@@ -350,7 +352,7 @@ export default function ServiceSettingsPage() {
               <input
                 value={form.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
-                className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
                 placeholder="Ex.: (28) 99999-9999"
                 type="tel"
                 inputMode="tel"
@@ -365,7 +367,7 @@ export default function ServiceSettingsPage() {
               <input
                 value={form.whatsapp}
                 onChange={(e) => updateField('whatsapp', e.target.value)}
-                className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
                 placeholder="Ex.: 5528999999999"
                 type="tel"
                 inputMode="numeric"
@@ -382,7 +384,7 @@ export default function ServiceSettingsPage() {
               <input
                 value={form.instagram}
                 onChange={(e) => updateField('instagram', e.target.value)}
-                className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
                 placeholder="Ex.: @seuperfil"
                 autoComplete="off"
               />
@@ -396,7 +398,7 @@ export default function ServiceSettingsPage() {
                 list="business-hours-list"
                 value={form.business_hours}
                 onChange={(e) => updateField('business_hours', e.target.value)}
-                className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+                className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
                 placeholder="Ex.: Seg a Sex, 08:00 as 18:00"
               />
               <datalist id="business-hours-list">
@@ -414,7 +416,7 @@ export default function ServiceSettingsPage() {
             <input
               value={form.address}
               onChange={(e) => updateField('address', e.target.value)}
-              className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+              className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
               placeholder="Ex.: Rua Exemplo, 123 - Centro"
               autoComplete="street-address"
             />
@@ -428,7 +430,7 @@ export default function ServiceSettingsPage() {
               value={form.about}
               onChange={(e) => updateField('about', e.target.value)}
               rows={4}
-              className="w-full border border-stone-300 px-3 py-2 text-sm resize-none focus:outline-none focus:border-amber-500"
+              className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-amber-500 focus:bg-white"
               placeholder="Explique sua experiencia, especialidade, tempo de mercado e como funciona seu atendimento."
               maxLength={1200}
             />
@@ -445,22 +447,33 @@ export default function ServiceSettingsPage() {
           <button
             type="submit"
             disabled={saving || !hasChanges}
-            className="inline-flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+            className="hidden lg:inline-flex items-center gap-1.5 rounded-xl bg-amber-600 text-white px-4 py-2.5 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
           >
             <FiSave size={14} />
             {saving ? 'Salvando...' : 'Salvar alteracoes'}
           </button>
+
+          <div className="fixed inset-x-4 bottom-4 z-40 lg:hidden">
+            <button
+              type="submit"
+              disabled={saving || !hasChanges}
+              className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-amber-600 text-white px-4 py-3 text-sm font-semibold shadow-lg shadow-amber-700/30 hover:bg-amber-700 disabled:opacity-50"
+            >
+              <FiSave size={14} />
+              {saving ? 'Salvando...' : 'Salvar alteracoes'}
+            </button>
+          </div>
         </form>
 
-        <aside className="border border-stone-200 bg-white p-4 space-y-3 xl:sticky xl:top-4">
+        <aside className="rounded-3xl border border-stone-200 bg-white p-4 space-y-3 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] xl:sticky xl:top-4">
           <h3 className="text-sm font-semibold text-stone-900">Preview publico</h3>
 
-          <div className="border border-stone-200 bg-stone-50 p-3 space-y-2">
+          <div className="rounded-2xl border border-stone-200 bg-linear-to-br from-stone-50 to-amber-50 p-3 space-y-2">
             <div className="flex items-start gap-3">
               {profileImage ? (
-                <img src={profileImage} alt="Perfil" className="w-16 h-16 object-cover border border-stone-300" />
+                <img src={profileImage} alt="Perfil" className="w-16 h-16 object-cover border border-stone-300 rounded-xl" />
               ) : (
-                <div className="w-16 h-16 border border-dashed border-stone-300 bg-white text-[11px] text-stone-400 flex items-center justify-center text-center px-1">
+                <div className="w-16 h-16 border border-dashed border-stone-300 bg-white text-[11px] text-stone-400 flex items-center justify-center text-center px-1 rounded-xl">
                   Sem foto
                 </div>
               )}
@@ -478,7 +491,7 @@ export default function ServiceSettingsPage() {
             )}
           </div>
 
-          <div className="border border-stone-200 p-3 space-y-2 text-xs text-stone-600">
+          <div className="rounded-2xl border border-stone-200 p-3 space-y-2 text-xs text-stone-600">
             <p className="font-semibold text-stone-800">Contato exibido para clientes</p>
             <p>Telefone: {normalize(form.phone) || '-'}</p>
             <p>WhatsApp: {normalize(form.whatsapp) || '-'}</p>

@@ -1,4 +1,4 @@
-﻿import { createElement, useEffect, useMemo, useState } from 'react'
+import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   FiCalendar,
   FiCheckCircle,
@@ -102,7 +102,7 @@ function formatRange(from, to) {
 
 function StatCard({ icon, label, value, helper, tone }) {
   return (
-    <article className={`min-w-[175px] rounded-2xl border p-3 shadow-sm ${tone}`}>
+    <article className={`min-w-0 rounded-2xl border p-3 shadow-sm ${tone}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-[11px] uppercase tracking-wide">{label}</p>
         {icon ? createElement(icon, { size: 14 }) : null}
@@ -286,48 +286,48 @@ export default function ServiceSchedulePage() {
   }
 
   return (
-    <div className="space-y-4 pb-20 lg:pb-0">
-      <section className="relative overflow-hidden rounded-2xl border border-stone-300 bg-gradient-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-4 sm:p-5 shadow-lg">
+    <div className="space-y-4 pb-6">
+      <section className="relative overflow-hidden rounded-3xl border border-stone-300 bg-linear-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-4 sm:p-5 shadow-lg">
         <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-300/20 blur-3xl" />
         <div className="pointer-events-none absolute -left-10 -bottom-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
 
         <div className="relative grid xl:grid-cols-[1.2fr_0.9fr] gap-4 items-start">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-amber-200">Agenda premium</p>
-            <h2 className="text-2xl font-semibold mt-1">Controle total dos seus horarios</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold mt-1">Agenda mobile premium</h2>
             <p className="text-sm text-stone-200 mt-2 max-w-2xl">
-              Visual bonito e rapido para liberar vagas, bloquear intervalos e manter uma agenda profissional no mobile.
+              Visual limpo e rapido para liberar vagas, bloquear intervalos e manter sua rotina sempre organizada no celular.
             </p>
 
             <div className="flex flex-wrap gap-2 mt-3">
-              <span className="text-[11px] border border-white/25 bg-white/10 px-2.5 py-1">1. Escolha periodo</span>
-              <span className="text-[11px] border border-white/25 bg-white/10 px-2.5 py-1">2. Ajuste disponibilidade</span>
-              <span className="text-[11px] border border-white/25 bg-white/10 px-2.5 py-1">3. Confirme agenda do dia</span>
+              <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">1. Periodo</span>
+              <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">2. Disponibilidade</span>
+              <span className="text-[11px] rounded-full border border-white/25 bg-white/10 px-2.5 py-1">3. Confirmacao</span>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 space-y-3">
             <p className="text-xs uppercase tracking-wide text-amber-200">Visualizacao do periodo</p>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 onClick={() => setViewMode('day')}
-                className={`rounded-xl border px-2 py-2 text-xs font-semibold transition-colors ${viewMode === 'day' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
+                className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-colors ${viewMode === 'day' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Dia
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('week')}
-                className={`rounded-xl border px-2 py-2 text-xs font-semibold transition-colors ${viewMode === 'week' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
+                className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-colors ${viewMode === 'week' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Semana
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('month')}
-                className={`rounded-xl border px-2 py-2 text-xs font-semibold transition-colors ${viewMode === 'month' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
+                className={`rounded-xl border px-2 py-2 text-[11px] font-semibold transition-colors ${viewMode === 'month' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Mes
               </button>
@@ -370,7 +370,7 @@ export default function ServiceSchedulePage() {
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-stone-200 inline-flex items-center gap-1">
+                <p className="text-[11px] text-stone-200 inline-flex items-center gap-1">
                 <FiColumns size={12} />
                 {viewMode === 'month' ? formatMonth(month) : formatRange(range.from, range.to)}
               </p>
@@ -387,7 +387,7 @@ export default function ServiceSchedulePage() {
         </div>
       </section>
 
-      <section className="flex gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-2 xl:grid-cols-4 md:overflow-visible md:pb-0">
+      <section className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3">
         {metrics.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
