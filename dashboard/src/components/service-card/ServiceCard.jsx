@@ -1,4 +1,4 @@
-import { FiClock, FiEdit2, FiImage, FiMapPin, FiTag, FiTrash2 } from 'react-icons/fi'
+﻿import { FiClock, FiEdit2, FiImage, FiMapPin, FiTag, FiTrash2 } from 'react-icons/fi'
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-BR', {
@@ -22,15 +22,16 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
       <div className="flex items-start justify-between gap-3">
         <div>
           <h4 className="text-sm font-semibold text-stone-900">{service.name}</h4>
-          <p className="text-xs text-stone-500 mt-1">Criado em {formatCreatedAt(service.created_at)}</p>
+          <p className="text-xs text-stone-500 mt-1">Cadastrado em {formatCreatedAt(service.created_at)}</p>
         </div>
+
         <span className="text-xs border border-stone-200 bg-stone-50 text-stone-600 px-2 py-1 inline-flex items-center gap-1">
           <FiMapPin size={11} /> {service.city || 'Cidade'}
         </span>
       </div>
 
       <p className="text-sm text-stone-600 whitespace-pre-wrap min-h-10">
-        {service.description || 'Sem descrição informada.'}
+        {service.description || 'Sem descricao informada.'}
       </p>
 
       {service.category && (
@@ -44,6 +45,7 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
           <p className="text-[11px] uppercase tracking-wide text-stone-500 inline-flex items-center gap-1">
             <FiImage size={11} /> Imagens ({service.images_urls.length}/10)
           </p>
+
           <div className="flex gap-2 overflow-x-auto pb-1">
             {service.images_urls.map((url) => (
               <img key={url} src={url} alt={service.name} className="w-16 h-16 object-cover border border-stone-200 shrink-0" />
@@ -59,13 +61,15 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
           </p>
           <p className="text-sm font-semibold text-stone-900 mt-1 font-numeric">{formatCurrency(service.price)}</p>
         </div>
+
         <div className="border border-stone-200 bg-stone-50 p-2.5">
           <p className="text-[11px] uppercase tracking-wide text-stone-500 inline-flex items-center gap-1">
-            <FiClock size={11} /> Duração
+            <FiClock size={11} /> Duracao
           </p>
           <p className="text-sm font-semibold text-stone-900 mt-1 font-numeric">{service.duration_minutes} min</p>
         </div>
       </div>
+
       <div className="pt-1 flex items-center gap-2">
         <button
           type="button"
@@ -74,6 +78,7 @@ export default function ServiceCard({ service, onEdit, onDelete, deleting = fals
         >
           <FiEdit2 size={12} /> Editar
         </button>
+
         <button
           type="button"
           onClick={() => onDelete?.(service)}

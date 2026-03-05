@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   FiAtSign,
   FiCamera,
@@ -28,17 +28,28 @@ const INITIAL_FORM = {
   business_hours: '',
 }
 
+const BUSINESS_HOURS_SUGGESTIONS = [
+  'Seg a Sex, 08:00 as 18:00',
+  'Seg a Sab, 09:00 as 19:00',
+  'Sabado, 08:00 as 14:00',
+  'Atendimento com hora marcada',
+]
+
 function uniqueCities(list) {
   const seen = new Set()
   const result = []
+
   for (const item of list || []) {
     const nome = String(item?.nome || '').trim()
     if (!nome) continue
+
     const key = nome.toLowerCase()
     if (seen.has(key)) continue
+
     seen.add(key)
     result.push(nome)
   }
+
   return result.sort((a, b) => a.localeCompare(b, 'pt-BR'))
 }
 
@@ -80,6 +91,7 @@ export default function ServiceSettingsPage() {
           api.cidades.listar('MG').catch(() => []),
           api.cidades.listar('ES').catch(() => []),
         ])
+
         if (cancelled) return
         setCities(uniqueCities([...(Array.isArray(mg) ? mg : []), ...(Array.isArray(es) ? es : [])]))
       } catch {
@@ -171,7 +183,6 @@ export default function ServiceSettingsPage() {
 
       if (imageFile) {
         const providerId = normalize(account?.id) || 'prestador'
-        // Regra atual do Storage aceita somente: produtos/{lojaId}/{fileName}
         const fileName = `perfil-${providerId}-${Date.now()}.webp`
         const path = `produtos/${providerId}/${fileName}`
         profileImageUrl = await uploadImagem(imageFile, path, { isLogo: true })
@@ -203,10 +214,10 @@ export default function ServiceSettingsPage() {
   return (
     <div className="space-y-4">
       <section className="border border-stone-300 bg-linear-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
-        <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Perfil profissional</p>
-        <h2 className="text-2xl font-semibold mt-1">Configuracoes</h2>
+        <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Perfil publico</p>
+        <h2 className="text-2xl font-semibold mt-1">Configuracoes do prestador</h2>
         <p className="text-sm text-stone-200 mt-2 max-w-2xl">
-          Atualize sua vitrine publica com imagem, contatos e detalhes que ajudam clientes a confiar no atendimento.
+          Preencha os campos abaixo para que o cliente entenda quem voce atende, onde e como entrar em contato.
         </p>
       </section>
 
@@ -214,9 +225,10 @@ export default function ServiceSettingsPage() {
         <form onSubmit={handleSubmit} className="border border-stone-200 bg-white p-4 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-stone-900">Dados publicos para clientes</h3>
-              <p className="text-xs text-stone-500 mt-1">Essas informacoes aparecem na pagina do prestador no aplicativo.</p>
+              <h3 className="text-sm font-semibold text-stone-900">Dados exibidos para clientes</h3>
+              <p className="text-xs text-stone-500 mt-1">Mantenha estas informacoes atualizadas para aumentar a confianca e reduzir duvidas.</p>
             </div>
+
             {hasChanges ? (
               <span className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">Alteracoes pendentes</span>
             ) : (
@@ -225,7 +237,7 @@ export default function ServiceSettingsPage() {
           </div>
 
           <div className="border border-stone-200 bg-stone-50 p-3 space-y-3">
-            <p className="text-xs font-semibold text-stone-700 uppercase tracking-wide">Imagem de perfil ou logo</p>
+            <p className="text-xs font-semibold text-stone-700 uppercase tracking-wide">Foto ou logo</p>
 
             <div className="flex flex-wrap items-center gap-3">
               {profileImage ? (
@@ -270,27 +282,31 @@ export default function ServiceSettingsPage() {
           <div className="grid md:grid-cols-2 gap-3">
             <label className="block space-y-1.5">
               <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
-                <FiUser size={13} /> Nome publico
+                <FiUser size={13} /> Nome publico (obrigatorio)
               </span>
               <input
                 value={form.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
                 required
+                placeholder="Ex.: Joao Silva - Eletricista"
+                autoComplete="name"
+                maxLength={80}
               />
             </label>
 
             <label className="block space-y-1.5">
               <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
-                <FiMapPin size={13} /> Cidade
+                <FiMapPin size={13} /> Cidade (obrigatorio)
               </span>
               <input
                 list="service-city-list"
                 value={form.city}
                 onChange={(e) => updateField('city', e.target.value)}
                 className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-                placeholder="Selecione ou digite sua cidade"
+                placeholder="Ex.: Vitoria"
                 required
+                autoComplete="address-level2"
               />
               <datalist id="service-city-list">
                 {cities.map((item) => (
@@ -302,12 +318,12 @@ export default function ServiceSettingsPage() {
 
           {!cityAvailable && (
             <p className="text-xs text-amber-700 inline-flex items-center gap-1.5">
-              <FiInfo size={12} /> Cidade fora da lista padrao. Confira se esta correta.
+              <FiInfo size={12} /> Cidade fora da lista padrao. Confira se o nome esta correto.
             </p>
           )}
 
           <div className="space-y-1.5">
-            <p className="text-xs text-stone-500">Sugestoes rapidas</p>
+            <p className="text-xs text-stone-500">Sugestoes rapidas de cidade</p>
             <div className="flex flex-wrap gap-2">
               {suggestedCities.map((item) => (
                 <button
@@ -336,6 +352,9 @@ export default function ServiceSettingsPage() {
                 onChange={(e) => updateField('phone', e.target.value)}
                 className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
                 placeholder="Ex.: (28) 99999-9999"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
               />
             </label>
 
@@ -348,6 +367,9 @@ export default function ServiceSettingsPage() {
                 onChange={(e) => updateField('whatsapp', e.target.value)}
                 className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
                 placeholder="Ex.: 5528999999999"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
               />
             </label>
           </div>
@@ -362,6 +384,7 @@ export default function ServiceSettingsPage() {
                 onChange={(e) => updateField('instagram', e.target.value)}
                 className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
                 placeholder="Ex.: @seuperfil"
+                autoComplete="off"
               />
             </label>
 
@@ -370,11 +393,17 @@ export default function ServiceSettingsPage() {
                 <FiClock size={13} /> Horario de atendimento
               </span>
               <input
+                list="business-hours-list"
                 value={form.business_hours}
                 onChange={(e) => updateField('business_hours', e.target.value)}
                 className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-                placeholder="Ex.: Seg-Sex 08:00 as 18:00"
+                placeholder="Ex.: Seg a Sex, 08:00 as 18:00"
               />
+              <datalist id="business-hours-list">
+                {BUSINESS_HOURS_SUGGESTIONS.map((item) => (
+                  <option key={item} value={item} />
+                ))}
+              </datalist>
             </label>
           </div>
 
@@ -386,7 +415,8 @@ export default function ServiceSettingsPage() {
               value={form.address}
               onChange={(e) => updateField('address', e.target.value)}
               className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-              placeholder="Ex.: Centro, Rua Exemplo, 123"
+              placeholder="Ex.: Rua Exemplo, 123 - Centro"
+              autoComplete="street-address"
             />
           </label>
 
@@ -399,7 +429,8 @@ export default function ServiceSettingsPage() {
               onChange={(e) => updateField('about', e.target.value)}
               rows={4}
               className="w-full border border-stone-300 px-3 py-2 text-sm resize-none focus:outline-none focus:border-amber-500"
-              placeholder="Descreva sua experiencia, especialidades e diferenciais."
+              placeholder="Explique sua experiencia, especialidade, tempo de mercado e como funciona seu atendimento."
+              maxLength={1200}
             />
           </label>
 

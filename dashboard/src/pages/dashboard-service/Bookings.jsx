@@ -1,4 +1,4 @@
-import { createElement, useEffect, useMemo, useState } from 'react'
+﻿import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   FiCalendar,
   FiCheckCircle,
@@ -11,13 +11,13 @@ import { api } from '../../api/client'
 import BookingRequestCard from '../../components/booking-request-card/BookingRequestCard'
 
 const FILTERS = [
-  { value: 'all', label: 'Todos' },
+  { value: 'all', label: 'Todos os status' },
   { value: 'pending', label: 'Pendentes' },
-  { value: 'counter_offer', label: 'Contraproposta' },
+  { value: 'counter_offer', label: 'Contrapropostas' },
   { value: 'accepted', label: 'Aceitos' },
   { value: 'confirmed', label: 'Confirmados' },
-  { value: 'completed', label: 'Concluídos' },
-  { value: 'rejected', label: 'Recusados' },
+  { value: 'completed', label: 'Concluidos' },
+  { value: 'rejected', label: 'Recusados/cancelados' },
 ]
 
 function statusCounts(bookings) {
@@ -55,6 +55,7 @@ export default function ServiceBookingsPage() {
   async function loadBookings() {
     setLoading(true)
     setError('')
+
     try {
       const res = await api.appointments.provider()
       setBookings(Array.isArray(res) ? res : [])
@@ -72,6 +73,7 @@ export default function ServiceBookingsPage() {
   async function runAction(id, payload) {
     setBusyId(id)
     setError('')
+
     try {
       const updated = await api.appointments.providerAction(id, payload)
       setBookings((prev) => prev.map((item) => (item.id === id ? updated : item)))
@@ -85,6 +87,7 @@ export default function ServiceBookingsPage() {
   async function cancelBooking(id) {
     setBusyId(id)
     setError('')
+
     try {
       const updated = await api.appointments.providerCancel(id, {})
       setBookings((prev) => prev.map((item) => (item.id === id ? updated : item)))
@@ -98,6 +101,7 @@ export default function ServiceBookingsPage() {
   async function completeBooking(id) {
     setBusyId(id)
     setError('')
+
     try {
       const updated = await api.appointments.providerComplete(id)
       setBookings((prev) => prev.map((item) => (item.id === id ? updated : item)))
@@ -115,7 +119,7 @@ export default function ServiceBookingsPage() {
       {
         label: 'Pendentes',
         value: counts.pending,
-        helper: 'Aguardando retorno',
+        helper: 'Aguardando sua resposta',
         icon: FiClock,
         tone: 'border-blue-200 bg-blue-50 text-blue-800',
       },
@@ -127,16 +131,16 @@ export default function ServiceBookingsPage() {
         tone: 'border-green-200 bg-green-50 text-green-800',
       },
       {
-        label: 'Concluídos',
+        label: 'Concluidos',
         value: counts.completed,
-        helper: 'Finalizados com sucesso',
+        helper: 'Atendimentos finalizados',
         icon: FiCheckCircle,
         tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
       },
       {
         label: 'Negociacao',
         value: counts.counter_offer,
-        helper: 'Com contraproposta',
+        helper: 'Com contraproposta ativa',
         icon: FiRotateCw,
         tone: 'border-amber-200 bg-amber-50 text-amber-800',
       },
@@ -164,10 +168,10 @@ export default function ServiceBookingsPage() {
       <section className="border border-stone-300 bg-linear-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Central de solicitacoes</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Solicitacoes recebidas</p>
             <h2 className="text-2xl font-semibold mt-1">Agendamentos</h2>
             <p className="text-sm text-stone-200 mt-2 max-w-2xl">
-              Responda pedidos rapidamente para manter agenda ocupada e reduzir perda de conversao.
+              Responda pedidos rapidamente para manter sua agenda organizada e com mais conversao.
             </p>
           </div>
 
@@ -176,12 +180,12 @@ export default function ServiceBookingsPage() {
             onClick={loadBookings}
             className="inline-flex items-center gap-1.5 border border-white/30 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
           >
-            <FiRefreshCcw size={14} /> Atualizar
+            <FiRefreshCcw size={14} /> Atualizar lista
           </button>
         </div>
       </section>
 
-      <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <section className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
         {metrics.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
@@ -190,8 +194,9 @@ export default function ServiceBookingsPage() {
       <section className="border border-stone-200 bg-white p-3 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
-            <FiCalendar size={14} /> Filtros de status
+            <FiCalendar size={14} /> Filtrar por status
           </p>
+
           <span className="text-xs text-stone-500">
             {orderedBookings.length} de {counts.all} exibidos
           </span>
@@ -242,4 +247,3 @@ export default function ServiceBookingsPage() {
     </div>
   )
 }
-

@@ -1,4 +1,4 @@
-import { createElement, useEffect, useMemo, useState } from 'react'
+﻿import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   FiCalendar,
   FiCheckCircle,
@@ -14,10 +14,12 @@ import BookingCalendar from '../../components/booking-calendar/BookingCalendar'
 function monthBounds(monthValue) {
   const raw = String(monthValue || '')
   const [year, month] = raw.split('-').map(Number)
+
   if (!year || !month) {
     const now = new Date()
     const y = now.getFullYear()
     const m = now.getMonth() + 1
+
     return {
       from: `${y}-${String(m).padStart(2, '0')}-01`,
       to: `${y}-${String(m).padStart(2, '0')}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`,
@@ -46,6 +48,7 @@ function formatMonth(monthValue) {
   const raw = String(monthValue || '')
   const [year, month] = raw.split('-').map(Number)
   if (!year || !month) return 'Mes atual'
+
   return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', {
     month: 'long',
     year: 'numeric',
@@ -67,12 +70,14 @@ function weekBounds(dateValue) {
     const today = dateKey(new Date())
     return { from: today, to: today }
   }
+
   const start = new Date(base)
   const day = start.getDay()
   const diffToMonday = day === 0 ? -6 : 1 - day
   start.setDate(start.getDate() + diffToMonday)
   const end = new Date(start)
   end.setDate(start.getDate() + 6)
+
   return { from: dateKey(start), to: dateKey(end) }
 }
 
@@ -83,11 +88,23 @@ function shiftDate(dateValue, diffDays) {
   return dateKey(base)
 }
 
+function formatDate(value) {
+  if (!value) return '-'
+  const dt = new Date(`${value}T00:00:00`)
+  if (!Number.isFinite(dt.getTime())) return String(value)
+  return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function formatRange(from, to) {
+  if (!from || !to) return '-'
+  return `${formatDate(from)} ate ${formatDate(to)}`
+}
+
 function StatCard({ icon, label, value, helper, tone }) {
   return (
-    <article className={`border p-3 ${tone}`}>
+    <article className={`min-w-[175px] rounded-2xl border p-3 shadow-sm ${tone}`}>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs uppercase tracking-wide">{label}</p>
+        <p className="text-[11px] uppercase tracking-wide">{label}</p>
         {icon ? createElement(icon, { size: 14 }) : null}
       </div>
       <p className="text-2xl font-semibold mt-1 font-numeric">{value}</p>
@@ -123,6 +140,7 @@ export default function ServiceSchedulePage() {
     async function loadSchedule() {
       setLoading(true)
       setError('')
+
       try {
         const res = await api.appointments.providerSchedule(range.from, range.to)
         if (cancelled) return
@@ -183,10 +201,12 @@ export default function ServiceSchedulePage() {
   async function handleToggleDay({ date, occupied }) {
     setBusyDayAction(true)
     setError('')
+
     try {
       const res = await api.appointments.providerUpdateDay({ date, occupied })
       const updatedDay = String(res?.date || date || '')
       const blockedDayList = Array.isArray(res?.blocked_slots_current_day) ? res.blocked_slots_current_day : []
+
       setBlockedSlots((prev) => {
         const others = prev.filter((item) => String(item.date) !== updatedDay)
         return [...others, ...blockedDayList]
@@ -212,7 +232,7 @@ export default function ServiceSchedulePage() {
         value: appointments.length,
         helper: 'Total no periodo',
         icon: FiCalendar,
-        tone: 'border-stone-300 bg-stone-100 text-stone-800',
+        tone: 'border-stone-300 bg-white text-stone-800',
       },
       {
         label: 'Confirmados',
@@ -231,60 +251,94 @@ export default function ServiceSchedulePage() {
       {
         label: 'Bloqueios',
         value: blockedSlots.length,
-        helper: `${occupiedDays} dias com ocupacao`,
+        helper: `${occupiedDays} dia(s) com bloqueio`,
         icon: FiSlash,
         tone: 'border-red-200 bg-red-50 text-red-800',
       },
     ]
   }, [appointments, blockedSlots])
 
+  function movePeriod(diff) {
+    if (viewMode === 'month') {
+      const nextMonth = shiftMonth(month, diff)
+      setMonth(nextMonth)
+      setDayRef(`${nextMonth}-01`)
+      return
+    }
+
+    if (viewMode === 'week') {
+      setDayRef((prev) => shiftDate(prev, diff * 7))
+      return
+    }
+
+    setDayRef((prev) => shiftDate(prev, diff))
+  }
+
+  function goToToday() {
+    const today = new Date()
+    setMonth(today.toISOString().slice(0, 7))
+    setDayRef(dateKey(today))
+  }
+
+  function handleMonthChange(value) {
+    setMonth(value)
+    if (value) setDayRef(`${value}-01`)
+  }
+
   return (
-    <div className="space-y-4">
-      <section className="border border-stone-300 bg-linear-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-4 pb-20 lg:pb-0">
+      <section className="relative overflow-hidden rounded-2xl border border-stone-300 bg-gradient-to-br from-stone-900 via-stone-800 to-amber-700 text-white p-4 sm:p-5 shadow-lg">
+        <div className="pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-amber-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 -bottom-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+
+        <div className="relative grid xl:grid-cols-[1.2fr_0.9fr] gap-4 items-start">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Planejamento operacional</p>
-            <h2 className="text-2xl font-semibold mt-1">Agenda</h2>
+            <p className="text-xs uppercase tracking-[0.2em] text-amber-200">Agenda premium</p>
+            <h2 className="text-2xl font-semibold mt-1">Controle total dos seus horarios</h2>
             <p className="text-sm text-stone-200 mt-2 max-w-2xl">
-              Clique no mapa para marcar horarios livres (verde) e ocupados (vermelho).
+              Visual bonito e rapido para liberar vagas, bloquear intervalos e manter uma agenda profissional no mobile.
             </p>
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className="text-[11px] border border-white/25 bg-white/10 px-2.5 py-1">1. Escolha periodo</span>
+              <span className="text-[11px] border border-white/25 bg-white/10 px-2.5 py-1">2. Ajuste disponibilidade</span>
+              <span className="text-[11px] border border-white/25 bg-white/10 px-2.5 py-1">3. Confirme agenda do dia</span>
+            </div>
           </div>
 
-          <div className="border border-white/25 bg-white/10 p-2.5">
-            <p className="text-xs uppercase tracking-wide text-amber-200 mb-2">Periodo selecionado</p>
-            <div className="flex items-center gap-2 mb-2">
+          <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm p-3 space-y-3">
+            <p className="text-xs uppercase tracking-wide text-amber-200">Visualizacao do periodo</p>
+
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setViewMode('day')}
-                className={`border px-2 py-1 text-xs ${viewMode === 'day' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white'}`}
+                className={`rounded-xl border px-2 py-2 text-xs font-semibold transition-colors ${viewMode === 'day' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Dia
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('week')}
-                className={`border px-2 py-1 text-xs ${viewMode === 'week' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white'}`}
+                className={`rounded-xl border px-2 py-2 text-xs font-semibold transition-colors ${viewMode === 'week' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
                 Semana
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('month')}
-                className={`border px-2 py-1 text-xs ${viewMode === 'month' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white'}`}
+                className={`rounded-xl border px-2 py-2 text-xs font-semibold transition-colors ${viewMode === 'month' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-white/30 bg-white/10 text-white hover:bg-white/20'}`}
               >
-                Mês
+                Mes
               </button>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
               <button
                 type="button"
-                onClick={() => {
-                  if (viewMode === 'month') setMonth((prev) => shiftMonth(prev, -1))
-                  else if (viewMode === 'week') setDayRef((prev) => shiftDate(prev, -7))
-                  else setDayRef((prev) => shiftDate(prev, -1))
-                }}
-                className="inline-flex items-center justify-center border border-white/30 bg-white/10 w-8 h-8 hover:bg-white/20"
-                aria-label="Mes anterior"
+                onClick={() => movePeriod(-1)}
+                className="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 w-10 h-10 hover:bg-white/20"
+                aria-label="Periodo anterior"
               >
                 <FiChevronLeft size={16} />
               </button>
@@ -293,53 +347,62 @@ export default function ServiceSchedulePage() {
                 <input
                   type="month"
                   value={month}
-                  onChange={(e) => setMonth(e.target.value)}
-                  className="border border-white/30 bg-white/10 px-3 py-1.5 text-sm text-white"
+                  onChange={(e) => handleMonthChange(e.target.value)}
+                  className="rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white"
                 />
               ) : (
                 <input
                   type="date"
                   value={dayRef}
                   onChange={(e) => setDayRef(e.target.value)}
-                  className="border border-white/30 bg-white/10 px-3 py-1.5 text-sm text-white"
+                  className="rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm text-white"
                 />
               )}
 
               <button
                 type="button"
-                onClick={() => {
-                  if (viewMode === 'month') setMonth((prev) => shiftMonth(prev, 1))
-                  else if (viewMode === 'week') setDayRef((prev) => shiftDate(prev, 7))
-                  else setDayRef((prev) => shiftDate(prev, 1))
-                }}
-                className="inline-flex items-center justify-center border border-white/30 bg-white/10 w-8 h-8 hover:bg-white/20"
-                aria-label="Proximo mes"
+                onClick={() => movePeriod(1)}
+                className="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 w-10 h-10 hover:bg-white/20"
+                aria-label="Proximo periodo"
               >
                 <FiChevronRight size={16} />
               </button>
             </div>
-            <p className="text-xs text-stone-200 mt-2 inline-flex items-center gap-1">
-              <FiColumns size={12} />
-              {viewMode === 'month' ? formatMonth(month) : `${range.from} até ${range.to}`}
-            </p>
+
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-stone-200 inline-flex items-center gap-1">
+                <FiColumns size={12} />
+                {viewMode === 'month' ? formatMonth(month) : formatRange(range.from, range.to)}
+              </p>
+
+              <button
+                type="button"
+                onClick={goToToday}
+                className="rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-white/20"
+              >
+                Ir para hoje
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <section className="flex gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-2 xl:grid-cols-4 md:overflow-visible md:pb-0">
         {metrics.map((item) => (
           <StatCard key={item.label} {...item} />
         ))}
       </section>
 
-      {error && <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
       {loading ? (
-        <div className="border border-stone-200 bg-white p-4 text-sm text-stone-500">Carregando agenda...</div>
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 text-sm text-stone-500">Carregando agenda...</div>
       ) : (
         <BookingCalendar
           appointments={appointments}
           blockedSlots={blockedSlots}
+          selectedDate={dayRef}
+          onSelectedDateChange={setDayRef}
           onToggleSlot={handleToggleSlot}
           onToggleDay={handleToggleDay}
           busySlotKey={busySlotKey}
@@ -349,4 +412,3 @@ export default function ServiceSchedulePage() {
     </div>
   )
 }
-

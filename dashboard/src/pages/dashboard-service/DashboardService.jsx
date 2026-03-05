@@ -1,8 +1,9 @@
-import { createElement, useEffect, useMemo, useState } from 'react'
+﻿import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   FiAlertCircle,
   FiBriefcase,
   FiCalendar,
+  FiCheckCircle,
   FiClock,
   FiTrendingUp,
   FiUsers,
@@ -22,7 +23,7 @@ function statusLabel(status) {
     accepted: 'Aceito',
     counter_offer: 'Contraproposta',
     confirmed: 'Confirmado',
-    completed: 'Concluído',
+    completed: 'Concluido',
     rejected: 'Recusado',
     cancelled: 'Cancelado',
   }
@@ -45,6 +46,7 @@ function MetricCard({ label, value, icon, description }) {
         <p className="text-3xl font-semibold text-stone-900 leading-none mt-1 font-numeric">{value}</p>
         <p className="text-xs text-stone-500 mt-2">{description}</p>
       </div>
+
       <div className="w-9 h-9 border border-stone-200 bg-stone-50 text-stone-700 inline-flex items-center justify-center shrink-0">
         {icon ? createElement(icon, { size: 17 }) : null}
       </div>
@@ -64,6 +66,7 @@ export default function DashboardServicePage() {
     async function load() {
       setLoading(true)
       setError('')
+
       try {
         const [servicesRes, bookingsRes] = await Promise.all([
           api.services.mine(),
@@ -75,7 +78,7 @@ export default function DashboardServicePage() {
         setBookings(Array.isArray(bookingsRes) ? bookingsRes : [])
       } catch (err) {
         if (!canceled) {
-          setError(err.message || 'Nao foi possivel carregar o painel de servicos.')
+          setError(err.message || 'Nao foi possivel carregar o painel do prestador.')
         }
       } finally {
         if (!canceled) setLoading(false)
@@ -92,6 +95,7 @@ export default function DashboardServicePage() {
     const counter = bookings.filter((b) => b.status === 'counter_offer').length
     const rejected = bookings.filter((b) => b.status === 'rejected' || b.status === 'cancelled').length
     const completed = bookings.filter((b) => b.status === 'completed').length
+
     return { pending, active, counter, rejected, completed }
   }, [bookings])
 
@@ -108,7 +112,7 @@ export default function DashboardServicePage() {
   if (loading) {
     return (
       <div className="border border-stone-200 bg-white p-6 text-sm text-stone-500">
-        Carregando visao geral premium...
+        Carregando visao geral...
       </div>
     )
   }
@@ -116,10 +120,10 @@ export default function DashboardServicePage() {
   return (
     <div className="space-y-4">
       <section className="border border-stone-300 bg-gradient-to-r from-stone-900 via-stone-800 to-amber-700 text-white p-5">
-        <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Painel Executivo</p>
-        <h2 className="text-2xl font-semibold mt-1">Painel de Servicos</h2>
+        <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Visao geral</p>
+        <h2 className="text-2xl font-semibold mt-1">Resumo do seu painel</h2>
         <p className="text-sm text-stone-200 mt-2 max-w-2xl">
-          Monitore operação, entenda demanda da agenda e priorize os próximos atendimentos em poucos cliques.
+          Acompanhe servicos, pedidos pendentes e proximos atendimentos em um unico lugar.
         </p>
       </section>
 
@@ -129,59 +133,64 @@ export default function DashboardServicePage() {
         </div>
       )}
 
-      <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <section className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
         <MetricCard
-          label="Serviços"
+          label="Servicos"
           value={services.length}
           icon={FiBriefcase}
-          description="Catálogo ativo"
+          description="Total cadastrado"
         />
+
         <MetricCard
           label="Pendentes"
           value={metrics.pending}
           icon={FiCalendar}
-          description="Aguardando retorno"
+          description="Precisam de resposta"
         />
+
         <MetricCard
-          label="Ativos"
+          label="Em andamento"
           value={metrics.active}
           icon={FiClock}
-          description="Aceitos e confirmados"
+          description="Aceitos ou confirmados"
         />
+
         <MetricCard
-          label="Concluídos"
+          label="Concluidos"
           value={metrics.completed}
           icon={FiCheckCircle}
           description="Atendimentos finalizados"
         />
+
         <MetricCard
-          label="Risco"
+          label="Atencao"
           value={metrics.counter + metrics.rejected}
           icon={FiTrendingUp}
-          description="Contrapropostas e recusas"
+          description="Contraproposta, recusa ou cancelamento"
         />
       </section>
 
       <section className="grid xl:grid-cols-[1.4fr_1fr] gap-4">
         <div className="border border-stone-200 bg-white p-4">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h3 className="text-sm font-semibold text-stone-900">Próximos atendimentos</h3>
+            <h3 className="text-sm font-semibold text-stone-900">Proximos atendimentos</h3>
             <span className="text-xs text-stone-500">{nextBookings.length} exibido(s)</span>
           </div>
 
           {nextBookings.length === 0 ? (
-            <p className="text-sm text-stone-500">Sem agendamentos ativos no momento.</p>
+            <p className="text-sm text-stone-500">Sem agendamentos ativos. Cadastre servicos e libere sua agenda.</p>
           ) : (
             <div className="space-y-2">
               {nextBookings.map((booking) => (
                 <article key={booking.id} className="border border-stone-200 p-3 flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-stone-900">{booking.client?.nome || 'Cliente'}</p>
-                    <p className="text-sm text-stone-600">{booking.service?.name || 'Serviço'}</p>
+                    <p className="text-sm text-stone-600">{booking.service?.name || 'Servico'}</p>
                     <p className="text-xs text-stone-500 mt-1">
-                      {formatDate(booking.date)} • {booking.effective_time || booking.time}
+                      {formatDate(booking.date)} - {booking.effective_time || booking.time || '-'}
                     </p>
                   </div>
+
                   <span className={`text-[11px] border px-2 py-1 ${statusChipClass(booking.status)}`}>
                     {statusLabel(booking.status)}
                   </span>
@@ -192,20 +201,24 @@ export default function DashboardServicePage() {
         </div>
 
         <div className="border border-stone-200 bg-white p-4">
-          <h3 className="text-sm font-semibold text-stone-900 mb-3">Pulso operacional</h3>
+          <h3 className="text-sm font-semibold text-stone-900 mb-3">Indicadores rapidos</h3>
+
           <div className="space-y-2">
             <div className="border border-stone-200 p-3 flex items-center justify-between">
               <p className="text-sm text-stone-600 inline-flex items-center gap-1.5"><FiUsers size={14} /> Pendentes</p>
               <strong className="font-numeric text-stone-900">{metrics.pending}</strong>
             </div>
+
             <div className="border border-stone-200 p-3 flex items-center justify-between">
               <p className="text-sm text-stone-600 inline-flex items-center gap-1.5"><FiClock size={14} /> Em andamento</p>
               <strong className="font-numeric text-stone-900">{metrics.active}</strong>
             </div>
+
             <div className="border border-stone-200 p-3 flex items-center justify-between">
-              <p className="text-sm text-stone-600 inline-flex items-center gap-1.5"><FiTrendingUp size={14} /> Contraproposta</p>
+              <p className="text-sm text-stone-600 inline-flex items-center gap-1.5"><FiTrendingUp size={14} /> Contrapropostas</p>
               <strong className="font-numeric text-stone-900">{metrics.counter}</strong>
             </div>
+
             <div className="border border-stone-200 p-3 flex items-center justify-between">
               <p className="text-sm text-stone-600 inline-flex items-center gap-1.5"><FiAlertCircle size={14} /> Recusados/cancelados</p>
               <strong className="font-numeric text-stone-900">{metrics.rejected}</strong>
@@ -216,4 +229,3 @@ export default function DashboardServicePage() {
     </div>
   )
 }
-

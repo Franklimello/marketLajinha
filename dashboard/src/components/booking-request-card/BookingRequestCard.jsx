@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiUser } from 'react-icons/fi'
 
 function statusLabel(status) {
@@ -7,7 +7,7 @@ function statusLabel(status) {
     accepted: 'Aceito',
     counter_offer: 'Contraproposta',
     confirmed: 'Confirmado',
-    completed: 'Concluído',
+    completed: 'Concluido',
     rejected: 'Recusado',
     cancelled: 'Cancelado',
   }
@@ -21,6 +21,13 @@ function statusClass(status) {
   if (status === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   if (status === 'rejected' || status === 'cancelled') return 'border-red-200 bg-red-50 text-red-700'
   return 'border-stone-200 bg-stone-50 text-stone-600'
+}
+
+function formatDate(value) {
+  if (!value) return '-'
+  const dt = new Date(`${value}T00:00:00`)
+  if (!Number.isFinite(dt.getTime())) return String(value)
+  return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 export default function BookingRequestCard({
@@ -40,6 +47,7 @@ export default function BookingRequestCard({
   const canManage = appointment.status === 'pending' || appointment.status === 'counter_offer'
   const canCancel = ['pending', 'counter_offer', 'accepted', 'confirmed'].includes(appointment.status)
   const canComplete = ['accepted', 'confirmed'].includes(appointment.status)
+  const displayTime = appointment.effective_time || appointment.time || '-'
 
   async function handleSuggest() {
     const time = String(counterTime || '').trim()
@@ -65,6 +73,7 @@ export default function BookingRequestCard({
             <FiScissors size={13} /> {appointment.service?.name || 'Servico'}
           </p>
         </div>
+
         <span className={`text-[11px] border px-2 py-1 ${statusClass(appointment.status)}`}>
           {statusLabel(appointment.status)}
         </span>
@@ -72,16 +81,17 @@ export default function BookingRequestCard({
 
       <div className="grid sm:grid-cols-2 gap-2 text-sm text-stone-700">
         <p className="border border-stone-200 bg-stone-50 px-3 py-2 inline-flex items-center gap-1.5">
-          <FiCalendar size={13} className="text-stone-500" /> Data: {appointment.date}
+          <FiCalendar size={13} className="text-stone-500" /> Data: {formatDate(appointment.date)}
         </p>
+
         <p className="border border-stone-200 bg-stone-50 px-3 py-2 inline-flex items-center gap-1.5">
-          <FiClock size={13} className="text-stone-500" /> Horario: {appointment.time}
+          <FiClock size={13} className="text-stone-500" /> Horario: {displayTime}
         </p>
       </div>
 
       {appointment.counter_proposed_time && (
         <p className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-3 py-2 inline-flex items-center gap-1.5">
-          <FiRefreshCw size={12} /> Contraproposta atual: {appointment.counter_proposed_time}
+          <FiRefreshCw size={12} /> Ultima contraproposta enviada: {appointment.counter_proposed_time}
         </p>
       )}
 
@@ -93,15 +103,16 @@ export default function BookingRequestCard({
             disabled={busy}
             className="border border-green-600 text-green-700 text-xs py-2 font-semibold hover:bg-green-50 disabled:opacity-50"
           >
-            Aceitar
+            Aceitar horario solicitado
           </button>
+
           <button
             type="button"
             onClick={() => setShowRejectOptions(true)}
             disabled={busy}
             className="border border-red-600 text-red-700 text-xs py-2 font-semibold hover:bg-red-50 disabled:opacity-50"
           >
-            Recusar
+            Recusar ou sugerir novo horario
           </button>
         </div>
       )}
@@ -124,30 +135,36 @@ export default function BookingRequestCard({
           disabled={busy}
           className="w-full border border-emerald-300 text-emerald-700 text-xs py-2 font-semibold bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50"
         >
-          Marcar como concluído
+          Marcar como concluido
         </button>
       )}
 
       {canManage && showRejectOptions && (
         <div className="space-y-2 border border-red-200 bg-red-50 p-3">
-          <p className="text-xs text-red-700">Deseja recusar direto ou enviar uma proposta de horario?</p>
+          <p className="text-xs text-red-700">
+            Se nao puder atender neste horario, envie uma contraproposta ou confirme a recusa.
+          </p>
 
-          <div className="grid sm:grid-cols-[1fr_1fr] gap-2">
-            <input
-              type="time"
-              value={counterTime}
-              onChange={(e) => setCounterTime(e.target.value)}
-              className="border border-stone-300 bg-white px-2 py-2 text-xs"
-            />
-            <button
-              type="button"
-              onClick={handleSuggest}
-              disabled={busy || !counterTime}
-              className="border border-amber-600 text-amber-700 text-xs py-2 px-3 font-semibold bg-white hover:bg-amber-50 disabled:opacity-50"
-            >
-              Enviar proposta
-            </button>
-          </div>
+          <label className="block space-y-1">
+            <span className="text-[11px] text-red-800">Novo horario sugerido</span>
+            <div className="grid sm:grid-cols-[1fr_1fr] gap-2">
+              <input
+                type="time"
+                value={counterTime}
+                onChange={(e) => setCounterTime(e.target.value)}
+                className="border border-stone-300 bg-white px-2 py-2 text-xs"
+              />
+
+              <button
+                type="button"
+                onClick={handleSuggest}
+                disabled={busy || !counterTime}
+                className="border border-amber-600 text-amber-700 text-xs py-2 px-3 font-semibold bg-white hover:bg-amber-50 disabled:opacity-50"
+              >
+                Enviar contraproposta
+              </button>
+            </div>
+          </label>
 
           <div className="grid sm:grid-cols-2 gap-2">
             <button
@@ -158,13 +175,14 @@ export default function BookingRequestCard({
             >
               Confirmar recusa
             </button>
+
             <button
               type="button"
               onClick={() => setShowRejectOptions(false)}
               disabled={busy}
               className="border border-stone-300 text-stone-700 text-xs py-2 font-semibold bg-white hover:border-stone-400 disabled:opacity-50"
             >
-              Cancelar
+              Voltar
             </button>
           </div>
         </div>
@@ -172,4 +190,3 @@ export default function BookingRequestCard({
     </article>
   )
 }
-

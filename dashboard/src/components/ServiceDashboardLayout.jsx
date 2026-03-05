@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import {
   FiBriefcase,
@@ -16,11 +16,11 @@ import { useAuth } from '../context/AuthContext'
 
 const MENU = [
   { to: '/dashboard-service', label: 'Painel', icon: FiGrid },
-  { to: '/dashboard-service/services', label: 'Meus Servicos', icon: FiBriefcase },
+  { to: '/dashboard-service/services', label: 'Servicos', icon: FiBriefcase },
   { to: '/dashboard-service/bookings', label: 'Agendamentos', icon: FiCalendar },
   { to: '/dashboard-service/clients', label: 'Clientes', icon: FiUsers },
   { to: '/dashboard-service/schedule', label: 'Agenda', icon: FiClock },
-  { to: '/dashboard-service/settings', label: 'Configuracoes', icon: FiSettings },
+  { to: '/dashboard-service/settings', label: 'Perfil', icon: FiSettings },
 ]
 
 function navClass(isActive) {
@@ -33,7 +33,7 @@ function navClass(isActive) {
 
 function SideNav({ onNavigate }) {
   return (
-    <nav className="space-y-2" aria-label="Navegação do painel de serviços">
+    <nav className="space-y-2" aria-label="Navegacao do painel do prestador">
       {MENU.map((item) => {
         const Icon = item.icon
         return (
@@ -61,7 +61,7 @@ export default function ServiceDashboardLayout() {
   if (loading) {
     return (
       <div className="min-h-screen bg-stone-100 flex items-center justify-center text-stone-500">
-        Carregando...
+        Carregando painel...
       </div>
     )
   }
@@ -75,7 +75,7 @@ export default function ServiceDashboardLayout() {
   }
 
   const accountName = account?.name || user?.displayName || user?.email || 'Prestador'
-  const accountCity = account?.city || 'Cidade não definida'
+  const accountCity = account?.city || 'Cidade nao definida'
 
   async function handleLogout() {
     await logout()
@@ -97,8 +97,8 @@ export default function ServiceDashboardLayout() {
             </button>
 
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-amber-300">UAIFOOD Servicos</p>
-              <h1 className="text-lg font-semibold text-white">Painel Premium do Prestador</h1>
+              <p className="text-xs uppercase tracking-[0.18em] text-amber-300">UAIFOOD Prestadores</p>
+              <h1 className="text-lg font-semibold text-white">Painel do prestador</h1>
             </div>
           </div>
 
@@ -156,6 +156,17 @@ export default function ServiceDashboardLayout() {
                 <FiMapPin size={12} /> {accountCity}
               </p>
             </div>
+
+            <div className="border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Fluxo recomendado</p>
+              <ol className="text-xs text-amber-900 mt-2 space-y-1.5 list-decimal list-inside">
+                <li>Preencha seu perfil em Perfil.</li>
+                <li>Cadastre os servicos com preco e duracao.</li>
+                <li>Libere horarios na Agenda.</li>
+                <li>Responda pedidos em Agendamentos.</li>
+              </ol>
+            </div>
+
             <SideNav />
           </div>
         </aside>

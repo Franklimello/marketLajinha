@@ -44,13 +44,30 @@ function keyOf(date, time) {
 export default function BookingCalendar({
   appointments = [],
   blockedSlots = [],
+  selectedDate: controlledSelectedDate = '',
+  onSelectedDateChange,
   onToggleSlot = null,
   onToggleDay = null,
   busySlotKey = '',
   busyDayAction = false,
 }) {
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [internalSelectedDate, setInternalSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [mapModalOpen, setMapModalOpen] = useState(false)
+
+  const hasControlledDate = String(controlledSelectedDate || '').trim().length > 0
+  const selectedDate = hasControlledDate ? controlledSelectedDate : internalSelectedDate
+
+  function updateSelectedDate(value) {
+    if (!value) return
+
+    if (hasControlledDate) {
+      onSelectedDateChange?.(value)
+      return
+    }
+
+    setInternalSelectedDate(value)
+    onSelectedDateChange?.(value)
+  }
 
   const dayAppointments = useMemo(() => {
     return appointments
@@ -109,6 +126,8 @@ export default function BookingCalendar({
     ? 0
     : Math.round((occupiedCount / slots.length) * 100)
 
+  const freeCount = Math.max(0, slots.length - occupiedCount)
+
   const manualBlockedList = useMemo(() => {
     return slots.filter((slot) => manualBlockedSet.has(keyOf(selectedDate, slot)))
   }, [slots, manualBlockedSet, selectedDate])
@@ -131,7 +150,7 @@ export default function BookingCalendar({
 
   function renderSlotsMap() {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5">
         {slots.map((slot) => {
           const meta = slotMeta.get(slot)
           const appointment = meta?.appointment
@@ -143,7 +162,13 @@ export default function BookingCalendar({
 
           const tone = isBusy
             ? 'border-red-300 bg-red-50 text-red-800'
-            : 'border-green-300 bg-green-50 text-green-800'
+            : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+
+          const description = isUpdating
+            ? 'Atualizando...'
+            : (isAppointmentBusy
+              ? `${appointment?.client?.nome || 'Cliente'} - ${appointment?.service?.name || 'Servico'}`
+              : (isManualBlocked ? 'Bloqueado manualmente' : 'Horario livre'))
 
           return (
             <button
@@ -151,17 +176,11 @@ export default function BookingCalendar({
               type="button"
               onClick={() => handleSlotClick(slot, isAppointmentBusy, isManualBlocked)}
               disabled={!onToggleSlot || isAppointmentBusy || isUpdating}
-              className={`border p-1.5 min-h-12 text-left ${tone} ${!isAppointmentBusy ? 'hover:opacity-85 cursor-pointer' : 'cursor-not-allowed'} disabled:opacity-60`}
-              title={isAppointmentBusy ? 'Horario ocupado por agendamento' : 'Clique para alternar ocupacao'}
+              className={`rounded-lg border px-1.5 py-1 min-h-[46px] text-left transition-opacity ${tone} ${!isAppointmentBusy ? 'hover:opacity-85 cursor-pointer' : 'cursor-not-allowed'} disabled:opacity-60`}
+              title={isAppointmentBusy ? 'Horario ocupado por agendamento' : 'Clique para alternar bloqueio manual'}
             >
-              <p className="text-[11px] font-semibold font-numeric">{slot}</p>
-              <p className="text-[10px] mt-0.5 leading-tight">
-                {isUpdating
-                  ? 'Atualizando...'
-                  : (isAppointmentBusy
-                    ? `${appointment?.client?.nome || 'Cliente'} • ${appointment?.service?.name || 'Servico'}`
-                    : (isManualBlocked ? 'Ocupado (manual)' : 'Livre'))}
-              </p>
+              <p className="text-[10px] font-semibold font-numeric leading-tight">{slot}</p>
+              <p className="text-[9px] mt-0.5 leading-tight">{description}</p>
             </button>
           )
         })}
@@ -170,114 +189,153 @@ export default function BookingCalendar({
   }
 
   return (
-    <section className="border border-stone-200 bg-white p-4 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="inline-flex items-center gap-2 text-sm font-medium text-stone-700">
-          <FiCalendar size={15} />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="border border-stone-300 px-3 py-2 text-sm"
-          />
-        </label>
+    <section className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden max-w-full">
+      <div className="border-b border-stone-200 bg-linear-to-r from-stone-50 to-amber-50 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <label className="inline-flex items-center gap-2 text-sm font-medium text-stone-700">
+              <FiCalendar size={15} />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => updateSelectedDate(e.target.value)}
+                className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white max-w-full"
+              />
+            </label>
 
-        <div className="min-w-44">
-          <p className="text-xs text-stone-500">Ocupacao em {formatDate(selectedDate)}</p>
-          <div className="mt-1 h-2 border border-stone-300 bg-stone-100 overflow-hidden">
-            <div className="h-full bg-amber-500" style={{ width: `${occupancyPct}%` }} />
+            <button
+              type="button"
+              onClick={() => updateSelectedDate(new Date().toISOString().slice(0, 10))}
+              className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            >
+              Hoje
+            </button>
           </div>
-          <p className="text-xs text-stone-600 mt-1 font-numeric">{occupiedCount}/{slots.length} blocos ({occupancyPct}%)</p>
+
+          <div className="w-full sm:w-48 min-w-0">
+            <p className="text-xs text-stone-500">Ocupacao em {formatDate(selectedDate)}</p>
+            <div className="mt-1 h-2 rounded-full border border-stone-300 bg-stone-100 overflow-hidden">
+              <div className="h-full bg-linear-to-r from-amber-500 to-orange-500" style={{ width: `${occupancyPct}%` }} />
+            </div>
+            <p className="text-xs text-stone-600 mt-1 font-numeric">{occupiedCount}/{slots.length} blocos ({occupancyPct}%)</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            Livres: <strong className="font-numeric">{freeCount}</strong>
+          </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+            Ocupados: <strong className="font-numeric">{occupiedCount}</strong>
+          </div>
+          <div className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-600 col-span-2 sm:col-span-1">
+            Verde = livre, Vermelho = ocupado
+          </div>
         </div>
       </div>
 
-      {onToggleDay && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onToggleDay({ date: selectedDate, occupied: true })}
-            disabled={busyDayAction || allFreeSlotsBlocked}
-            className="inline-flex items-center gap-1.5 border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
-          >
-            {busyDayAction ? 'Processando...' : 'Desativar todos os horários do dia'}
-          </button>
-          <button
-            type="button"
-            onClick={() => onToggleDay({ date: selectedDate, occupied: false })}
-            disabled={busyDayAction || manualBlockedList.length === 0}
-            className="inline-flex items-center gap-1.5 border border-green-300 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 hover:bg-green-100 disabled:opacity-50"
-          >
-            Liberar horários manuais do dia
-          </button>
-        </div>
-      )}
+      <div className="p-4 space-y-4">
+        {onToggleDay && (
+          <div className="grid sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onToggleDay({ date: selectedDate, occupied: true })}
+              disabled={busyDayAction || allFreeSlotsBlocked}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3 py-2.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
+            >
+              {busyDayAction ? 'Processando...' : 'Bloquear horarios livres do dia'}
+            </button>
 
-      <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4">
-        <div className="space-y-2 order-2 lg:order-1">
-          <h4 className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
-            <FiClock size={14} /> Agenda do dia
-          </h4>
-
-          {dayAppointments.length === 0 ? (
-            <p className="text-sm text-stone-500 border border-stone-200 bg-stone-50 p-3">Nenhum agendamento neste dia.</p>
-          ) : (
-            <div className="space-y-2">
-              {dayAppointments.map((appointment) => (
-                <article key={appointment.id} className={`border p-3 text-sm ${statusColor(appointment.status)}`}>
-                  <p className="font-semibold">
-                    {appointment.effective_time || appointment.time} - {appointment.end_time}
-                  </p>
-                  <p>{appointment.client?.nome || 'Cliente'} • {appointment.service?.name || 'Servico'}</p>
-                </article>
-              ))}
-            </div>
-          )}
-
-          <div className="border border-stone-200 bg-stone-50 p-3">
-            <p className="text-xs font-semibold text-stone-700">Bloqueios manuais</p>
-            {manualBlockedList.length === 0 ? (
-              <p className="text-xs text-stone-500 mt-1">Nenhum bloqueio manual para este dia.</p>
-            ) : (
-              <p className="text-xs text-stone-700 mt-1">{manualBlockedList.join(', ')}</p>
-            )}
+            <button
+              type="button"
+              onClick={() => onToggleDay({ date: selectedDate, occupied: false })}
+              disabled={busyDayAction || manualBlockedList.length === 0}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
+            >
+              Liberar bloqueios manuais do dia
+            </button>
           </div>
-        </div>
+        )}
 
-        <div className="space-y-2 order-1 lg:order-2">
-          <h4 className="text-sm font-semibold text-stone-900">Selecionar horários disponíveis</h4>
-          <button
-            type="button"
-            onClick={() => setMapModalOpen(true)}
-            className="w-full border border-stone-300 bg-stone-50 px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-100"
-          >
-            Selecionar horários disponíveis
-          </button>
-          <p className="text-[11px] text-stone-500">Livre = verde. Ocupado = vermelho.</p>
+        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4">
+          <div className="space-y-2 order-2 lg:order-1">
+            <h4 className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
+              <FiClock size={14} /> Atendimentos do dia
+            </h4>
+
+            {dayAppointments.length === 0 ? (
+              <p className="text-sm text-stone-500 border border-stone-200 bg-stone-50 rounded-xl p-3">Nenhum agendamento neste dia.</p>
+            ) : (
+              <div className="space-y-2">
+                {dayAppointments.map((appointment) => (
+                  <article key={appointment.id} className={`rounded-xl border p-3 text-sm ${statusColor(appointment.status)}`}>
+                    <p className="font-semibold">
+                      {appointment.effective_time || appointment.time} - {appointment.end_time}
+                    </p>
+                    <p>{appointment.client?.nome || 'Cliente'} - {appointment.service?.name || 'Servico'}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            <div className="rounded-xl border border-stone-200 bg-stone-50 p-3">
+              <p className="text-xs font-semibold text-stone-700">Bloqueios manuais</p>
+              {manualBlockedList.length === 0 ? (
+                <p className="text-xs text-stone-500 mt-1">Nenhum bloqueio manual para este dia.</p>
+              ) : (
+                <p className="text-xs text-stone-700 mt-1">{manualBlockedList.join(', ')}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 order-1 lg:order-2">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+              <h4 className="text-sm font-semibold text-amber-900">Editor de horarios</h4>
+              <p className="text-xs text-amber-800 mt-1">
+                Abra o mapa para tocar nos blocos de horario e liberar ou bloquear rapidamente.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setMapModalOpen(true)}
+                className="mt-3 w-full rounded-xl border border-amber-500 bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"
+              >
+                Abrir mapa de horarios
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {mapModalOpen && (
-        <div className="fixed inset-0 z-120 bg-black/50 p-4 pt-14 flex items-start justify-center">
+        <div className="fixed inset-0 z-130 bg-black/55 flex items-end lg:items-center justify-center lg:p-4">
           <div className="absolute inset-0" onClick={() => setMapModalOpen(false)} />
-          <div className="relative z-10 bg-white border border-stone-200 w-full max-w-2xl max-h-[78vh] overflow-y-auto p-3 space-y-2.5">
+
+          <div className="relative z-10 bg-white border border-stone-200 w-full lg:max-w-3xl max-h-[88vh] overflow-y-auto rounded-t-2xl lg:rounded-2xl p-2.5 space-y-2">
+            <div className="mx-auto h-1 w-10 rounded-full bg-stone-300 lg:hidden" />
+
             <div className="flex items-center justify-between gap-3">
-              <h4 className="text-sm font-semibold text-stone-900">
-                Selecionar horários disponíveis ({formatDate(selectedDate)})
+              <h4 className="text-xs sm:text-sm font-semibold text-stone-900">
+                Mapa de horarios ({formatDate(selectedDate)})
               </h4>
+
               <button
                 type="button"
                 onClick={() => setMapModalOpen(false)}
-                className="border border-stone-300 px-2.5 py-1 text-[11px] font-medium text-stone-700 hover:bg-stone-50"
+                className="rounded-lg border border-stone-300 px-2 py-1 text-[10px] font-medium text-stone-700 hover:bg-stone-50"
               >
                 Fechar
               </button>
             </div>
+
+            <p className="text-[10px] text-stone-500">
+              Toque em blocos sem cliente para alternar entre livre e bloqueado.
+            </p>
+
             {renderSlotsMap()}
-            <p className="text-[11px] text-stone-500">Livre = verde. Ocupado = vermelho.</p>
           </div>
         </div>
       )}
     </section>
   )
 }
-

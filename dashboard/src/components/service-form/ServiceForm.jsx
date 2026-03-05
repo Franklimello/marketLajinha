@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { FiClock, FiDollarSign, FiFileText, FiImage, FiScissors, FiTag, FiUpload } from 'react-icons/fi'
 
-const initialForm = {
+const INITIAL_FORM = {
   name: '',
   category: '',
   description: '',
@@ -13,8 +13,24 @@ const initialForm = {
 
 const PRESET_DURATIONS = [15, 30, 45, 60, 90]
 
+const COMMON_CATEGORIES = [
+  'Cabelo',
+  'Barba',
+  'Manicure',
+  'Pedicure',
+  'Sobrancelha',
+  'Massagem',
+  'Estetica facial',
+  'Depilacao',
+  'Eletrica',
+  'Hidraulica',
+  'Limpeza',
+  'Montagem',
+]
+
 function mapServiceToForm(service) {
-  if (!service) return { ...initialForm }
+  if (!service) return { ...INITIAL_FORM }
+
   return {
     name: String(service.name || ''),
     category: String(service.category || ''),
@@ -37,9 +53,10 @@ export default function ServiceForm({
   service = null,
   onCancel,
 }) {
-  const [form, setForm] = useState(initialForm)
+  const [form, setForm] = useState(INITIAL_FORM)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
+
   const isEditing = !!service
   const canAddMoreImages = useMemo(() => form.images_urls.length < 10, [form.images_urls.length])
 
@@ -55,13 +72,16 @@ export default function ServiceForm({
 
   function addImageUrl(url) {
     const normalized = String(url || '').trim()
+
     if (!isHttpUrl(normalized)) {
-      setError('Informe uma URL de imagem válida (http/https).')
+      setError('Informe uma URL valida de imagem (http:// ou https://).')
       return
     }
+
     setForm((prev) => {
       if (prev.images_urls.includes(normalized)) return prev
       if (prev.images_urls.length >= 10) return prev
+
       return {
         ...prev,
         image_url_input: '',
@@ -81,21 +101,25 @@ export default function ServiceForm({
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+
     if (!onUploadImage) {
-      setError('Upload indisponível no momento.')
+      setError('Upload indisponivel no momento.')
       return
     }
+
     if (!canAddMoreImages) {
-      setError('Limite de 10 imagens por serviço.')
+      setError('Limite de 10 imagens por servico.')
       return
     }
+
     setUploading(true)
     setError('')
+
     try {
       const url = await onUploadImage(file)
       addImageUrl(url)
     } catch (err) {
-      setError(err?.message || 'Falha ao enviar imagem do serviço.')
+      setError(err?.message || 'Falha ao enviar imagem do servico.')
     } finally {
       setUploading(false)
     }
@@ -104,6 +128,11 @@ export default function ServiceForm({
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+
+    if (typeof onSubmit !== 'function') {
+      setError('Nao foi possivel enviar este formulario agora.')
+      return
+    }
 
     const payload = {
       name: String(form.name || '').trim(),
@@ -115,29 +144,30 @@ export default function ServiceForm({
     }
 
     if (!payload.name) {
-      setError('Informe o nome do serviço.')
+      setError('Preencha o nome do servico.')
       return
     }
+
     if (!payload.category) {
-      setError('Informe a categoria do serviço.')
+      setError('Preencha a categoria do servico.')
       return
     }
 
     if (payload.price < 0 || Number.isNaN(payload.price)) {
-      setError('Preço inválido.')
+      setError('Preco invalido. Use apenas numeros, por exemplo: 90.00')
       return
     }
 
     if (payload.duration_minutes < 5 || Number.isNaN(payload.duration_minutes)) {
-      setError('Duração inválida. Use no mínimo 5 minutos.')
+      setError('Duracao invalida. Use no minimo 5 minutos.')
       return
     }
 
     try {
       await onSubmit(payload)
-      if (!isEditing) setForm(initialForm)
+      if (!isEditing) setForm(INITIAL_FORM)
     } catch (err) {
-      setError(err?.message || 'Não foi possível salvar o serviço.')
+      setError(err?.message || 'Nao foi possivel salvar o servico.')
     }
   }
 
@@ -145,30 +175,37 @@ export default function ServiceForm({
     <form onSubmit={handleSubmit} className="border border-stone-200 bg-white p-4 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-stone-900">{isEditing ? 'Editar serviço' : 'Criar serviço'}</h3>
+          <h3 className="text-base font-semibold text-stone-900">{isEditing ? 'Editar servico' : 'Novo servico'}</h3>
           <p className="text-xs text-stone-500 mt-1">
             {isEditing
-              ? 'Atualize os dados do serviço selecionado.'
-              : 'Preencha os dados para publicar no catálogo da sua cidade.'}
+              ? 'Atualize nome, preco, duracao e descricao para manter o catalogo claro.'
+              : 'Preencha os campos obrigatorios para publicar no seu catalogo.'}
           </p>
         </div>
+
         <span className="text-xs border border-amber-200 bg-amber-50 text-amber-700 px-2 py-1">
-          {isEditing ? 'Edição' : 'Novo'}
+          {isEditing ? 'Edicao' : 'Novo'}
         </span>
+      </div>
+
+      <div className="border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600">
+        Campos obrigatorios: Nome, Categoria, Preco e Duracao.
       </div>
 
       <label className="block space-y-1.5">
         <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
-          <FiScissors size={13} /> Nome do serviço
+          <FiScissors size={13} /> Nome do servico
         </span>
         <input
           name="name"
           value={form.name}
           onChange={handleChange}
-          placeholder="Ex.: Corte masculino premium"
+          placeholder="Ex.: Corte masculino completo"
           className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
           required
+          maxLength={80}
         />
+        <p className="text-[11px] text-stone-500">Use um nome objetivo. Evite abreviacoes confusas.</p>
       </label>
 
       <label className="block space-y-1.5">
@@ -177,40 +214,53 @@ export default function ServiceForm({
         </span>
         <input
           name="category"
+          list="service-category-list"
           value={form.category}
           onChange={handleChange}
-          placeholder="Ex.: Cabelo, Manicure, Massagem, Elétrica..."
+          placeholder="Ex.: Cabelo"
           className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
           required
+          maxLength={50}
         />
+        <datalist id="service-category-list">
+          {COMMON_CATEGORIES.map((item) => (
+            <option key={item} value={item} />
+          ))}
+        </datalist>
+        <p className="text-[11px] text-stone-500">Escolha a categoria que o cliente usaria para buscar seu servico.</p>
       </label>
 
       <label className="block space-y-1.5">
         <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
-          <FiFileText size={13} /> Descrição
+          <FiFileText size={13} /> Descricao
         </span>
         <textarea
           name="description"
           value={form.description}
           onChange={handleChange}
           rows={3}
-          placeholder="Detalhes, benefícios e observações do atendimento"
+          placeholder="Explique o que esta incluso no atendimento, para quem e em quanto tempo voce entrega."
           className="w-full border border-stone-300 px-3 py-2 text-sm resize-none focus:outline-none focus:border-amber-500"
+          maxLength={600}
         />
       </label>
 
       <div className="space-y-2">
         <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
-          <FiImage size={13} /> Carrossel de imagens (até 10)
+          <FiImage size={13} /> Imagens do servico (maximo 10)
         </span>
+
         <div className="flex flex-wrap items-center gap-2">
           <input
             name="image_url_input"
+            type="url"
             value={form.image_url_input}
             onChange={handleChange}
-            placeholder="Cole uma URL de imagem"
+            placeholder="https://site.com/imagem.jpg"
             className="flex-1 min-w-[220px] border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+            inputMode="url"
           />
+
           <button
             type="button"
             onClick={() => addImageUrl(form.image_url_input)}
@@ -219,6 +269,7 @@ export default function ServiceForm({
           >
             Adicionar URL
           </button>
+
           <label className="inline-flex items-center gap-1.5 border border-stone-300 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer">
             <FiUpload size={12} /> {uploading ? 'Enviando...' : 'Upload'}
             <input
@@ -231,11 +282,13 @@ export default function ServiceForm({
           </label>
         </div>
 
+        <p className="text-[11px] text-stone-500">Mostre antes/depois, resultado final ou exemplo real do servico.</p>
+
         {form.images_urls.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {form.images_urls.map((imageUrl) => (
               <div key={imageUrl} className="relative shrink-0">
-                <img src={imageUrl} alt="Imagem do serviço" className="w-20 h-20 object-cover border border-stone-300" />
+                <img src={imageUrl} alt="Imagem do servico" className="w-20 h-20 object-cover border border-stone-300" />
                 <button
                   type="button"
                   onClick={() => removeImageUrl(imageUrl)}
@@ -253,7 +306,7 @@ export default function ServiceForm({
       <div className="grid grid-cols-2 gap-3">
         <label className="space-y-1.5">
           <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
-            <FiDollarSign size={13} /> Preço (R$)
+            <FiDollarSign size={13} /> Preco (R$)
           </span>
           <input
             name="price"
@@ -264,12 +317,14 @@ export default function ServiceForm({
             onChange={handleChange}
             className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             required
+            placeholder="Ex.: 90.00"
+            inputMode="decimal"
           />
         </label>
 
         <label className="space-y-1.5">
           <span className="text-xs font-medium text-stone-600 inline-flex items-center gap-1.5">
-            <FiClock size={13} /> Duração (min)
+            <FiClock size={13} /> Duracao (min)
           </span>
           <input
             name="duration_minutes"
@@ -280,6 +335,8 @@ export default function ServiceForm({
             onChange={handleChange}
             className="w-full border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             required
+            placeholder="Ex.: 60"
+            inputMode="numeric"
           />
         </label>
       </div>
@@ -309,8 +366,9 @@ export default function ServiceForm({
           disabled={loading}
           className="bg-amber-600 text-white px-4 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
         >
-          {loading ? 'Salvando...' : (isEditing ? 'Salvar alterações' : 'Salvar serviço')}
+          {loading ? 'Salvando...' : (isEditing ? 'Salvar alteracoes' : 'Salvar servico')}
         </button>
+
         {isEditing && (
           <button
             type="button"
