@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { api } from '../api/client'
 import { uploadImagem } from '../config/firebase'
-import { FiUpload, FiCamera, FiImage, FiPlus, FiTrash2 } from 'react-icons/fi'
+import { FiUpload, FiCamera, FiImage, FiPlus, FiTrash2, FiCheckCircle, FiAlertCircle, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 const TAMANHOS_PADRAO = ['P', 'M', 'G', 'GG']
 const TAMANHOS_PIZZA_PADRAO = ['BROTO', 'MEDIA', 'GRANDE', 'FAMILIA']
@@ -474,12 +474,70 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   }, [produto, ingredientes])
 
   const imagemExibida = imagemPreview || form.imagem_url
+  const totalItensAdicionais = useMemo(
+    () => gruposAdicionais.reduce((soma, grupo) => soma + (grupo.itens?.length || 0), 0),
+    [gruposAdicionais]
+  )
+
+  const temSaborPizzaCadastrado = useMemo(
+    () => gruposAdicionais.some((grupo) => (grupo.itens || []).some((item) => !!item?.is_sabor && String(item?.nome || '').trim())),
+    [gruposAdicionais]
+  )
+
+  const temTamanhoPizzaComPreco = useMemo(
+    () => variacoes.some((v) => String(v.nome || '').trim() && Number(v.preco || 0) > 0),
+    [variacoes]
+  )
+
+  const abas = [
+    { id: 'info', label: 'Informações', dica: 'Dados principais e classificação.' },
+    { id: 'tamanhos', label: `Tamanhos (${variacoes.length})`, dica: 'Preço por tamanho e variações.' },
+    { id: 'adicionais', label: `Complementos (${totalItensAdicionais})`, dica: 'Grupos, itens e regras de escolha.' },
+  ]
+
+  const statusAbas = useMemo(
+    () => ({
+      info: Boolean(String(form.nome || '').trim() && String(form.categoria || '').trim()),
+      tamanhos: form.tipo_produto === 'PIZZA' ? temTamanhoPizzaComPreco : true,
+      adicionais: form.tipo_produto === 'PIZZA' ? temSaborPizzaCadastrado : true,
+    }),
+    [form.nome, form.categoria, form.tipo_produto, temTamanhoPizzaComPreco, temSaborPizzaCadastrado]
+  )
+
+  const indiceAbaAtual = Math.max(0, abas.findIndex((aba) => aba.id === abaAtiva))
+  const abaAtual = abas[indiceAbaAtual] || abas[0]
+  const podeVoltar = indiceAbaAtual > 0
+  const podeAvancar = indiceAbaAtual < abas.length - 1
+
+  function irParaAba(id) {
+    setAbaAtiva(id)
+    setErro('')
+  }
+
+  function irParaAbaAnterior() {
+    if (!podeVoltar) return
+    irParaAba(abas[indiceAbaAtual - 1].id)
+  }
+
+  function irParaProximaAba() {
+    if (!podeAvancar) return
+    irParaAba(abas[indiceAbaAtual + 1].id)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setErro('')
     setCarregando(true)
     try {
+      if (!String(form.nome || '').trim()) {
+        setAbaAtiva('info')
+        throw new Error('Informe o nome do produto.')
+      }
+      if (!String(form.categoria || '').trim()) {
+        setAbaAtiva('info')
+        throw new Error('Selecione ou crie uma categoria para o produto.')
+      }
+
       let imagem_url = form.imagem_url
       if (imagemFile) {
         const path = `produtos/${lojaId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.webp`
@@ -523,10 +581,12 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       })
       if (form.tipo_produto === 'PIZZA') {
         if (!variacoesLimpas.length) {
+          setAbaAtiva('tamanhos')
           throw new Error('Pizza precisa ter pelo menos um tamanho com preço.')
         }
         const temSabor = adicionaisLimpos.some((a) => a.is_sabor)
         if (!temSabor) {
+          setAbaAtiva('adicionais')
           throw new Error('Marque pelo menos um item como sabor de pizza no grupo de adicionais.')
         }
       }
@@ -552,41 +612,81 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
     }
   }
 
-  const abas = [
-    { id: 'info', label: 'Informações' },
-    { id: 'tamanhos', label: `Tamanhos (${variacoes.length})` },
-    { id: 'adicionais', label: `Complementos (${gruposAdicionais.reduce((s, g) => s + (g.itens?.length || 0), 0)})` },
-  ]
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg lg:max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b border-stone-200 flex items-center justify-between shrink-0">
-          <h2 className="text-lg font-bold text-stone-900">
-            {produto ? 'Editar produto' : 'Novo produto'}
-          </h2>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg lg:max-w-5xl max-h-[90vh] flex flex-col">
+        <div className="p-5 border-b border-stone-200 flex items-start justify-between gap-3 shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-stone-900">
+              {produto ? 'Editar produto' : 'Novo produto'}
+            </h2>
+            <p className="text-xs text-stone-500 mt-1">
+              Fluxo em 3 etapas: informações, tamanhos e complementos.
+            </p>
+          </div>
           <button onClick={onFechar} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">&times;</button>
         </div>
 
         {/* Abas */}
-        <div className="flex border-b border-stone-200 px-5 shrink-0">
-          {abas.map((aba) => (
-            <button
-              key={aba.id}
-              type="button"
-              onClick={() => setAbaAtiva(aba.id)}
-              className={`px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${abaAtiva === aba.id ? 'border-amber-500 text-amber-700' : 'border-transparent text-stone-400 hover:text-stone-600'
-                }`}
-            >
-              {aba.label}
-            </button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-stone-200 px-3 sm:px-5 py-2 gap-1 shrink-0 bg-stone-50/70">
+          {abas.map((aba, idx) => {
+            const ativa = abaAtiva === aba.id
+            const concluida = statusAbas[aba.id]
+            return (
+              <button
+                key={aba.id}
+                type="button"
+                onClick={() => irParaAba(aba.id)}
+                className={`px-3 py-2.5 rounded-lg text-left text-xs font-medium border transition-colors ${ativa
+                  ? 'border-amber-300 bg-amber-50 text-amber-800'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
+                  }`}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">{idx + 1}. {aba.label}</span>
+                  {concluida ? (
+                    <FiCheckCircle className="text-green-600 shrink-0" />
+                  ) : (
+                    <FiAlertCircle className="text-amber-500 shrink-0" />
+                  )}
+                </span>
+                <span className="block text-[11px] text-stone-500 mt-1">{aba.dica}</span>
+              </button>
+            )
+          })}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="px-5 py-3 border-b border-stone-200 bg-white shrink-0">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2">
+              <p className="text-stone-500">Foto</p>
+              <p className="font-semibold text-stone-800">{imagemExibida ? 'Configurada' : 'Opcional'}</p>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2">
+              <p className="text-stone-500">Tamanhos</p>
+              <p className="font-semibold text-stone-800">{variacoes.length}</p>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2">
+              <p className="text-stone-500">Complementos</p>
+              <p className="font-semibold text-stone-800">{totalItensAdicionais}</p>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2">
+              <p className="text-stone-500">Status</p>
+              <p className={`font-semibold ${form.ativo ? 'text-green-700' : 'text-red-600'}`}>{form.ativo ? 'Ativo' : 'Inativo'}</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 pb-24 space-y-4">
           {/* ABA INFO */}
           {abaAtiva === 'info' && (
             <>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                <p className="text-xs font-semibold text-amber-800">Etapa 1 - Informações principais</p>
+                <p className="text-[11px] text-amber-700 mt-0.5">
+                  Preencha nome e categoria para liberar um cadastro consistente no cardápio.
+                </p>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">Foto do produto</label>
                 <div className="flex items-start gap-4">
@@ -770,11 +870,14 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           {/* ABA TAMANHOS */}
           {abaAtiva === 'tamanhos' && (
             <>
-              <p className="text-xs text-stone-400">
-                {form.tipo_produto === 'PIZZA'
-                  ? 'Pizza precisa de tamanho obrigatório. Defina preço, fatias e limite de sabores por tamanho.'
-                  : 'Defina tamanhos/variações para este produto. Ex: P, M, G ou 300ml, 500ml. Cada tamanho tem seu preço próprio.'}
-              </p>
+              <div className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5">
+                <p className="text-xs font-semibold text-stone-700">Etapa 2 - Tamanhos e preços</p>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  {form.tipo_produto === 'PIZZA'
+                    ? 'Pizza precisa de pelo menos um tamanho com preço, fatias e limite de sabores.'
+                    : 'Defina tamanhos/variações para este produto. Cada tamanho usa seu próprio preço.'}
+                </p>
+              </div>
               <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
                 <p className="text-xs font-medium text-stone-600">
                   {form.tipo_produto === 'PIZZA' ? 'Tamanhos rápidos de pizza' : 'Tamanhos rápidos (tradicionais)'}
@@ -968,9 +1071,12 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           {/* ABA ADICIONAIS */}
           {abaAtiva === 'adicionais' && (
             <>
-              <p className="text-xs text-stone-400">
-                Separe os complementos por tipo e defina as regras de escolha (mínimo/máximo) por grupo.
-              </p>
+              <div className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5">
+                <p className="text-xs font-semibold text-stone-700">Etapa 3 - Complementos e regras</p>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  Separe os complementos por grupo e configure mínimo/máximo de escolha para cada grupo.
+                </p>
+              </div>
               {form.tipo_produto === 'PIZZA' && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
                   Marque como <strong>Sabor</strong> os itens do grupo "Escolha os sabores". O limite máximo será definido automaticamente pelo tamanho selecionado.
@@ -1121,10 +1227,42 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
             </>
           )}
 
-          {erro && <p className="text-sm text-red-500 bg-red-50 rounded-lg p-3">{erro}</p>}
-          <button type="submit" disabled={carregando} className="w-full py-2.5 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors">
-            {carregando ? 'Salvando...' : 'Salvar'}
-          </button>
+          {erro && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{erro}</p>}
+
+          <div className="-mx-5 mt-2 sticky bottom-0 border-t border-stone-200 bg-white/95 backdrop-blur px-5 py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-stone-700">
+                  Etapa {indiceAbaAtual + 1} de {abas.length}: {abaAtual?.label}
+                </p>
+                <p className="text-[11px] text-stone-500 mt-0.5">{abaAtual?.dica}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={irParaAbaAnterior}
+                  disabled={!podeVoltar}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone-300 text-stone-700 rounded-lg text-xs font-semibold hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <FiChevronLeft className="text-sm" />
+                  Anterior
+                </button>
+                {podeAvancar && (
+                  <button
+                    type="button"
+                    onClick={irParaProximaAba}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 border border-amber-300 text-amber-800 bg-amber-50 rounded-lg text-xs font-semibold hover:bg-amber-100"
+                  >
+                    Próxima
+                    <FiChevronRight className="text-sm" />
+                  </button>
+                )}
+                <button type="submit" disabled={carregando} className="px-4 py-2.5 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors text-sm">
+                  {carregando ? 'Salvando...' : 'Salvar produto'}
+                </button>
+              </div>
+            </div>
+          </div>
         </form>
       </div>
     </div>
