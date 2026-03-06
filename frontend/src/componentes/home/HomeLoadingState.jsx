@@ -1,6 +1,6 @@
 export default function HomeLoadingState() {
   return (
-    <div className="max-w-lg mx-auto px-4">
+    <div className="home-page max-w-lg mx-auto px-4">
       <section className="mb-5 px-1 py-2">
         <h2 className="text-xl font-black tracking-tight text-stone-900 mb-1">Carregando lojas</h2>
         <p className="text-sm text-stone-500 mb-4">Buscando os melhores estabelecimentos da sua cidade...</p>

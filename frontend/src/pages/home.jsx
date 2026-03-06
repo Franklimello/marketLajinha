@@ -1220,7 +1220,7 @@ export default function HomePage() {
 
   if (erro) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+      <div className="home-page flex flex-col items-center justify-center py-20 px-4 text-center">
         <div className="text-4xl mb-3">😕</div>
         <p className="text-stone-700 font-medium text-sm mb-1">Ops, algo deu errado</p>
         <p className="text-stone-400 text-xs mb-4">{erro}</p>
@@ -1271,7 +1271,7 @@ export default function HomePage() {
   const hasNextStore = storyGroupIndex >= 0 && storyGroupIndex < storiesGroups.length - 1
 
   return (
-    <div className="max-w-lg mx-auto px-4">
+    <div className="home-page max-w-lg mx-auto px-4">
       <SEO
         title="Delivery em Lajinha MG"
         description="Peça online em Lajinha MG com entrega rápida. Encontre restaurantes, lanchonetes e estabelecimentos da cidade no UaiFood."
