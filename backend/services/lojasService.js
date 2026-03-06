@@ -293,38 +293,42 @@ async function preaquecerCacheLojaSlug(slug) {
 async function criar(data, firebaseDecoded, bodyAdmin = {}) {
   const payload = { ...data };
   if (payload.vencimento) payload.vencimento = new Date(payload.vencimento);
-  const loja = await prisma.lojas.create({ data: payload });
-  if (firebaseDecoded) {
-    try {
-      await prisma.usuarios.create({
-        data: {
-          loja_id: loja.id,
-          nome: firebaseDecoded.name || bodyAdmin.nome_admin || 'Admin',
-          email: firebaseDecoded.email || bodyAdmin.email_admin || '',
-          firebase_uid: firebaseDecoded.uid,
-          role: 'ADMIN',
-        },
-      });
-      await prisma.userAccount.upsert({
-        where: { firebase_uid: firebaseDecoded.uid },
-        create: {
-          firebase_uid: firebaseDecoded.uid,
-          email: firebaseDecoded.email || bodyAdmin.email_admin || '',
-          name: firebaseDecoded.name || bodyAdmin.nome_admin || 'Admin',
-          account_type: 'store',
-          city: loja.cidade || '',
-        },
-        update: {
-          email: firebaseDecoded.email || bodyAdmin.email_admin || '',
-          name: firebaseDecoded.name || bodyAdmin.nome_admin || 'Admin',
-          account_type: 'store',
-          city: loja.cidade || '',
-        },
-      });
-    } catch (err) {
-      // Loja já criada; usuário pode ser vinculado depois
-    }
-  }
+  const loja = await prisma.$transaction(async (tx) => {
+    const createdStore = await tx.lojas.create({ data: payload });
+    if (!firebaseDecoded) return createdStore;
+
+    const adminName = firebaseDecoded.name || bodyAdmin.nome_admin || 'Admin';
+    const adminEmail = firebaseDecoded.email || bodyAdmin.email_admin || '';
+
+    await tx.usuarios.create({
+      data: {
+        loja_id: createdStore.id,
+        nome: adminName,
+        email: adminEmail,
+        firebase_uid: firebaseDecoded.uid,
+        role: 'ADMIN',
+      },
+    });
+
+    await tx.userAccount.upsert({
+      where: { firebase_uid: firebaseDecoded.uid },
+      create: {
+        firebase_uid: firebaseDecoded.uid,
+        email: adminEmail,
+        name: adminName,
+        account_type: 'store',
+        city: createdStore.cidade || '',
+      },
+      update: {
+        email: adminEmail,
+        name: adminName,
+        account_type: 'store',
+        city: createdStore.cidade || '',
+      },
+    });
+
+    return createdStore;
+  });
   await invalidarCache('lojas:*');
   if (loja.slug) {
     await invalidarCache(`loja:slug:${loja.slug}`);

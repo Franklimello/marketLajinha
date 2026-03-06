@@ -10,24 +10,6 @@ const STATUS_MENSAGENS = {
   CANCELLED: { titulo: 'Pedido cancelado', corpo: 'Infelizmente seu pedido foi cancelado.' },
 };
 
-let providerTokenTableReady = false;
-
-async function ensureProviderTokenTable() {
-  if (providerTokenTableReady) return;
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS user_account_fcm_tokens (
-      id TEXT PRIMARY KEY,
-      user_account_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      token TEXT NOT NULL UNIQUE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `);
-  await prisma.$executeRawUnsafe(
-    'CREATE INDEX IF NOT EXISTS idx_user_account_fcm_tokens_user_account_id ON user_account_fcm_tokens(user_account_id);'
-  );
-  providerTokenTableReady = true;
-}
-
 async function salvarToken(clienteId, token) {
   return prisma.fcmToken.upsert({
     where: { token },
@@ -131,31 +113,35 @@ function makeSimpleId() {
 }
 
 async function salvarTokenPrestador(userAccountId, token) {
-  await ensureProviderTokenTable();
   if (!userAccountId || !token) return { ok: false };
-  await prisma.$executeRaw`
-    INSERT INTO user_account_fcm_tokens (id, user_account_id, token)
-    VALUES (${makeSimpleId()}, ${String(userAccountId)}, ${String(token)})
-    ON CONFLICT (token) DO UPDATE SET user_account_id = EXCLUDED.user_account_id
-  `;
+  await prisma.userAccountFcmToken.upsert({
+    where: { token: String(token) },
+    update: { user_account_id: String(userAccountId) },
+    create: {
+      id: makeSimpleId(),
+      user_account_id: String(userAccountId),
+      token: String(token),
+    },
+  });
   return { ok: true };
 }
 
 async function removerTokenPrestador(token) {
-  await ensureProviderTokenTable();
   if (!token) return { ok: false };
-  await prisma.$executeRaw`DELETE FROM user_account_fcm_tokens WHERE token = ${String(token)}`;
+  await prisma.userAccountFcmToken.deleteMany({
+    where: { token: String(token) },
+  });
   return { ok: true };
 }
 
 async function removerTokenPrestadorDoUsuario(userAccountId, token) {
-  await ensureProviderTokenTable();
   if (!userAccountId || !token) return { ok: false };
-  await prisma.$executeRaw`
-    DELETE FROM user_account_fcm_tokens
-    WHERE token = ${String(token)}
-      AND user_account_id = ${String(userAccountId)}
-  `;
+  await prisma.userAccountFcmToken.deleteMany({
+    where: {
+      token: String(token),
+      user_account_id: String(userAccountId),
+    },
+  });
   return { ok: true };
 }
 
@@ -429,12 +415,10 @@ async function notificarClienteAgendamento(clienteId, { title, body, appointment
 
 async function notificarPrestadorAgendamento(userAccountId, { title, body, appointmentId, url = '/dashboard-service/bookings' } = {}) {
   if (!isFirebaseInitialized()) return;
-  await ensureProviderTokenTable();
-  const tokens = await prisma.$queryRaw`
-    SELECT token
-    FROM user_account_fcm_tokens
-    WHERE user_account_id = ${String(userAccountId || '')}
-  `;
+  const tokens = await prisma.userAccountFcmToken.findMany({
+    where: { user_account_id: String(userAccountId || '') },
+    select: { token: true },
+  });
   if (!Array.isArray(tokens) || !tokens.length) return;
 
   const tokensInvalidos = [];
@@ -469,9 +453,9 @@ async function notificarPrestadorAgendamento(userAccountId, { title, body, appoi
   }
 
   if (tokensInvalidos.length > 0) {
-    for (const token of tokensInvalidos) {
-      await prisma.$executeRaw`DELETE FROM user_account_fcm_tokens WHERE token = ${token}`;
-    }
+    await prisma.userAccountFcmToken.deleteMany({
+      where: { token: { in: tokensInvalidos } },
+    });
   }
 }
 

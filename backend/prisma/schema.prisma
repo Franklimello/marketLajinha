@@ -678,11 +678,24 @@ model UserAccount {
   services               Service[]
   appointmentsAsProvider Appointment[] @relation("ProviderAppointments")
   blocked_slots          ProviderBlockedSlot[]
+  fcmTokens              UserAccountFcmToken[]
 
   @@index([account_type])
   @@index([account_type, is_active])
   @@index([city])
   @@map("users")
+}
+
+model UserAccountFcmToken {
+  id              String   @id @default(cuid())
+  user_account_id String
+  token           String   @unique
+  created_at      DateTime @default(now())
+
+  userAccount UserAccount @relation(fields: [user_account_id], references: [id], onDelete: Cascade)
+
+  @@index([user_account_id])
+  @@map("user_account_fcm_tokens")
 }
 
 model Service {

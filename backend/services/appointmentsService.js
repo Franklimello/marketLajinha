@@ -21,6 +21,7 @@ const BLOCKING_STATUSES = [
   STATUS.CONFIRMED,
 ];
 
+const SAO_PAULO_TIME_ZONE = 'America/Sao_Paulo';
 const SLOT_START_HOUR = 6;
 const SLOT_END_HOUR = 22;
 const SLOT_STEP_MINUTES = 30;
@@ -68,7 +69,7 @@ function timeToMinutes(time) {
 function getSaoPauloNowParts() {
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
+    timeZone: SAO_PAULO_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -82,6 +83,39 @@ function getSaoPauloNowParts() {
   const timeKey = `${byType.hour}:${byType.minute}`;
 
   return { dateKey, timeKey };
+}
+
+function getTimeZoneOffsetMinutes(timeZone, date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const byType = Object.fromEntries(parts.map((item) => [item.type, item.value]));
+  const asUtc = Date.UTC(
+    Number(byType.year || 0),
+    Number(byType.month || 1) - 1,
+    Number(byType.day || 1),
+    Number(byType.hour || 0),
+    Number(byType.minute || 0),
+    Number(byType.second || 0)
+  );
+
+  return Math.round((asUtc - date.getTime()) / 60000);
+}
+
+function createDateTimeInTimeZone(dateKey, time, timeZone) {
+  const [year, month, day] = String(dateKey || '').split('-').map(Number);
+  const [hour, minute] = cleanText(time).split(':').map(Number);
+  const utcGuess = new Date(Date.UTC(year, (month || 1) - 1, day || 1, hour || 0, minute || 0, 0));
+  const offsetMinutes = getTimeZoneOffsetMinutes(timeZone, utcGuess);
+  return new Date(utcGuess.getTime() - offsetMinutes * 60 * 1000);
 }
 
 function isPastDateTime(date, time) {
@@ -194,7 +228,7 @@ function mapBlockedSlot(slot) {
 function getAppointmentStartDateTime(appointment) {
   const dateKey = formatDateToKey(appointment?.date);
   const time = getEffectiveTime(appointment);
-  const start = new Date(`${dateKey}T${time}:00.000Z`);
+  const start = createDateTimeInTimeZone(dateKey, time, SAO_PAULO_TIME_ZONE);
   if (!Number.isFinite(start.getTime())) return null;
   return start;
 }
