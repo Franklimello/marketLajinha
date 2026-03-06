@@ -115,6 +115,31 @@ input, textarea, select {
 :root[data-theme="dark"] .app-shell .placeholder\:text-stone-400::placeholder { color: #a1a1aa !important; }
 :root[data-theme="dark"] .app-shell .placeholder\:text-stone-500::placeholder { color: #9ca3af !important; }
 
+/* Semantic colors in dark mode (checkout/ticket/readability) */
+:root[data-theme="dark"] .app-shell .text-red-700 { color: #fca5a5 !important; }
+:root[data-theme="dark"] .app-shell .text-red-600 { color: #fda4af !important; }
+:root[data-theme="dark"] .app-shell .text-red-500 { color: #fb7185 !important; }
+:root[data-theme="dark"] .app-shell .bg-red-50 { background-color: rgba(190, 24, 93, 0.18) !important; }
+:root[data-theme="dark"] .app-shell .bg-red-100 { background-color: rgba(190, 24, 93, 0.26) !important; }
+:root[data-theme="dark"] .app-shell .border-red-100 { border-color: rgba(251, 113, 133, 0.35) !important; }
+:root[data-theme="dark"] .app-shell .border-red-200 { border-color: rgba(251, 113, 133, 0.45) !important; }
+:root[data-theme="dark"] .app-shell .border-red-300 { border-color: rgba(251, 113, 133, 0.55) !important; }
+
+:root[data-theme="dark"] .app-shell .text-amber-800 { color: #fde68a !important; }
+:root[data-theme="dark"] .app-shell .text-amber-700 { color: #fcd34d !important; }
+:root[data-theme="dark"] .app-shell .text-amber-600 { color: #fbbf24 !important; }
+:root[data-theme="dark"] .app-shell .bg-amber-50 { background-color: rgba(180, 83, 9, 0.22) !important; }
+:root[data-theme="dark"] .app-shell .bg-amber-100 { background-color: rgba(180, 83, 9, 0.3) !important; }
+:root[data-theme="dark"] .app-shell .border-amber-200 { border-color: rgba(251, 191, 36, 0.4) !important; }
+:root[data-theme="dark"] .app-shell .border-amber-300 { border-color: rgba(251, 191, 36, 0.5) !important; }
+
+:root[data-theme="dark"] .app-shell .text-green-800 { color: #86efac !important; }
+:root[data-theme="dark"] .app-shell .text-green-700 { color: #4ade80 !important; }
+:root[data-theme="dark"] .app-shell .text-green-600 { color: #22c55e !important; }
+:root[data-theme="dark"] .app-shell .bg-green-50 { background-color: rgba(22, 101, 52, 0.22) !important; }
+:root[data-theme="dark"] .app-shell .bg-green-100 { background-color: rgba(22, 101, 52, 0.3) !important; }
+:root[data-theme="dark"] .app-shell .border-green-200 { border-color: rgba(74, 222, 128, 0.4) !important; }
+
 /* Home dark-mode tuning: keep text readable */
 :root[data-theme="dark"] .home-page {
   color: #e7e5e4;

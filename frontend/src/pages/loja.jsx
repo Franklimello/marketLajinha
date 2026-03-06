@@ -1113,7 +1113,7 @@ export default function LojaPage() {
 
   // ---- Loading/Error ----
   if (carregando) return (
-    <div className={`store-page-shell max-w-lg mx-auto px-4 pt-4 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+    <div className={`max-w-lg mx-auto px-4 pt-4 transition-all duration-300 ease-out ${pageTransitionClass}`}>
       <div className="skeleton h-40 rounded-2xl mb-4" />
       <div className="flex items-center gap-3 mb-5">
         <div className="skeleton w-14 h-14 rounded-xl shrink-0" />
@@ -1139,7 +1139,7 @@ export default function LojaPage() {
       ))}
     </div>
   )
-  if (erro || !loja) return <div className={`store-page-shell flex flex-col items-center justify-center py-20 gap-4 transition-all duration-300 ease-out ${pageTransitionClass}`}><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
+  if (erro || !loja) return <div className={`flex flex-col items-center justify-center py-20 gap-4 transition-all duration-300 ease-out ${pageTransitionClass}`}><p className="text-red-500 text-sm">{erro || 'Loja não encontrada.'}</p><Link to="/" className="text-red-600 hover:underline text-sm">Voltar</Link></div>
 
   const aberta = loja.aberta_agora ?? loja.aberta
   const modoAtendimento = String(loja.modo_atendimento || 'AMBOS')
@@ -1162,7 +1162,7 @@ export default function LojaPage() {
   if (etapa === 'confirmado') {
     const PAGAMENTO_LABELS = { PIX: 'PIX', CREDIT: 'Cartão de Crédito', DEBIT: 'Cartão de Débito', CASH: 'Dinheiro' }
     return (
-      <div className={`store-page-shell max-w-lg mx-auto px-4 py-8 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+      <div className={`max-w-lg mx-auto px-4 py-8 transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <div className="text-center mb-6">
           <div className="relative w-20 h-20 mx-auto mb-4">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-bounce-slow">
@@ -1297,7 +1297,7 @@ export default function LojaPage() {
   // ---- PIX ----
   if (etapa === 'pix') {
     return (
-      <div className={`store-page-shell max-w-lg mx-auto px-4 py-6 transition-all duration-300 ease-out ${pageTransitionClass}`}>
+      <div className={`max-w-lg mx-auto px-4 py-6 transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <button onClick={handleVoltarCheckoutPix} className="flex items-center gap-1 text-stone-500 hover:text-stone-900 text-sm mb-6"><FiChevronLeft /> Voltar ao checkout</button>
         <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Pagar com PIX</h2>
@@ -1413,7 +1413,7 @@ export default function LojaPage() {
           : `Enviar pedido — R$ ${totalPedido.toFixed(2).replace('.', ',')}`
 
     return (
-      <div className="store-page-shell fixed inset-0 z-110">
+      <div className="fixed inset-0 z-110">
         <button
           type="button"
           onClick={() => setEtapa('cardapio')}
@@ -1865,7 +1865,7 @@ export default function LojaPage() {
     }
 
     return (
-      <div className={`store-page-shell relative max-w-lg mx-auto pb-36 overflow-x-hidden transition-all duration-300 ease-out ${pageTransitionClass}`}>
+      <div className={`relative max-w-lg mx-auto pb-36 overflow-x-hidden transition-all duration-300 ease-out ${pageTransitionClass}`}>
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-red-100/70 via-amber-50/50 to-transparent" />
         <button
           onClick={() => setProdutoDetalhe(null)}
