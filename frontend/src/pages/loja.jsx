@@ -2565,18 +2565,18 @@ export default function LojaPage() {
                   <button
                     key={cat}
                     onClick={() => setCategoriaSel(cat)}
-                    className="group w-full h-full bg-linear-to-br from-white to-red-50/45 rounded-xl border border-stone-200 p-3 hover:border-red-200 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 text-left"
+                    className="store-category-card group w-full h-full bg-linear-to-br from-white to-red-50/45 rounded-xl border border-stone-200 p-3 hover:border-red-200 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 text-left"
                   >
                     <div className="h-full flex flex-col">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[15px] leading-tight font-bold text-stone-900 flex items-center gap-1.5">
+                        <h3 className="store-category-title text-[15px] leading-tight font-bold text-stone-900 flex items-center gap-1.5">
                           <span aria-hidden="true" className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(254,202,202,0.8)]" />
                           <span className="line-clamp-2">{cat}</span>
                         </h3>
-                        <p className="text-xs text-stone-500 mt-1">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
+                        <p className="store-category-meta text-xs text-stone-500 mt-1">{qtdCat} {qtdCat === 1 ? 'item disponível' : 'itens disponíveis'}</p>
                       </div>
                       <div className="mt-3 flex items-center justify-between">
-                        <div className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-1">
+                        <div className="store-category-cta shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-1">
                           Ver produtos
                         </div>
                         <FiChevronRight className="text-stone-300 group-hover:text-red-400 text-lg shrink-0 transition-colors" />
