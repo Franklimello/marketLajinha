@@ -255,23 +255,39 @@ function formatarNomeCategoria(nome) {
 
 function emojiDaCategoria(nome) {
   const n = normalizeText(limparCategoriaTexto(nome))
-  if (!n) return '🏬'
+  if (!n) return '🍽️'
 
+  // Alimentação
   if (n.includes('pizza')) return '🍕'
-  if (n.includes('hamb')) return '🍔'
-  if (n.includes('acai')) return '🍧'
-  if (n.includes('bebida')) return '🥤'
-  if (n.includes('farm')) return '💊'
-  if (n.includes('roup')) return '👕'
-  if (n.includes('merce')) return '🛒'
-  if (n.includes('marmita')) return '🍱'
-  if (n.includes('sushi') || n.includes('japones')) return '🍣'
-  if (n.includes('lanche')) return '🌭'
-  if (n.includes('doc')) return '🍰'
+  if (n.includes('hamb') || n.includes('burger')) return '🍔'
+  if (n.includes('lanche') || n.includes('lanchonete')) return '🌭'
+  if (n.includes('sushi') || n.includes('japones') || n.includes('japonesa')) return '🍣'
+  if (n.includes('churr')) return '🥩'
+  if (n.includes('marmita') || n.includes('marmitex')) return '🍱'
+  if (n.includes('salgad')) return '🥟'
+  if (n.includes('doc') || n.includes('confeit')) return '🍰'
+  if (n.includes('sorvet') || n.includes('acai') || n.includes('açai')) return '🍨'
+  if (n.includes('cafeteria') || n.includes('cafe')) return '☕'
   if (n.includes('padar')) return '🥖'
-  if (n.includes('sorvet')) return '🍦'
-  if (n.includes('restaurante') || n.includes('comida')) return '🍽️'
-  return '🏬'
+  if (n.includes('bebida') || n.includes('adega')) return '🥤'
+  if (n.includes('restaurante') || n.includes('alimenta') || n.includes('comida')) return '🍽️'
+
+  // Comércio e serviços
+  if (n.includes('mercado') || n.includes('mercearia')) return '🛒'
+  if (n.includes('farm')) return '💊'
+  if (n.includes('pet')) return '🐾'
+  if (n.includes('roupa') || n.includes('moda')) return '👕'
+  if (n.includes('varej') || n.includes('comercio')) return '🛍️'
+  if (n.includes('servic')) return '🧰'
+  if (n.includes('saudavel') || n.includes('saude')) return '🥗'
+
+  // Fallback variado para não ficar tudo igual
+  const fallback = ['🏪', '🛍️', '🍽️', '📦', '✨']
+  let hash = 0
+  for (let i = 0; i < n.length; i += 1) {
+    hash = (hash * 31 + n.charCodeAt(i)) >>> 0
+  }
+  return fallback[hash % fallback.length]
 }
 
 function extrairCategorias(lojas) {
