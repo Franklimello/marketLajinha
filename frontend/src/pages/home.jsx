@@ -204,6 +204,16 @@ function normalizeText(value) {
     .toLowerCase()
 }
 
+function limparCategoriaTexto(value) {
+  return String(value || '')
+    // Remove emojis/pictogramas para evitar nome duplicado com ícone embutido.
+    .replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '')
+    // Remove separadores comuns no começo do texto.
+    .replace(/^[\s\-–—•·|:]+/u, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function getStoriesSeenMap() {
   const data = getLocalItem(STORIES_SEEN_KEY, {})
   return data && typeof data === 'object' ? data : {}
@@ -236,7 +246,7 @@ function formatarTempoEntrega(tempo) {
 }
 
 function formatarNomeCategoria(nome) {
-  const texto = String(nome || '').trim().replace(/\s+/g, ' ')
+  const texto = limparCategoriaTexto(nome)
   if (!texto) return ''
   return texto
     .toLocaleLowerCase('pt-BR')
@@ -244,7 +254,7 @@ function formatarNomeCategoria(nome) {
 }
 
 function emojiDaCategoria(nome) {
-  const n = normalizeText(nome)
+  const n = normalizeText(limparCategoriaTexto(nome))
   if (!n) return '🏬'
 
   if (n.includes('pizza')) return '🍕'
@@ -273,7 +283,7 @@ function extrairCategorias(lojas) {
       .map((c) => c.trim())
       .filter(Boolean)
       .forEach((c) => {
-        const key = normalizeText(c)
+        const key = normalizeText(limparCategoriaTexto(c))
         if (!key || categoriasMap.has(key)) return
         categoriasMap.set(key, formatarNomeCategoria(c))
       })
