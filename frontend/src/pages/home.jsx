@@ -1301,13 +1301,13 @@ export default function HomePage() {
 
           <Link
             to="/feed-cidade"
-            className="group rounded-xl border border-red-200 bg-linear-to-r from-red-50 via-white to-red-50 px-4 py-3 flex items-center justify-between hover:border-red-300 transition-all"
+            className="feed-city-card group rounded-xl border border-red-200 bg-linear-to-r from-red-50 via-white to-red-50 px-4 py-3 flex items-center justify-between hover:border-red-300 transition-all"
           >
             <div>
-              <p className="text-sm font-black tracking-tight text-red-700">📢 Feed da Cidade</p>
-              <p className="text-xs text-red-600 mt-0.5">Novidades e ofertas das lojas da sua cidade</p>
+              <p className="feed-city-title text-sm font-black tracking-tight text-red-700">📢 Feed da Cidade</p>
+              <p className="feed-city-subtitle text-xs text-red-600 mt-0.5">Novidades e ofertas das lojas da sua cidade</p>
             </div>
-            <span className="w-8 h-8 rounded-full border border-red-200 bg-white text-red-600 inline-flex items-center justify-center text-base transition-transform group-hover:translate-x-0.5">
+            <span className="feed-city-arrow w-8 h-8 rounded-full border border-red-200 bg-white text-red-600 inline-flex items-center justify-center text-base transition-transform group-hover:translate-x-0.5">
               →
             </span>
           </Link>

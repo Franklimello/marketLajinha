@@ -211,7 +211,7 @@ export default function PrestadorServicoPage() {
   }
 
   return (
-    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
+    <div className="service-profile-page relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
       <SEO title="Perfil do prestador" description="Veja serviços disponíveis e solicite um horário." noIndex />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-violet-100/80 via-fuchsia-50/65 to-transparent" />
       <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-fuchsia-200/35 blur-3xl" />
@@ -338,8 +338,8 @@ export default function PrestadorServicoPage() {
             )}
           </section>
 
-          <form onSubmit={handleBook} className={`border border-violet-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transitionDelay: '120ms' }}>
-            <div className="rounded-2xl border border-violet-200 bg-linear-to-r from-violet-50 to-fuchsia-50 px-3 py-2.5">
+          <form onSubmit={handleBook} className={`service-booking-form border border-violet-200 bg-white p-4 space-y-3 rounded-3xl shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] transition-all duration-400 ${entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`} style={{ transitionDelay: '120ms' }}>
+            <div className="service-booking-header rounded-2xl border border-violet-200 bg-linear-to-r from-violet-50 to-fuchsia-50 px-3 py-2.5">
               <h3 className="text-sm font-black text-stone-900">Solicitar agendamento</h3>
               <p className="text-[11px] text-stone-600 mt-1">Selecione serviço, data e horário livre para enviar sua solicitação.</p>
             </div>
@@ -347,7 +347,7 @@ export default function PrestadorServicoPage() {
               Serviço selecionado: {selectedService?.name || 'nenhum serviço'}
             </p>
 
-            <div className="rounded-2xl border border-violet-200 bg-violet-50/55 px-3 py-2.5">
+            <div className="service-booking-summary rounded-2xl border border-violet-200 bg-violet-50/55 px-3 py-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">Resumo do agendamento</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-stone-600">
                 <div className="rounded-xl border border-stone-200 bg-white px-2.5 py-2">

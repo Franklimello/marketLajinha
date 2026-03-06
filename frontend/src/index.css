@@ -73,6 +73,12 @@ input, textarea, select {
     linear-gradient(180deg, #fff7ed 0%, #fafaf9 34%, #f5f5f4 100%);
 }
 
+:root[data-theme="dark"] .store-page-shell {
+  background:
+    radial-gradient(120% 78% at 12% -8%, rgba(127, 29, 29, 0.26) 0%, rgba(120, 53, 15, 0.16) 42%, rgba(9, 9, 11, 0) 100%),
+    linear-gradient(180deg, #09090b 0%, #0f172a 38%, #111827 100%);
+}
+
 .store-page-shell::before {
   content: "";
   position: absolute;
@@ -86,6 +92,13 @@ input, textarea, select {
   background-size: 28px 28px;
   -webkit-mask-image: radial-gradient(circle at 50% 25%, rgba(0, 0, 0, 0.75) 0%, transparent 78%);
   mask-image: radial-gradient(circle at 50% 25%, rgba(0, 0, 0, 0.75) 0%, transparent 78%);
+}
+
+:root[data-theme="dark"] .store-page-shell::before {
+  opacity: 0.38;
+  background-image:
+    linear-gradient(rgba(248, 113, 113, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(248, 113, 113, 0.08) 1px, transparent 1px);
 }
 
 /* Global dark baseline for all app screens */
@@ -103,7 +116,14 @@ input, textarea, select {
 :root[data-theme="dark"] .app-shell .bg-white\/90 { background-color: rgba(24, 24, 27, 0.90) !important; }
 :root[data-theme="dark"] .app-shell .bg-white\/80 { background-color: rgba(24, 24, 27, 0.80) !important; }
 :root[data-theme="dark"] .app-shell .bg-stone-50 { background-color: #1c1c22 !important; }
+:root[data-theme="dark"] .app-shell .bg-stone-50\/95 { background-color: rgba(28, 28, 34, 0.95) !important; }
+:root[data-theme="dark"] .app-shell .bg-stone-50\/90 { background-color: rgba(28, 28, 34, 0.90) !important; }
+:root[data-theme="dark"] .app-shell .bg-stone-50\/80 { background-color: rgba(28, 28, 34, 0.80) !important; }
 :root[data-theme="dark"] .app-shell .bg-stone-100 { background-color: #27272a !important; }
+:root[data-theme="dark"] .app-shell .bg-stone-100\/85 { background-color: rgba(39, 39, 42, 0.85) !important; }
+:root[data-theme="dark"] .app-shell .bg-stone-100\/80 { background-color: rgba(39, 39, 42, 0.80) !important; }
+:root[data-theme="dark"] .app-shell .bg-stone-100\/70 { background-color: rgba(39, 39, 42, 0.70) !important; }
+:root[data-theme="dark"] .app-shell .bg-stone-100\/60 { background-color: rgba(39, 39, 42, 0.60) !important; }
 :root[data-theme="dark"] .app-shell .bg-stone-200 { background-color: #3f3f46 !important; }
 
 :root[data-theme="dark"] .app-shell .border-stone-100 { border-color: #3f3f46 !important; }
@@ -144,6 +164,74 @@ input, textarea, select {
   color: #fecdd3 !important;
 }
 
+/* Feed card in Home: dedicated dark style */
+:root[data-theme="dark"] .app-shell .feed-city-card {
+  background: linear-gradient(90deg, rgba(127, 29, 29, 0.24) 0%, rgba(24, 24, 27, 0.92) 52%, rgba(127, 29, 29, 0.24) 100%) !important;
+  border-color: rgba(251, 113, 133, 0.38) !important;
+}
+
+:root[data-theme="dark"] .app-shell .feed-city-title {
+  color: #fda4af !important;
+}
+
+:root[data-theme="dark"] .app-shell .feed-city-subtitle {
+  color: #fecdd3 !important;
+}
+
+:root[data-theme="dark"] .app-shell .feed-city-arrow {
+  background-color: #18181b !important;
+  border-color: rgba(251, 113, 133, 0.5) !important;
+  color: #fda4af !important;
+}
+
+/* Perfil: card de trocar cidade */
+:root[data-theme="dark"] .app-shell .profile-city-card {
+  background: linear-gradient(90deg, rgba(180, 83, 9, 0.2) 0%, rgba(24, 24, 27, 0.95) 46%, rgba(127, 29, 29, 0.2) 100%) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+/* Pedidos: cards de resumo e tracker no dark */
+:root[data-theme="dark"] .app-shell .pedidos-stat-card {
+  background-color: rgba(28, 28, 34, 0.92) !important;
+  border-color: #52525b !important;
+}
+
+:root[data-theme="dark"] .app-shell .pedidos-status-tracker {
+  background-color: rgba(28, 28, 34, 0.88) !important;
+  border-color: #52525b !important;
+}
+
+:root[data-theme="dark"] .app-shell .pedidos-item-box {
+  background-color: rgba(28, 28, 34, 0.86) !important;
+  border-color: #52525b !important;
+}
+
+:root[data-theme="dark"] .app-shell .pedidos-payment-chip {
+  background-color: #27272a !important;
+  border-color: #52525b !important;
+  color: #d6d3d1 !important;
+}
+
+/* Servicos: formulario de agendamento no perfil do prestador */
+:root[data-theme="dark"] .app-shell .service-profile-page {
+  color: #e7e5e4;
+}
+
+:root[data-theme="dark"] .app-shell .service-booking-form {
+  background-color: #18181b !important;
+  border-color: #4c1d95 !important;
+}
+
+:root[data-theme="dark"] .app-shell .service-booking-header {
+  background: linear-gradient(90deg, rgba(76, 29, 149, 0.34) 0%, rgba(88, 28, 135, 0.3) 100%) !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+:root[data-theme="dark"] .app-shell .service-booking-summary {
+  background-color: rgba(76, 29, 149, 0.2) !important;
+  border-color: rgba(139, 92, 246, 0.42) !important;
+}
+
 /* Semantic colors in dark mode (checkout/ticket/readability) */
 :root[data-theme="dark"] .app-shell .text-red-700 { color: #fca5a5 !important; }
 :root[data-theme="dark"] .app-shell .text-red-600 { color: #fda4af !important; }
@@ -158,6 +246,8 @@ input, textarea, select {
 :root[data-theme="dark"] .app-shell .text-amber-700 { color: #fcd34d !important; }
 :root[data-theme="dark"] .app-shell .text-amber-600 { color: #fbbf24 !important; }
 :root[data-theme="dark"] .app-shell .bg-amber-50 { background-color: rgba(180, 83, 9, 0.22) !important; }
+:root[data-theme="dark"] .app-shell .bg-amber-50\/70 { background-color: rgba(180, 83, 9, 0.22) !important; }
+:root[data-theme="dark"] .app-shell .bg-amber-50\/50 { background-color: rgba(180, 83, 9, 0.16) !important; }
 :root[data-theme="dark"] .app-shell .bg-amber-100 { background-color: rgba(180, 83, 9, 0.3) !important; }
 :root[data-theme="dark"] .app-shell .border-amber-200 { border-color: rgba(251, 191, 36, 0.4) !important; }
 :root[data-theme="dark"] .app-shell .border-amber-300 { border-color: rgba(251, 191, 36, 0.5) !important; }

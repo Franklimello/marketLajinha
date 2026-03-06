@@ -52,7 +52,7 @@ function StatusTracker({ status }) {
   const currentIdx = STATUS_STEPS.findIndex((s) => s.key === status)
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-stone-50/80 px-3 py-2.5 flex items-center">
+    <div className="pedidos-status-tracker rounded-2xl border border-stone-200 bg-stone-50/80 px-3 py-2.5 flex items-center">
       {STATUS_STEPS.map((step, i) => {
         const done = i <= currentIdx
         const passed = i < currentIdx
@@ -408,7 +408,7 @@ export default function PedidosPage() {
 
   if (authCarregando || carregando) {
     return (
-      <div className="relative max-w-lg mx-auto px-4 pt-4 pb-32 min-h-screen overflow-x-hidden">
+      <div className="pedidos-page relative max-w-lg mx-auto px-4 pt-4 pb-32 min-h-screen overflow-x-hidden">
         <SEO title="Meus pedidos" noIndex />
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/70 to-transparent" />
         <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
@@ -441,7 +441,7 @@ export default function PedidosPage() {
 
   if (!logado) {
     return (
-      <div className="relative max-w-lg mx-auto px-4 pt-10 pb-32 min-h-screen overflow-x-hidden">
+      <div className="pedidos-page relative max-w-lg mx-auto px-4 pt-10 pb-32 min-h-screen overflow-x-hidden">
         <SEO title="Meus pedidos" noIndex />
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/70 to-transparent" />
         <div className="bg-white rounded-3xl border border-stone-200 px-5 py-8 text-center shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)]">
@@ -457,7 +457,7 @@ export default function PedidosPage() {
   }
 
   return (
-    <div className="relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
+    <div className="pedidos-page relative max-w-lg mx-auto px-4 pb-32 min-h-screen overflow-x-hidden">
       <SEO title="Meus pedidos" noIndex />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-red-100/75 via-orange-50/70 to-transparent" />
       <div className="pointer-events-none absolute -top-14 right-[-4.2rem] -z-10 h-52 w-52 rounded-full bg-red-200/35 blur-3xl" />
@@ -471,15 +471,15 @@ export default function PedidosPage() {
             <p className="mt-1 text-xs text-stone-500">Acompanhe status, mensagens e entregas em tempo real.</p>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2.5">
-            <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
+            <div className="pedidos-stat-card rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
               <p className="font-numeric text-base font-black text-stone-900">{pedidos.length}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">total</p>
             </div>
-            <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
+            <div className="pedidos-stat-card rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
               <p className="font-numeric text-base font-black text-stone-900">{ativosCount}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">em andamento</p>
             </div>
-            <div className="rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
+            <div className="pedidos-stat-card rounded-xl border border-stone-200 bg-stone-50/90 px-2.5 py-2.5 text-center">
               <p className="font-numeric text-base font-black text-stone-900">{entreguesCount}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">entregues</p>
             </div>
@@ -531,7 +531,7 @@ export default function PedidosPage() {
                   <StatusTracker status={p.status} />
                 </div>
 
-                <div className="rounded-xl border border-stone-100 bg-stone-50/70 px-3 py-2.5">
+                <div className="pedidos-item-box rounded-xl border border-stone-100 bg-stone-50/70 px-3 py-2.5">
                   <div className="space-y-1">
                     {p.itens?.length ? p.itens.map((i) => (
                       <p key={i.id} className="text-xs text-stone-700">
@@ -543,7 +543,7 @@ export default function PedidosPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-stone-200/70">
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-white border border-stone-200 text-stone-600 font-medium">{p.forma_pagamento || 'Pagamento'}</span>
+                    <span className="pedidos-payment-chip text-[10px] px-2 py-1 rounded-full bg-white border border-stone-200 text-stone-600 font-medium">{p.forma_pagamento || 'Pagamento'}</span>
                     {p.tipo_entrega === 'RETIRADA' && <span className="text-[10px] bg-amber-50 border border-amber-200 text-amber-700 px-2 py-1 rounded-full font-semibold">Retirada</span>}
                     {p.agendado_para && <span className="text-[10px] bg-red-50 border border-red-200 text-red-700 px-2 py-1 rounded-full font-semibold">Agendado</span>}
                   </div>

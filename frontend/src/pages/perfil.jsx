@@ -472,7 +472,7 @@ export default function PerfilPage() {
         </button>
       </div>
 
-      <div className="bg-linear-to-r from-amber-50 via-white to-red-50 rounded-2xl border border-amber-200/60 p-4 mb-4 shadow-[0_20px_40px_-34px_rgba(146,64,14,0.45)]">
+      <div className="profile-city-card bg-linear-to-r from-amber-50 via-white to-red-50 rounded-2xl border border-amber-200/60 p-4 mb-4 shadow-[0_20px_40px_-34px_rgba(146,64,14,0.45)]">
         <div className="flex items-center justify-between mb-1.5">
           <p className="font-semibold text-stone-900">Cidade ativa</p>
           <button type="button" onClick={() => setModalCidade(true)} className="text-xs font-semibold text-red-700 hover:text-red-800">Trocar</button>
