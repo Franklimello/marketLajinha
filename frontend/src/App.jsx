@@ -69,6 +69,7 @@ export default function App() {
   const showGlobalHeader = !isLojaPage
   const [aceitouAgora, setAceitouAgora] = useState(false)
   const [standaloneMode, setStandaloneMode] = useState(false)
+  const [theme, setTheme] = useState('dark')
 
   const termosInfo = useMemo(() => {
     if (carregando) return null
@@ -101,12 +102,18 @@ export default function App() {
     setTokenGetter(getToken)
   }, [getToken])
 
+  function applyTheme(nextTheme) {
+    const safeTheme = nextTheme === 'light' ? 'light' : 'dark'
+    document.documentElement.setAttribute('data-theme', safeTheme)
+    document.documentElement.classList.toggle('dark', safeTheme === 'dark')
+    setLocalItem('theme', safeTheme)
+    setTheme(safeTheme)
+  }
+
   useEffect(() => {
     const savedTheme = getLocalItem('theme', null)
     const initialTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    document.documentElement.setAttribute('data-theme', initialTheme)
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark')
-    setLocalItem('theme', initialTheme)
+    applyTheme(initialTheme)
   }, [])
 
   useEffect(() => {
@@ -175,9 +182,13 @@ export default function App() {
     setAceitouAgora(true)
   }
 
+  function toggleTheme() {
+    applyTheme(theme === 'dark' ? 'light' : 'dark')
+  }
+
   return (
     <div className={`app-shell min-h-screen flex flex-col ${standaloneMode ? 'app-shell--standalone' : ''}`}>
-      {showGlobalHeader && <Header />}
+      {showGlobalHeader && <Header theme={theme} onToggleTheme={toggleTheme} />}
       <main
         className={`app-main flex-1 ${showGlobalHeader ? (isLojaPage ? 'pt-20' : 'pt-24') : 'pt-0'} ${
           standaloneMode

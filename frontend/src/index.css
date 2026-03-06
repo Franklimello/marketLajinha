@@ -2,11 +2,21 @@
 
 :root {
   --uaifood-bg: #fafaf9;
+  --uaifood-surface-start: #fafaf9;
+  --uaifood-surface-end: #f5f5f4;
+  --uaifood-text: #1c1917;
   --font-base: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-heading: "Sora", "Inter", system-ui, sans-serif;
   --font-numeric: "Space Grotesk", "Inter", system-ui, sans-serif;
   --safe-area-top: env(safe-area-inset-top);
   --safe-area-bottom: env(safe-area-inset-bottom);
+}
+
+:root[data-theme="dark"] {
+  --uaifood-bg: #09090b;
+  --uaifood-surface-start: #0c0a09;
+  --uaifood-surface-end: #111827;
+  --uaifood-text: #f5f5f4;
 }
 
 html, body, #root {
@@ -16,6 +26,8 @@ html, body, #root {
 body {
   background: var(--uaifood-bg);
   font-family: var(--font-base);
+  color: var(--uaifood-text);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -40,7 +52,8 @@ input, textarea, select {
 
 .app-shell {
   min-height: 100dvh;
-  background: linear-gradient(180deg, #fafaf9 0%, #f5f5f4 100%);
+  background: linear-gradient(180deg, var(--uaifood-surface-start) 0%, var(--uaifood-surface-end) 100%);
+  transition: background 180ms ease;
 }
 
 .app-main {
