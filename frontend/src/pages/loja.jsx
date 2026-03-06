@@ -2437,7 +2437,7 @@ export default function LojaPage() {
             <div className="flex items-center justify-between gap-2 mb-3">
               <FiGift className="text-red-500" />
               <h2 className="text-base font-bold text-stone-900">Combos</h2>
-              <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">OFERTA</span>
+              <span className="combo-offer-badge text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">OFERTA</span>
             </div>
             <HorizontalCards
               items={combos}
@@ -2446,26 +2446,26 @@ export default function LojaPage() {
                 const economia = original - Number(c.preco)
                 const qtdNoCarrinho = carrinho[`combo__${c.id}`]?.qtd || 0
                 return (
-                  <div key={c.id} className="snap-start shrink-0 w-64 bg-linear-to-br from-red-50/95 via-white to-amber-50/95 rounded-2xl border border-stone-200 overflow-hidden">
+                  <div key={c.id} className="combo-highlight-card snap-start shrink-0 w-64 bg-linear-to-br from-red-50/95 via-white to-amber-50/95 rounded-2xl border border-stone-200 overflow-hidden">
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
+                        <h3 className="combo-highlight-title text-sm font-bold text-stone-900 leading-tight">{c.nome}</h3>
                         {qtdNoCarrinho > 0 && <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0">{qtdNoCarrinho}</span>}
                       </div>
                       <ComboImageStrip combo={c} />
-                      <p className="text-[11px] text-stone-500 mb-2 line-clamp-2">
+                      <p className="combo-highlight-meta text-[11px] text-stone-500 mb-2 line-clamp-2">
                         {c.itens.map(i => `${i.quantidade}x ${i.produto?.nome}`).join(' + ')}
                       </p>
-                      {c.descricao && <p className="text-[10px] text-stone-400 mb-2 italic">{c.descricao}</p>}
+                      {c.descricao && <p className="combo-highlight-desc text-[10px] text-stone-400 mb-2 italic">{c.descricao}</p>}
                       <div className="flex items-end justify-between">
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-lg font-extrabold text-red-700 font-numeric">R$ {Number(c.preco).toFixed(2).replace('.', ',')}</span>
+                            <span className="combo-highlight-price text-lg font-extrabold text-red-700 font-numeric">R$ {Number(c.preco).toFixed(2).replace('.', ',')}</span>
                           </div>
                           {economia > 0 && (
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-xs text-stone-400 line-through font-numeric">R$ {original.toFixed(2).replace('.', ',')}</span>
-                              <span className="text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-numeric">-R$ {economia.toFixed(2).replace('.', ',')}</span>
+                              <span className="combo-highlight-original text-xs text-stone-400 line-through font-numeric">R$ {original.toFixed(2).replace('.', ',')}</span>
+                              <span className="combo-highlight-savings text-[10px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full font-numeric">-R$ {economia.toFixed(2).replace('.', ',')}</span>
                             </div>
                           )}
                         </div>

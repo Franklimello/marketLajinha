@@ -164,6 +164,40 @@ input, textarea, select {
   color: #fecdd3 !important;
 }
 
+/* Store page: combo cards in dark mode */
+:root[data-theme="dark"] .app-shell .combo-highlight-card {
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.22) 0%, #18181b 52%, rgba(146, 64, 14, 0.2) 100%) !important;
+  border-color: rgba(251, 113, 133, 0.35) !important;
+}
+
+:root[data-theme="dark"] .app-shell .combo-highlight-title {
+  color: #fafaf9 !important;
+}
+
+:root[data-theme="dark"] .app-shell .combo-highlight-meta {
+  color: #e7e5e4 !important;
+}
+
+:root[data-theme="dark"] .app-shell .combo-highlight-desc,
+:root[data-theme="dark"] .app-shell .combo-highlight-original {
+  color: #c4c1bd !important;
+}
+
+:root[data-theme="dark"] .app-shell .combo-highlight-price {
+  color: #fda4af !important;
+}
+
+:root[data-theme="dark"] .app-shell .combo-highlight-savings {
+  background-color: rgba(22, 101, 52, 0.34) !important;
+  border: 1px solid rgba(74, 222, 128, 0.35) !important;
+  color: #bbf7d0 !important;
+}
+
+:root[data-theme="dark"] .app-shell .combo-offer-badge {
+  background-color: rgba(190, 24, 93, 0.3) !important;
+  color: #fecdd3 !important;
+}
+
 /* Feed card in Home: dedicated dark style */
 :root[data-theme="dark"] .app-shell .feed-city-card {
   background: linear-gradient(90deg, rgba(127, 29, 29, 0.24) 0%, rgba(24, 24, 27, 0.92) 52%, rgba(127, 29, 29, 0.24) 100%) !important;
