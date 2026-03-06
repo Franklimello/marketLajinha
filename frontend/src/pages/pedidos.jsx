@@ -9,16 +9,22 @@ import { FiClock, FiCheck, FiTruck, FiX, FiPackage, FiStar, FiMessageCircle, FiS
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-const STATUS_STEPS = [
-  { key: 'APPROVED', label: 'Confirmado', icon: FiPackage },
+const STATUS_STEPS_ENTREGA = [
+  { key: 'PENDING', label: 'Recebido', icon: FiClock },
+  { key: 'APPROVED', label: 'Em preparo', icon: FiPackage },
   { key: 'IN_ROUTE', label: 'Saiu p/ entrega', icon: FiTruck },
+  { key: 'DELIVERED', label: 'Entregue', icon: FiCheck },
+]
+const STATUS_STEPS_RETIRADA = [
+  { key: 'PENDING', label: 'Recebido', icon: FiClock },
+  { key: 'APPROVED', label: 'Em preparo', icon: FiPackage },
   { key: 'DELIVERED', label: 'Entregue', icon: FiCheck },
 ]
 const ACTIVE_STATUS = ['PENDING', 'APPROVED', 'IN_ROUTE']
 
 const STATUS_MAP = {
-  PENDING: { label: 'Pendente', cor: 'bg-amber-50 text-amber-700 border border-amber-200', icon: FiClock },
-  APPROVED: { label: 'Confirmado', cor: 'bg-sky-50 text-sky-700 border border-sky-200', icon: FiPackage },
+  PENDING: { label: 'Pedido recebido', cor: 'bg-amber-50 text-amber-700 border border-amber-200', icon: FiClock },
+  APPROVED: { label: 'Em preparo', cor: 'bg-sky-50 text-sky-700 border border-sky-200', icon: FiPackage },
   IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-orange-50 text-orange-700 border border-orange-200', icon: FiTruck },
   DELIVERED: { label: 'Entregue', cor: 'bg-emerald-50 text-emerald-700 border border-emerald-200', icon: FiCheck },
   CANCELLED: { label: 'Cancelado', cor: 'bg-red-50 text-red-700 border border-red-200', icon: FiX },
@@ -39,7 +45,11 @@ function getPedidoCodigo(id) {
   return `#${base.slice(-6)}`
 }
 
-function StatusTracker({ status }) {
+function getStatusSteps(tipoEntrega) {
+  return tipoEntrega === 'RETIRADA' ? STATUS_STEPS_RETIRADA : STATUS_STEPS_ENTREGA
+}
+
+function StatusTracker({ status, tipoEntrega }) {
   if (status === 'CANCELLED') {
     return (
       <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl">
@@ -49,11 +59,12 @@ function StatusTracker({ status }) {
     )
   }
 
-  const currentIdx = STATUS_STEPS.findIndex((s) => s.key === status)
+  const statusSteps = getStatusSteps(tipoEntrega)
+  const currentIdx = statusSteps.findIndex((s) => s.key === status)
 
   return (
     <div className="pedidos-status-tracker rounded-2xl border border-stone-200 bg-stone-50/80 px-3 py-2.5 flex items-center">
-      {STATUS_STEPS.map((step, i) => {
+      {statusSteps.map((step, i) => {
         const done = i <= currentIdx
         const passed = i < currentIdx
         const Icon = step.icon
@@ -71,7 +82,7 @@ function StatusTracker({ status }) {
                 {step.label}
               </span>
             </div>
-            {i < STATUS_STEPS.length - 1 && (
+            {i < statusSteps.length - 1 && (
               <div className={`h-1 flex-1 rounded-full mx-1.5 ${passed ? 'bg-red-400' : 'bg-stone-200'}`} />
             )}
           </div>
@@ -528,7 +539,7 @@ export default function PedidosPage() {
                 </div>
 
                 <div className="mb-3">
-                  <StatusTracker status={p.status} />
+                  <StatusTracker status={p.status} tipoEntrega={p.tipo_entrega} />
                 </div>
 
                 <div className="pedidos-item-box rounded-xl border border-stone-100 bg-stone-50/70 px-3 py-2.5">

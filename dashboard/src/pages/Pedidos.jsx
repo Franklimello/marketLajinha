@@ -9,8 +9,8 @@ import { FaWhatsapp } from 'react-icons/fa'
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const STATUS_MAP = {
-  PENDING: { label: 'Pendente', cor: 'bg-yellow-100 text-yellow-700' },
-  APPROVED: { label: 'Pedido recebido', cor: 'bg-blue-100 text-blue-700' },
+  PENDING: { label: 'Pedido recebido', cor: 'bg-yellow-100 text-yellow-700' },
+  APPROVED: { label: 'Em preparo', cor: 'bg-blue-100 text-blue-700' },
   IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-purple-100 text-purple-700' },
   DELIVERED: { label: 'Entregue', cor: 'bg-green-100 text-green-700' },
   CANCELLED: { label: 'Cancelado', cor: 'bg-red-100 text-red-700' },
@@ -23,12 +23,6 @@ const PAGAMENTO_MAP = {
   CASH: 'Dinheiro',
 }
 const PIX_ONLINE_TAG = '[PIX ONLINE]'
-const STATUS_PROGRESSAO = {
-  PENDING: 'APPROVED',
-  APPROVED: 'IN_ROUTE',
-  IN_ROUTE: 'DELIVERED',
-}
-
 function formatCurrency(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
@@ -64,6 +58,30 @@ function labelPagamentoPedido(pedido) {
 
 function isStatusFinalizado(status) {
   return status === 'DELIVERED' || status === 'CANCELLED'
+}
+
+function isPedidoRetirada(pedido) {
+  return pedido?.tipo_entrega === 'RETIRADA'
+}
+
+function getProximosStatusPedido(pedido) {
+  if (!pedido || isStatusFinalizado(pedido.status)) return []
+  if (pedido.status === 'PENDING') return ['APPROVED', 'CANCELLED']
+  if (pedido.status === 'APPROVED') {
+    return isPedidoRetirada(pedido) ? ['DELIVERED', 'CANCELLED'] : ['IN_ROUTE', 'CANCELLED']
+  }
+  if (pedido.status === 'IN_ROUTE') return ['DELIVERED', 'CANCELLED']
+  return []
+}
+
+function getProximoStatusPedido(pedido) {
+  return getProximosStatusPedido(pedido).find((status) => status !== 'CANCELLED') || ''
+}
+
+function getStatusSelecionaveisPedido(pedido) {
+  const statusAtual = pedido?.status
+  const proximos = getProximosStatusPedido(pedido)
+  return Object.entries(STATUS_MAP).filter(([key]) => key === statusAtual || proximos.includes(key))
 }
 
 function escapeHtml(valor) {
@@ -220,7 +238,7 @@ export default function Pedidos() {
     CANCELLED: 0,
   })
   const [carregando, setCarregando] = useState(true)
-  const [filtroStatus, setFiltroStatus] = useState('APPROVED')
+  const [filtroStatus, setFiltroStatus] = useState('PENDING')
   const [busca, setBusca] = useState('')
   const [pedidoAberto, setPedidoAberto] = useState(null)
   const [naoLidasMap, setNaoLidasMap] = useState({})
@@ -235,7 +253,7 @@ export default function Pedidos() {
   const pedidosCountRef = useRef(0)
   const pedidoIdsRef = useRef(new Set())
   const primeiraCargaRef = useRef(true)
-  const filtroStatusRef = useRef('APPROVED')
+  const filtroStatusRef = useRef('PENDING')
   const buscaRef = useRef('')
 
   useEffect(() => {
@@ -456,7 +474,7 @@ export default function Pedidos() {
 
   const cardsResumo = [
     { chave: 'ATIVOS', label: 'Pedidos ativos', cor: 'text-amber-700 bg-amber-50 border-amber-200' },
-    { chave: 'PENDING', label: 'Pendentes', cor: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
+    { chave: 'PENDING', label: 'Recebidos', cor: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
     { chave: 'APPROVED', label: 'Em preparo', cor: 'text-blue-700 bg-blue-50 border-blue-200' },
     { chave: 'IN_ROUTE', label: 'Em entrega', cor: 'text-purple-700 bg-purple-50 border-purple-200' },
   ]
@@ -572,7 +590,7 @@ export default function Pedidos() {
             const pixOnline = isPixOnline(p)
             const pedidoColapsado = isStatusFinalizado(p.status)
             const riscoAlerta = getRiscoAlerta(p)
-            const proximoStatus = STATUS_PROGRESSAO[p.status]
+            const proximoStatus = getProximoStatusPedido(p)
             const carregandoAcaoPrimaria = acaoRapidaId === `${p.id}:${proximoStatus}`
             const carregandoAcaoCancelar = acaoRapidaId === `${p.id}:CANCELLED`
             return (
@@ -893,6 +911,7 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const pixOnline = isPixOnline(pedido)
   const riscoAlerta = getRiscoAlerta(pedido)
+  const statusSelecionaveis = getStatusSelecionaveisPedido(pedido)
   const [imprimindoIp, setImprimindoIp] = useState(false)
   const [imprimindoNavegador, setImprimindoNavegador] = useState(false)
   const [statusModalAberto, setStatusModalAberto] = useState(false)
@@ -1171,7 +1190,7 @@ function ModalDetalhePedido({ pedido, onFechar, onMudarStatus, socketRef, onAvis
               </button>
             </div>
             <div className="p-4 space-y-2">
-              {Object.entries(STATUS_MAP).map(([key, val]) => (
+              {statusSelecionaveis.map(([key, val]) => (
                 <button
                   key={key}
                   type="button"

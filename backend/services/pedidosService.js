@@ -9,6 +9,63 @@ const INCLUDE_ITENS = {
   },
 };
 
+const STATUS_LABELS = {
+  PENDING: 'pedido recebido',
+  APPROVED: 'em preparo',
+  IN_ROUTE: 'saiu para entrega',
+  DELIVERED: 'entregue',
+  CANCELLED: 'cancelado',
+};
+
+const STATUS_TRANSITIONS = {
+  PENDING: ['APPROVED', 'CANCELLED'],
+  APPROVED: ['CANCELLED'],
+  IN_ROUTE: ['DELIVERED', 'CANCELLED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+function normalizarStatusPedido(status) {
+  return String(status || '').toUpperCase();
+}
+
+function isPedidoRetirada(pedido) {
+  return String(pedido?.tipo_entrega || '').toUpperCase() === 'RETIRADA';
+}
+
+function getProximosStatusPedido(pedido) {
+  const statusAtual = normalizarStatusPedido(pedido?.status);
+
+  if (statusAtual === 'APPROVED') {
+    return isPedidoRetirada(pedido)
+      ? ['DELIVERED', 'CANCELLED']
+      : ['IN_ROUTE', 'CANCELLED'];
+  }
+
+  return STATUS_TRANSITIONS[statusAtual] || [];
+}
+
+function validarTransicaoStatusPedido(pedido, novoStatus) {
+  const statusAtual = normalizarStatusPedido(pedido?.status);
+  const statusDestino = normalizarStatusPedido(novoStatus);
+
+  if (!statusAtual || statusAtual === statusDestino) return;
+
+  const proximosStatus = getProximosStatusPedido(pedido);
+  if (proximosStatus.includes(statusDestino)) return;
+
+  const permitidosTexto = proximosStatus.length > 0
+    ? proximosStatus.map((status) => STATUS_LABELS[status] || status).join(', ')
+    : 'nenhum';
+
+  const err = new Error(
+    `Nao e permitido mudar o pedido de "${STATUS_LABELS[statusAtual] || statusAtual}" para ` +
+    `"${STATUS_LABELS[statusDestino] || statusDestino}". Proximo(s) status permitido(s): ${permitidosTexto}.`
+  );
+  err.status = 409;
+  throw err;
+}
+
 function isPizzaProduto(produto) {
   return String(produto?.tipo_produto || '').toUpperCase() === 'PIZZA';
 }
@@ -378,7 +435,7 @@ async function criar(data) {
         total,
         agendado_para: agendadoPara,
         // Novo pedido sempre entra como "Pedido recebido" no painel.
-        status: 'APPROVED',
+        status: 'PENDING',
         itens: { create: itensComPreco },
       },
       include: INCLUDE_ITENS,
@@ -402,12 +459,53 @@ async function criar(data) {
   });
 }
 
-async function atualizarStatus(id, status) {
-  return prisma.pedidos.update({ where: { id }, data: { status }, include: INCLUDE_ITENS });
+async function atualizarStatus(id, status, pedidoAtual = null) {
+  const pedido = pedidoAtual || await prisma.pedidos.findUnique({
+    where: { id },
+    include: INCLUDE_ITENS,
+  });
+
+  if (!pedido) {
+    const err = new Error('Pedido não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+
+  const statusNormalizado = normalizarStatusPedido(status);
+  validarTransicaoStatusPedido(pedido, statusNormalizado);
+
+  if (normalizarStatusPedido(pedido.status) === statusNormalizado) {
+    return pedido;
+  }
+
+  return prisma.pedidos.update({
+    where: { id },
+    data: { status: statusNormalizado },
+    include: INCLUDE_ITENS,
+  });
 }
 
 async function atualizar(id, data) {
-  return prisma.pedidos.update({ where: { id }, data, include: INCLUDE_ITENS });
+  const updateData = { ...data };
+
+  if (updateData.status !== undefined) {
+    const pedidoAtual = await prisma.pedidos.findUnique({
+      where: { id },
+      include: INCLUDE_ITENS,
+    });
+
+    if (!pedidoAtual) {
+      const err = new Error('Pedido não encontrado.');
+      err.status = 404;
+      throw err;
+    }
+
+    const statusNormalizado = normalizarStatusPedido(updateData.status);
+    validarTransicaoStatusPedido(pedidoAtual, statusNormalizado);
+    updateData.status = statusNormalizado;
+  }
+
+  return prisma.pedidos.update({ where: { id }, data: updateData, include: INCLUDE_ITENS });
 }
 
 async function excluir(id) {
@@ -418,4 +516,15 @@ async function getLoja(lojaId) {
   return prisma.lojas.findUnique({ where: { id: lojaId }, select: { id: true, ativa: true } });
 }
 
-module.exports = { listarPorLoja, listarPorCliente, buscarPorId, criar, atualizarStatus, atualizar, excluir, getLoja };
+module.exports = {
+  listarPorLoja,
+  listarPorCliente,
+  buscarPorId,
+  criar,
+  atualizarStatus,
+  atualizar,
+  excluir,
+  getLoja,
+  getProximosStatusPedido,
+  validarTransicaoStatusPedido,
+};

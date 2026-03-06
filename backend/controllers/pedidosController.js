@@ -88,7 +88,7 @@ async function atualizarStatus(req, res, next) {
     const pedido = await pedidosService.buscarPorId(req.params.id);
     if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
     if (pedido.loja_id !== req.user.loja_id) return res.status(403).json({ erro: 'Pedido de outra loja.' });
-    const atualizado = await pedidosService.atualizarStatus(req.params.id, req.validated.status);
+    const atualizado = await pedidosService.atualizarStatus(req.params.id, req.validated.status, pedido);
 
     emitStatusPedido(pedido.loja_id, pedido.cliente_id, atualizado);
 
@@ -101,6 +101,7 @@ async function atualizarStatus(req, res, next) {
 
     res.json(atualizado);
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message });
     next(e);
   }
 }

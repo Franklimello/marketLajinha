@@ -4,8 +4,9 @@ import { api } from '../api/client'
 import { FiArrowLeft, FiClock, FiCheckCircle, FiXCircle, FiPrinter } from 'react-icons/fi'
 
 const STATUS_MAP = {
-  PENDING: { label: 'Pendente', cor: 'bg-yellow-100 text-yellow-700', corBorda: 'border-yellow-300' },
-  APPROVED: { label: 'Aprovado', cor: 'bg-blue-100 text-blue-700', corBorda: 'border-blue-300' },
+  PENDING: { label: 'Pedido recebido', cor: 'bg-yellow-100 text-yellow-700', corBorda: 'border-yellow-300' },
+  APPROVED: { label: 'Em preparo', cor: 'bg-blue-100 text-blue-700', corBorda: 'border-blue-300' },
+  IN_ROUTE: { label: 'Saiu p/ entrega', cor: 'bg-purple-100 text-purple-700', corBorda: 'border-purple-300' },
   DELIVERED: { label: 'Entregue', cor: 'bg-green-100 text-green-700', corBorda: 'border-green-300' },
   CANCELLED: { label: 'Cancelado', cor: 'bg-red-100 text-red-700', corBorda: 'border-red-300' },
 }
@@ -36,6 +37,35 @@ function labelPagamentoPedido(pedido) {
   const forma = String(pedido?.forma_pagamento || '').toUpperCase()
   if (forma === 'PIX') return isPixOnline(pedido) ? 'PIX online' : 'PIX na entrega'
   return PAGAMENTO_MAP[forma] || pedido?.forma_pagamento || '-'
+}
+
+function isStatusFinalizado(status) {
+  return status === 'DELIVERED' || status === 'CANCELLED'
+}
+
+function isPedidoRetirada(pedido) {
+  return pedido?.tipo_entrega === 'RETIRADA'
+}
+
+function getTimelinePedido(pedido) {
+  if (isPedidoRetirada(pedido)) return ['PENDING', 'APPROVED', 'DELIVERED']
+  return ['PENDING', 'APPROVED', 'IN_ROUTE', 'DELIVERED']
+}
+
+function getProximosStatusPedido(pedido) {
+  if (!pedido || isStatusFinalizado(pedido.status)) return []
+  if (pedido.status === 'PENDING') return ['APPROVED', 'CANCELLED']
+  if (pedido.status === 'APPROVED') {
+    return isPedidoRetirada(pedido) ? ['DELIVERED', 'CANCELLED'] : ['IN_ROUTE', 'CANCELLED']
+  }
+  if (pedido.status === 'IN_ROUTE') return ['DELIVERED', 'CANCELLED']
+  return []
+}
+
+function getStatusSelecionaveisPedido(pedido) {
+  const statusAtual = pedido?.status
+  const proximos = getProximosStatusPedido(pedido)
+  return Object.entries(STATUS_MAP).filter(([key]) => key === statusAtual || proximos.includes(key))
 }
 
 export default function PedidoDetalhe() {
@@ -79,9 +109,9 @@ export default function PedidoDetalhe() {
 
   const st = STATUS_MAP[pedido.status] || STATUS_MAP.PENDING
   const pixOnline = isPixOnline(pedido)
-
-  const TIMELINE = ['PENDING', 'APPROVED', 'DELIVERED']
+  const TIMELINE = getTimelinePedido(pedido)
   const statusIndex = TIMELINE.indexOf(pedido.status)
+  const statusSelecionaveis = getStatusSelecionaveisPedido(pedido)
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -208,7 +238,7 @@ export default function PedidoDetalhe() {
       <div className="bg-white rounded-xl border border-stone-200 p-5">
         <h2 className="font-semibold text-stone-900 mb-3">Alterar status</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {Object.entries(STATUS_MAP).map(([key, val]) => (
+          {statusSelecionaveis.map(([key, val]) => (
             <button
               key={key}
               onClick={() => mudarStatus(key)}

@@ -1,6 +1,7 @@
 const { prisma } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { validarTransicaoStatusPedido } = require('./pedidosService');
 
 const JWT_SECRET = String(process.env.JWT_SECRET || '').trim();
 const JWT_LEGACY_SECRET = String(process.env.JWT_LEGACY_SECRET || '').trim();
@@ -170,6 +171,13 @@ async function atualizarStatusPedido(pedidoId, lojaId, novoStatus) {
     err.status = 403;
     throw err;
   }
+  if (pedido.tipo_entrega !== 'ENTREGA') {
+    const err = new Error('Pedido de retirada nÃ£o pode ser atualizado pelo motoboy.');
+    err.status = 403;
+    throw err;
+  }
+
+  validarTransicaoStatusPedido(pedido, novoStatus);
 
   return prisma.pedidos.update({
     where: { id: pedidoId },

@@ -952,8 +952,8 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 
 function statusDominante(status = {}) {
   const labels = {
-    PENDING: 'Pendente',
-    APPROVED: 'Aprovado',
+    PENDING: 'Pedido recebido',
+    APPROVED: 'Em preparo',
     IN_ROUTE: 'Em rota',
     DELIVERED: 'Entregue',
     CANCELLED: 'Cancelado',

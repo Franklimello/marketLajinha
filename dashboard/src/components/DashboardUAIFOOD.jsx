@@ -290,6 +290,7 @@ export default function DashboardUAIFOOD({
     const produtoDestaqueSemana = [...produtoStats.values()].sort((a, b) => b.qtd7Atual - a.qtd7Atual)[0] || null
     const clienteVipAlerta = clientesTabela.find((c) => c.insight === 'VIP em queda') || null
     const funil = {
+      PENDING: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'PENDING').length,
       APPROVED: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'APPROVED').length,
       IN_ROUTE: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'IN_ROUTE').length,
       DELIVERED: pedidosPeriodoTodosStatus.filter((p) => String(p?.status || '').toUpperCase() === 'DELIVERED').length,
@@ -547,10 +548,11 @@ export default function DashboardUAIFOOD({
             Funil operacional do período
           </Typography>
           <Grid container spacing={1}>
-            <Grid item xs={6} md={3}><Chip color="primary" label={`Recebidos: ${dados.funil.APPROVED}`} /></Grid>
-            <Grid item xs={6} md={3}><Chip color="secondary" label={`Em rota: ${dados.funil.IN_ROUTE}`} /></Grid>
-            <Grid item xs={6} md={3}><Chip color="success" label={`Entregues: ${dados.funil.DELIVERED}`} /></Grid>
-            <Grid item xs={6} md={3}><Chip color="error" label={`Cancelados: ${dados.funil.CANCELLED}`} /></Grid>
+            <Grid item xs={6} md={4} lg={2}><Chip color="warning" label={`Recebidos: ${dados.funil.PENDING}`} /></Grid>
+            <Grid item xs={6} md={4} lg={2}><Chip color="primary" label={`Em preparo: ${dados.funil.APPROVED}`} /></Grid>
+            <Grid item xs={6} md={4} lg={2}><Chip color="secondary" label={`Em rota: ${dados.funil.IN_ROUTE}`} /></Grid>
+            <Grid item xs={6} md={4} lg={2}><Chip color="success" label={`Entregues: ${dados.funil.DELIVERED}`} /></Grid>
+            <Grid item xs={6} md={4} lg={2}><Chip color="error" label={`Cancelados: ${dados.funil.CANCELLED}`} /></Grid>
           </Grid>
         </CardContent>
       </Card>
