@@ -14,15 +14,19 @@ function medalha(posicao) {
 export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }) {
   const [expandido, setExpandido] = useState(false)
   const [ativandoPublico, setAtivandoPublico] = useState(false)
+  const [erroParticipacao, setErroParticipacao] = useState('')
   const ranking = useMonthlyCityRanking({ cidadeId, currentUserId })
 
   if (!cidadeId) return null
 
   async function atualizarParticipacaoPublica(publico) {
     setAtivandoPublico(true)
+    setErroParticipacao('')
     try {
       await api.clientes.atualizarRankingPublico(publico)
       await ranking.refetch()
+    } catch (err) {
+      setErroParticipacao(err instanceof Error ? err.message : 'Não foi possível atualizar sua participação no ranking.')
     } finally {
       setAtivandoPublico(false)
     }
@@ -70,6 +74,9 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
       <div className="mt-3 space-y-2">
         {ranking.error && (
           <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2">Não foi possível carregar o ranking agora.</p>
+        )}
+        {erroParticipacao && (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-2">{erroParticipacao}</p>
         )}
         {ranking.isLoading && (
           <p className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2">Carregando ranking...</p>

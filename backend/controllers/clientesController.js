@@ -151,9 +151,7 @@ async function atualizarRankingPublico(req, res, next) {
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
     const rankingPublico = Boolean(req.body?.ranking_publico);
-    const atualizado = await clientesService.atualizar(cliente.id, {
-      ranking_publico: rankingPublico,
-    });
+    const atualizado = await clientesService.atualizarRankingPublico(cliente.id, rankingPublico);
     res.json({
       ok: true,
       ranking_publico: Boolean(atualizado?.ranking_publico),

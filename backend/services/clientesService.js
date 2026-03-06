@@ -32,6 +32,23 @@ async function atualizar(id, data) {
   });
 }
 
+async function atualizarRankingPublico(id, rankingPublico) {
+  const publico = !!rankingPublico;
+  const [clienteAtualizado] = await prisma.$transaction([
+    prisma.clientes.update({
+      where: { id },
+      data: { ranking_publico: publico },
+      include: INCLUDE_ENDERECOS,
+    }),
+    prisma.rankingMensalUsuario.updateMany({
+      where: { cliente_id: id },
+      data: { ranking_publico: publico },
+    }),
+  ]);
+
+  return clienteAtualizado;
+}
+
 // ---- Endereços ----
 
 async function listarEnderecos(clienteId) {
@@ -157,6 +174,7 @@ module.exports = {
   buscarPorId,
   criar,
   atualizar,
+  atualizarRankingPublico,
   listarEnderecos,
   criarEndereco,
   atualizarEndereco,
