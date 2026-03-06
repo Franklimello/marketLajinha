@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import SEO from '../componentes/SEO'
 import BAIRROS_DISPONIVEIS from '../data/bairros'
-import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiSave, FiX, FiBell, FiTag, FiMessageCircle, FiChevronRight, FiUser, FiSettings, FiHome } from 'react-icons/fi'
+import { FiLogOut, FiPlus, FiEdit2, FiTrash2, FiStar, FiMapPin, FiSave, FiX, FiBell, FiTag, FiMessageCircle, FiChevronRight, FiUser, FiSettings, FiHome, FiInfo } from 'react-icons/fi'
 import { canUseWebPush } from '../utils/pwaEnvironment'
 import { getItem as getLocalItem, setItem as setLocalItem } from '../storage/localStorageService'
 import { uploadArquivoChat } from '../config/firebase'
@@ -466,6 +466,16 @@ export default function PerfilPage() {
             <span className="min-w-0 text-left">
               <span className="block text-sm font-semibold text-stone-900">Configuracoes</span>
               <span className="block text-[11px] text-stone-500 truncate">Notificacoes e preferencias da conta</span>
+            </span>
+          </span>
+          <FiChevronRight className="text-stone-400 shrink-0" />
+        </button>
+        <button type="button" onClick={() => navigate('/sobre')} className="w-full px-4 py-3.5 flex items-center justify-between gap-3 border-t border-stone-100 hover:bg-stone-50">
+          <span className="flex items-center gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-xl bg-red-50 border border-red-100 text-red-700 inline-flex items-center justify-center"><FiInfo /></span>
+            <span className="min-w-0 text-left">
+              <span className="block text-sm font-semibold text-stone-900">Sobre</span>
+              <span className="block text-[11px] text-stone-500 truncate">Conheca o app, termos e informacoes gerais</span>
             </span>
           </span>
           <FiChevronRight className="text-stone-400 shrink-0" />

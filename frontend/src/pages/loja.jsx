@@ -77,6 +77,29 @@ function getComboImages(combo) {
   ])
 }
 
+function scheduleDeferredTask(task, { delay = 180, timeout = 1200 } = {}) {
+  let done = false
+  let timeoutId = null
+  let idleId = null
+
+  const run = () => {
+    if (done) return
+    done = true
+    task()
+  }
+
+  timeoutId = window.setTimeout(run, delay)
+  if ('requestIdleCallback' in window) {
+    idleId = window.requestIdleCallback(run, { timeout })
+  }
+
+  return () => {
+    done = true
+    if (timeoutId) clearTimeout(timeoutId)
+    if (idleId !== null && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
+  }
+}
+
 function isPromocaoAtiva(produto) {
   return !!produto?.em_promocao && Number(produto?.preco_promocional || 0) > 0
 }
@@ -432,6 +455,7 @@ export default function LojaPage() {
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
   const restoredCartRef = useRef(false)
+  const produtosIniciadosRef = useRef(new Set())
   const secundariosIniciadosRef = useRef(new Set())
   const [pageVisible, setPageVisible] = useState(false)
   const cartButtonRef = useRef(null)
@@ -443,8 +467,8 @@ export default function LojaPage() {
     queryFn: () => api.lojas.buscarPorSlug(slug),
     staleTime: 60_000,
     gcTime: 120_000,
-    placeholderData: (prev) => getCachedData('loja-slug', slug) || prev,
-  });
+    placeholderData: (prev) => getCachedData(`/lojas/slug/${slug}`) || prev,
+  })
 
   function mostrarToast(msg) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -461,11 +485,92 @@ export default function LojaPage() {
 
   useEffect(() => {
     if (!slug) return
+    if (produtosIniciadosRef.current.has(slug)) return
 
-    const abortController = new AbortController();
+    produtosIniciadosRef.current.add(slug)
+    const abortController = new AbortController()
+    let cancelarPaginasRestantes = null
+
+    async function carregarProdutosIniciais() {
+      try {
+        const cachedPrimeiraPagina = getCachedData(`/lojas/${slug}/produtos?pagina=1`)
+        if (!cachedPrimeiraPagina) setProdutosCarregando(true)
+
+        const primeira = await queryClient.fetchQuery({
+          queryKey: ['loja-produtos', slug, 1],
+          queryFn: () => api.lojas.produtos(slug, 1),
+          staleTime: 60_000,
+        })
+
+        if (abortController.signal.aborted) return
+
+        const base = Array.isArray(primeira?.dados) ? primeira.dados : []
+        const total = Number(primeira?.total || base.length || 0)
+        const totalPaginas = Number(primeira?.total_paginas || 1)
+
+        setProdutos({ dados: base, total })
+        setProdutosCarregando(false)
+
+        if (totalPaginas > 1) {
+          cancelarPaginasRestantes = scheduleDeferredTask(async () => {
+            let acumulado = [...base]
+            const paginasRestantes = Array.from({ length: totalPaginas - 1 }, (_, i) => i + 2)
+            const chunk = 2
+
+            for (let i = 0; i < paginasRestantes.length; i += chunk) {
+              const batch = paginasRestantes.slice(i, i + chunk)
+              const resultados = await Promise.all(
+                batch.map((pagina) => queryClient.fetchQuery({
+                  queryKey: ['loja-produtos', slug, pagina],
+                  queryFn: () => api.lojas.produtos(slug, pagina),
+                  staleTime: 60_000,
+                }))
+              )
+
+              if (abortController.signal.aborted) return
+
+              resultados.forEach((res) => {
+                const novosDados = Array.isArray(res?.dados) ? res.dados : []
+                const idsExistentes = new Set(acumulado.map((item) => item.id))
+                const filtrados = novosDados.filter((item) => !idsExistentes.has(item.id))
+                acumulado = [...acumulado, ...filtrados]
+              })
+
+              setProdutos({
+                dados: acumulado,
+                total: acumulado.length > total ? acumulado.length : total,
+              })
+            }
+          }, { delay: 280, timeout: 1600 })
+        }
+      } catch (err) {
+        if (abortController.signal.aborted) return
+        console.error('[LojaPage] Erro ao carregar produtos:', err)
+        setProdutos({ dados: [], total: 0 })
+      } finally {
+        if (!abortController.signal.aborted) setProdutosCarregando(false)
+      }
+    }
+
+    carregarProdutosIniciais()
+
+    return () => {
+      abortController.abort()
+      cancelarPaginasRestantes?.()
+    }
+  }, [slug, queryClient])
+
+  useEffect(() => {
+    if (!slug) return
+
+    const abortController = new AbortController()
+    const cleanups = []
 
     async function dispararSecundarios(lojaId) {
-      try {
+      const produtosJaPriorizados = produtosIniciadosRef.current.has(slug)
+
+      if (!produtosJaPriorizados) {
+        try {
         setProdutosCarregando(true);
         // 1. Busca primeira página
         const primeira = await queryClient.fetchQuery({
@@ -527,33 +632,38 @@ export default function LojaPage() {
       }
 
       // Outros dados secundários em paralelo
-      Promise.allSettled([
-        api.lojas.bairros(lojaId),
-        api.combos.listarPorLoja(lojaId),
-        api.promocoes.listarPorLoja(lojaId),
-        api.avaliacoes.mediaPorLoja(lojaId),
-        api.avaliacoes.listarPorLoja(lojaId),
-      ]).then(([bairrosRes, combosRes, promocoesRes, notaRes, avaliacoesRes]) => {
-        if (abortController.signal.aborted) return;
-        if (bairrosRes.status === 'fulfilled') setBairros(bairrosRes.value);
-        if (combosRes.status === 'fulfilled') setCombos(combosRes.value);
-        if (promocoesRes.status === 'fulfilled') setPromocoes(Array.isArray(promocoesRes.value) ? promocoesRes.value : []);
-        if (notaRes.status === 'fulfilled') setNotaMedia(notaRes.value);
-        if (avaliacoesRes.status === 'fulfilled') setAvaliacoes(avaliacoesRes.value?.dados || []);
-      });
+      }
+      const cancelarSecundarios = scheduleDeferredTask(() => {
+        Promise.allSettled([
+          api.lojas.bairros(lojaId),
+          api.combos.listarPorLoja(lojaId),
+          api.promocoes.listarPorLoja(lojaId),
+          api.avaliacoes.mediaPorLoja(lojaId),
+          api.avaliacoes.listarPorLoja(lojaId),
+        ]).then(([bairrosRes, combosRes, promocoesRes, notaRes, avaliacoesRes]) => {
+          if (abortController.signal.aborted) return
+          if (bairrosRes.status === 'fulfilled') setBairros(bairrosRes.value)
+          if (combosRes.status === 'fulfilled') setCombos(combosRes.value)
+          if (promocoesRes.status === 'fulfilled') setPromocoes(Array.isArray(promocoesRes.value) ? promocoesRes.value : [])
+          if (notaRes.status === 'fulfilled') setNotaMedia(notaRes.value)
+          if (avaliacoesRes.status === 'fulfilled') setAvaliacoes(avaliacoesRes.value?.dados || [])
+        })
 
-      setCuponsDisponiveisCarregando(true);
-      api.cupons.listarDisponiveis(lojaId)
-        .then((r) => {
-          if (abortController.signal.aborted) return;
-          setCuponsDisponiveis(Array.isArray(r) ? r : []);
-        })
-        .catch(() => {
-          if (!abortController.signal.aborted) setCuponsDisponiveis([]);
-        })
-        .finally(() => {
-          if (!abortController.signal.aborted) setCuponsDisponiveisCarregando(false);
-        });
+        setCuponsDisponiveisCarregando(true)
+        api.cupons.listarDisponiveis(lojaId)
+          .then((r) => {
+            if (abortController.signal.aborted) return
+            setCuponsDisponiveis(Array.isArray(r) ? r : [])
+          })
+          .catch(() => {
+            if (!abortController.signal.aborted) setCuponsDisponiveis([])
+          })
+          .finally(() => {
+            if (!abortController.signal.aborted) setCuponsDisponiveisCarregando(false)
+          })
+      }, { delay: 420, timeout: 2200 })
+
+      cleanups.push(cancelarSecundarios)
     }
 
     // Se a loja já está em cache (prefetch rodou), dispara secundários imediatamente
@@ -569,16 +679,30 @@ export default function LojaPage() {
       setErro(lojaQuery.error.message)
       setCarregando(false)
       setProdutosCarregando(false)
-      return
+      return () => {
+        abortController.abort()
+        cleanups.forEach((cleanup) => cleanup())
+      }
     }
 
     const lojaId = lojaAtual?.id
-    if (!lojaId) return
+    if (!lojaId) {
+      return () => {
+        abortController.abort()
+        cleanups.forEach((cleanup) => cleanup())
+      }
+    }
 
     const key = `${slug}:${lojaId}`
-    if (secundariosIniciadosRef.current.has(key)) return
-    secundariosIniciadosRef.current.add(key)
-    dispararSecundarios(lojaId)
+    if (!secundariosIniciadosRef.current.has(key)) {
+      secundariosIniciadosRef.current.add(key)
+      dispararSecundarios(lojaId)
+    }
+
+    return () => {
+      abortController.abort()
+      cleanups.forEach((cleanup) => cleanup())
+    }
   }, [slug, lojaQuery.data, lojaQuery.error, queryClient])
 
   useEffect(() => {
@@ -2192,6 +2316,9 @@ export default function LojaPage() {
           <img
             src={loja.banner_url}
             alt=""
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className={`w-full h-full object-cover transition-transform duration-500 ${!aberta ? 'grayscale brightness-75' : ''}`}
             onError={(e) => { e.target.style.display = 'none' }}
           />
@@ -2219,7 +2346,7 @@ export default function LojaPage() {
           )}
         </div>
         <div className="hidden md:block absolute bottom-4 left-4 w-20 h-20 md:bottom-5 md:w-24 md:h-24 rounded-[1.4rem] md:rounded-3xl overflow-hidden border-[3px] md:border-4 border-white/90 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.95)] md:shadow-[0_24px_42px_-26px_rgba(15,23,42,0.95)] bg-white">
-          <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
+          <img src={loja.logo_url || ''} alt={loja.nome} loading="eager" fetchPriority="high" decoding="async" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
           <div className="w-full h-full items-center justify-center text-2xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
         </div>
         {!aberta && <div className="absolute inset-0 bg-black/35 flex items-center justify-center"><span className="bg-black/65 text-white text-sm font-bold px-4 py-2 rounded-full">Fechada</span></div>}
@@ -2243,7 +2370,7 @@ export default function LojaPage() {
 
         <div className="relative rounded-2xl border border-stone-200 bg-white px-4 pt-4 pb-3.5">
           <div className="absolute -top-12 right-4 w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white md:hidden">
-            <img src={loja.logo_url || ''} alt={loja.nome} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
+            <img src={loja.logo_url || ''} alt={loja.nome} loading="eager" fetchPriority="high" decoding="async" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }} />
             <div className="w-full h-full items-center justify-center text-xl font-bold text-white hidden" style={{ backgroundColor: loja.cor_primaria || '#78716c' }}>{loja.nome?.charAt(0)}</div>
           </div>
 

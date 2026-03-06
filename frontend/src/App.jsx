@@ -112,7 +112,9 @@ export default function App() {
 
   useEffect(() => {
     const savedTheme = getLocalItem('theme', null)
-    const initialTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    const initialTheme = savedTheme === 'light' || savedTheme === 'dark'
+      ? savedTheme
+      : 'dark'
     applyTheme(initialTheme)
   }, [])
 
