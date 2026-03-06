@@ -18,9 +18,21 @@ export default function HomeGreeting({
 
   return (
     <div>
-      <h2 className="text-[1.95rem] leading-[1.12] font-black tracking-tight text-stone-900">
-        {titleWithName}
-      </h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-[1.95rem] leading-[1.12] font-black tracking-tight text-stone-900">
+          {titleWithName}
+        </h2>
+        <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap ${
+          temLojaAberta ? 'border-emerald-200 bg-emerald-50/80' : 'border-stone-200 bg-stone-100/80'
+        }`}>
+          <FiClock className={temLojaAberta ? 'text-emerald-600' : 'text-stone-500'} />
+          <span className={temLojaAberta ? 'text-emerald-700' : 'text-stone-600'}>
+            {temLojaAberta
+              ? `${lojasAbertasCount} aberta${lojasAbertasCount !== 1 ? 's' : ''}`
+              : 'Nenhuma aberta'}
+          </span>
+        </div>
+      </div>
       {subtitle && (
         <p className="mt-1 text-sm text-stone-600">
           {subtitle}
@@ -31,22 +43,11 @@ export default function HomeGreeting({
           {suggestion}
         </p>
       )}
-      <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
-        temLojaAberta ? 'border-emerald-200 bg-emerald-50/80' : 'border-stone-200 bg-stone-100/80'
-      }`}>
-        <FiClock className={temLojaAberta ? 'text-emerald-600' : 'text-stone-500'} />
-        <span className={temLojaAberta ? 'text-emerald-700' : 'text-stone-600'}>
-          {temLojaAberta
-            ? `${lojasAbertasCount} loja${lojasAbertasCount !== 1 ? 's' : ''} aberta${lojasAbertasCount !== 1 ? 's' : ''} agora`
-            : 'Nenhuma loja aberta no momento'}
-        </span>
-      </div>
       {cidadeAtual && (
         <p className="mt-2 flex items-start gap-1.5 text-xs text-stone-600 leading-relaxed">
           <FiMapPin className="mt-[2px] shrink-0 text-stone-500" />
           <span>
-            Mostrando lojas em <span className="font-semibold text-stone-800">{cidadeAtual}</span>.{' '}
-            Para ver outra cidade, pesquise o nome dela.
+            Mostrando lojas em <span className="font-semibold text-stone-800">{cidadeAtual}</span>.
           </span>
         </p>
       )}

@@ -266,12 +266,12 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
             <button
               key={p.id}
               onClick={() => onAdd(p)}
-              className="group snap-start shrink-0 w-[132px] text-left rounded-xl border border-stone-200 bg-white p-2 transition-all hover:-translate-y-0.5"
+              className="group snap-start shrink-0 w-[132px] text-left p-0 transition-all hover:-translate-y-0.5"
             >
-              <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
+              <div className="w-full aspect-square rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/80">
                 <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
               </div>
-              <p className="text-xs font-semibold text-stone-900 mt-2 line-clamp-1">{p.nome}</p>
+              <p className="text-xs font-semibold text-stone-900 mt-2 line-clamp-1 px-0.5">{p.nome}</p>
               <p className="text-xs text-red-700 font-bold font-numeric leading-tight mt-0.5">
                 {p.variacoes?.length > 0
                   ? `a partir de R$ ${preco.toFixed(2).replace('.', ',')}${isProdutoPizza(p) ? ' (1 sabor)' : ''}`
@@ -2360,10 +2360,10 @@ export default function LojaPage() {
                   key={promo.id}
                   type="button"
                   onClick={() => abrirProdutoDaPromocao(promo)}
-                  className="group snap-start shrink-0 w-[132px] text-left rounded-xl border border-stone-200 bg-white p-2 transition-all hover:-translate-y-0.5"
+                  className="group snap-start shrink-0 w-[132px] text-left p-0 transition-all hover:-translate-y-0.5"
                 >
                   {(promo.imagem_url || promo.produto?.imagem_url) ? (
-                    <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-stone-100">
+                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/80">
                       <img
                         src={promo.imagem_url || promo.produto?.imagem_url}
                         alt={promo.titulo}
@@ -2376,11 +2376,11 @@ export default function LojaPage() {
                       </span>
                     </div>
                   ) : (
-                    <div className="w-full aspect-square rounded-xl bg-amber-100/80 flex items-center justify-center">
+                    <div className="w-full aspect-square rounded-2xl bg-amber-100/80 border border-stone-200/80 flex items-center justify-center">
                       <FiTag className="text-amber-600 text-xl" />
                     </div>
                   )}
-                  <div className="mt-1.5">
+                  <div className="mt-1.5 px-0.5">
                     <h3 className="text-xs font-semibold text-stone-900 line-clamp-1">
                       {promo.produto?.nome || promo.titulo}
                     </h3>
