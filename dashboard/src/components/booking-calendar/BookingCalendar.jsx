@@ -42,6 +42,305 @@ function keyOf(date, time) {
   return `${String(date || '')}__${String(time || '')}`
 }
 
+function DateSelector({ selectedDate, onChangeDate, onGoToday }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <label className="inline-flex items-center gap-2 text-sm text-stone-700 min-w-0">
+        <FiCalendar size={15} />
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => onChangeDate(e.target.value)}
+          className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 min-w-0"
+        />
+      </label>
+
+      <button
+        type="button"
+        onClick={onGoToday}
+        className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+      >
+        Hoje
+      </button>
+    </div>
+  )
+}
+
+function HeaderAgenda({ selectedDate, onChangeDate }) {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="text-lg font-semibold tracking-tight text-stone-900">Agenda</h2>
+        <p className="text-xs text-stone-500 mt-0.5">Visualize e ajuste sua disponibilidade sem atrito.</p>
+      </div>
+
+      <DateSelector
+        selectedDate={selectedDate}
+        onChangeDate={onChangeDate}
+        onGoToday={() => onChangeDate(new Date().toISOString().slice(0, 10))}
+      />
+    </header>
+  )
+}
+
+function OccupancyBar({ occupiedCount, freeCount, occupancyPct }) {
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-stone-900">Ocupacao do dia</h3>
+        <span className="text-xs font-medium text-stone-500">{occupiedCount} ocupados • {freeCount} livres</span>
+      </div>
+      <div className="h-2 rounded-full bg-stone-200 overflow-hidden">
+        <div className="h-full bg-orange-500 transition-all" style={{ width: `${occupancyPct}%` }} />
+      </div>
+    </section>
+  )
+}
+
+function PrimaryActions({
+  onOpenMap,
+  onToggleDay,
+  selectedDate,
+  busyDayAction,
+  allFreeSlotsBlocked,
+  manualBlockedListLength,
+}) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold text-stone-900">Acoes principais</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={onOpenMap}
+          className="min-h-[46px] rounded-xl border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+        >
+          Abrir agenda
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onToggleDay?.({ date: selectedDate, occupied: true })}
+          disabled={!onToggleDay || busyDayAction || allFreeSlotsBlocked}
+          className="min-h-[46px] rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+        >
+          {busyDayAction ? 'Processando...' : 'Bloquear horarios'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onToggleDay?.({ date: selectedDate, occupied: false })}
+          disabled={!onToggleDay || busyDayAction || manualBlockedListLength === 0}
+          className="min-h-[46px] rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+        >
+          Liberar bloqueios
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function PresetButtons({ presets, onApplyPreset }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {presets.map((preset) => (
+        <button
+          key={preset.label}
+          type="button"
+          onClick={() => onApplyPreset(preset)}
+          className="rounded-full border border-stone-300 bg-white px-3 py-1 text-[11px] font-medium text-stone-700 hover:bg-stone-50"
+        >
+          {preset.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function WeekdaySelector({ workdaysMode, onChangeMode }) {
+  const labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
+  const activeMap =
+    workdaysMode === 'TODOS'
+      ? [true, true, true, true, true, true, true]
+      : (workdaysMode === 'SEG_SAB'
+        ? [true, true, true, true, true, true, false]
+        : [true, true, true, true, true, false, false])
+
+  function handleToggle(idx) {
+    if (!onChangeMode) return
+    if (idx === 6) {
+      onChangeMode(workdaysMode === 'TODOS' ? 'SEG_SAB' : 'TODOS')
+      return
+    }
+    if (idx === 5) {
+      onChangeMode(workdaysMode === 'SEG_SEX' ? 'SEG_SAB' : 'SEG_SEX')
+      return
+    }
+    if (workdaysMode === 'TODOS') onChangeMode('SEG_SAB')
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {labels.map((label, idx) => (
+        <button
+          key={label}
+          type="button"
+          onClick={() => handleToggle(idx)}
+          className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
+            activeMap[idx]
+              ? 'border-orange-500 bg-orange-500 text-white'
+              : 'border-stone-300 bg-white text-stone-600 hover:bg-stone-50'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function WorkingHoursEditor({
+  defaultStartTime,
+  defaultEndTime,
+  onDefaultStartTimeChange,
+  onDefaultEndTimeChange,
+  periodPresets,
+  workdaysMode,
+  onWorkdaysModeChange,
+  onApplyDefaultSchedule,
+  busyDefaultApply,
+  onUndoDefaultSchedule,
+  canUndoDefaultSchedule,
+  busyDefaultUndo,
+}) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-semibold text-stone-900">Horario de funcionamento</h3>
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs text-stone-600">
+          Inicio
+          <input
+            type="time"
+            step="1800"
+            value={defaultStartTime}
+            onChange={(e) => onDefaultStartTimeChange?.(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800"
+          />
+        </label>
+        <label className="text-xs text-stone-600">
+          Fim
+          <input
+            type="time"
+            step="1800"
+            value={defaultEndTime}
+            onChange={(e) => onDefaultEndTimeChange?.(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800"
+          />
+        </label>
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-xs text-stone-500">Presets rapidos</p>
+        <PresetButtons
+          presets={periodPresets}
+          onApplyPreset={(preset) => {
+            onDefaultStartTimeChange?.(preset.start)
+            onDefaultEndTimeChange?.(preset.end)
+          }}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-xs text-stone-500">Dias da semana</p>
+        <WeekdaySelector workdaysMode={workdaysMode} onChangeMode={onWorkdaysModeChange} />
+      </div>
+
+      <button
+        type="button"
+        onClick={onApplyDefaultSchedule}
+        disabled={!onApplyDefaultSchedule || busyDefaultApply}
+        className="w-full min-h-[46px] rounded-xl border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+      >
+        {busyDefaultApply ? 'Aplicando horario...' : 'Aplicar horario padrao'}
+      </button>
+
+      {onUndoDefaultSchedule && (
+        <button
+          type="button"
+          onClick={onUndoDefaultSchedule}
+          disabled={!canUndoDefaultSchedule || busyDefaultUndo}
+          className="w-full min-h-[42px] rounded-xl border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+        >
+          {busyDefaultUndo ? 'Desfazendo...' : 'Desfazer ultima aplicacao'}
+        </button>
+      )}
+    </section>
+  )
+}
+
+function ScheduleEditorCard({ onOpenMap }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold text-stone-900">Editor de horarios</h3>
+      <p className="text-xs text-stone-500">Abra o mapa para liberar ou bloquear horarios rapidamente.</p>
+      <button
+        type="button"
+        onClick={onOpenMap}
+        className="w-full min-h-[46px] rounded-xl border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+      >
+        Abrir mapa de horarios
+      </button>
+    </section>
+  )
+}
+
+function AppointmentsList({ dayAppointments }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
+        <FiClock size={14} /> Atendimentos do dia
+      </h3>
+
+      {dayAppointments.length === 0 ? (
+        <p className="text-sm text-stone-500">Nenhum agendamento neste dia.</p>
+      ) : (
+        <div className="space-y-2">
+          {dayAppointments.map((appointment) => (
+            <article key={appointment.id} className={`rounded-xl border px-3 py-2.5 text-sm ${statusColor(appointment.status)}`}>
+              <p className="font-semibold">
+                {appointment.effective_time || appointment.time} - {appointment.end_time}
+              </p>
+              <p>{appointment.client?.nome || 'Cliente'} - {appointment.service?.name || 'Servico'}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function BlockedTimesList({ blockedTimes }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold text-stone-900">Bloqueios do dia</h3>
+      {blockedTimes.length === 0 ? (
+        <p className="text-sm text-stone-500">Nenhum bloqueio manual neste dia.</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {blockedTimes.map((time) => (
+            <span
+              key={time}
+              className="rounded-full border border-stone-300 bg-white px-2.5 py-1 text-[11px] font-medium text-stone-700"
+            >
+              {time}
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function BookingCalendar({
   appointments = [],
   blockedSlots = [],
@@ -266,226 +565,42 @@ export default function BookingCalendar({
     { label: 'Noite', start: '12:00', end: '22:00' },
   ]
 
-  const workdayModes = [
-    { value: 'SEG_SEX', label: 'Seg-Sex' },
-    { value: 'SEG_SAB', label: 'Seg-Sab' },
-    { value: 'TODOS', label: 'Todos' },
-  ]
-
-  const workdaysLabel = workdaysMode === 'SEG_SEX'
-    ? 'Segunda a sexta'
-    : (workdaysMode === 'SEG_SAB' ? 'Segunda a sábado' : 'Todos os dias')
-
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)] overflow-hidden max-w-full">
-      <div className="border-b border-stone-200 bg-linear-to-r from-stone-50 to-amber-50 p-3 space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <label className="inline-flex items-center gap-2 text-sm font-medium text-stone-700">
-              <FiCalendar size={15} />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => updateSelectedDate(e.target.value)}
-                className="rounded-lg border border-stone-300 px-2.5 py-1.5 text-sm bg-white max-w-full"
-              />
-            </label>
+    <section className="max-w-5xl mx-auto w-full rounded-2xl border border-stone-200/80 bg-stone-50/40 p-3 sm:p-4 space-y-4">
+      <HeaderAgenda selectedDate={selectedDate} onChangeDate={updateSelectedDate} />
 
-            <button
-              type="button"
-              onClick={() => updateSelectedDate(new Date().toISOString().slice(0, 10))}
-              className="rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-stone-700 hover:bg-stone-50"
-            >
-              Hoje
-            </button>
-          </div>
+      <OccupancyBar occupiedCount={occupiedCount} freeCount={freeCount} occupancyPct={occupancyPct} />
 
-          <div className="w-full sm:w-48 min-w-0">
-            <p className="text-xs text-stone-500">Ocupacao em {formatDate(selectedDate)}</p>
-            <div className="mt-1 h-2 rounded-full border border-stone-300 bg-stone-100 overflow-hidden">
-              <div className="h-full bg-linear-to-r from-amber-500 to-orange-500" style={{ width: `${occupancyPct}%` }} />
-            </div>
-            <p className="text-xs text-stone-600 mt-1 font-numeric">{occupiedCount}/{slots.length} blocos ({occupancyPct}%)</p>
-          </div>
-        </div>
+      <PrimaryActions
+        onOpenMap={() => setMapModalOpen(true)}
+        onToggleDay={onToggleDay}
+        selectedDate={selectedDate}
+        busyDayAction={busyDayAction}
+        allFreeSlotsBlocked={allFreeSlotsBlocked}
+        manualBlockedListLength={manualBlockedList.length}
+      />
 
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-800">
-            Livres: <strong className="font-numeric">{freeCount}</strong>
-          </div>
-          <div className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-800">
-            Ocupados: <strong className="font-numeric">{occupiedCount}</strong>
-          </div>
-          <div className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 col-span-2 sm:col-span-1">
-            Verde = livre, Vermelho = ocupado
-          </div>
-        </div>
-      </div>
+      {onApplyDefaultSchedule && (
+        <WorkingHoursEditor
+          defaultStartTime={defaultStartTime}
+          defaultEndTime={defaultEndTime}
+          onDefaultStartTimeChange={onDefaultStartTimeChange}
+          onDefaultEndTimeChange={onDefaultEndTimeChange}
+          periodPresets={periodPresets}
+          workdaysMode={workdaysMode}
+          onWorkdaysModeChange={onWorkdaysModeChange}
+          onApplyDefaultSchedule={onApplyDefaultSchedule}
+          busyDefaultApply={busyDefaultApply}
+          onUndoDefaultSchedule={onUndoDefaultSchedule}
+          canUndoDefaultSchedule={canUndoDefaultSchedule}
+          busyDefaultUndo={busyDefaultUndo}
+        />
+      )}
 
-      <div className="p-3 space-y-3.5">
-        {onApplyDefaultSchedule && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 space-y-2">
-            <p className="text-xs font-semibold text-amber-900">
-              Horario padrao profissional: aplica no periodo escolhido e bloqueia fora da janela automaticamente.
-            </p>
+      <ScheduleEditorCard onOpenMap={() => setMapModalOpen(true)} />
 
-            <div className="grid grid-cols-2 gap-2">
-              <label className="text-[11px] text-amber-900">
-                Inicio
-                <input
-                  type="time"
-                  step="1800"
-                  value={defaultStartTime}
-                  onChange={(e) => onDefaultStartTimeChange?.(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs text-stone-700"
-                />
-              </label>
-
-              <label className="text-[11px] text-amber-900">
-                Fim
-                <input
-                  type="time"
-                  step="1800"
-                  value={defaultEndTime}
-                  onChange={(e) => onDefaultEndTimeChange?.(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs text-stone-700"
-                />
-              </label>
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold text-amber-900">Modelos rapidos</p>
-              <div className="flex flex-wrap gap-1.5">
-                {periodPresets.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => {
-                      onDefaultStartTimeChange?.(preset.start)
-                      onDefaultEndTimeChange?.(preset.end)
-                    }}
-                    className="rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[10px] font-medium text-amber-900 hover:bg-amber-100"
-                  >
-                    {preset.label} ({preset.start}-{preset.end})
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold text-amber-900">Dias de funcionamento</p>
-              <div className="grid grid-cols-3 gap-1.5">
-                {workdayModes.map((mode) => (
-                  <button
-                    key={mode.value}
-                    type="button"
-                    onClick={() => onWorkdaysModeChange?.(mode.value)}
-                    className={`rounded-lg border px-2 py-1 text-[10px] font-semibold ${
-                      workdaysMode === mode.value
-                        ? 'border-amber-500 bg-amber-600 text-white'
-                        : 'border-amber-300 bg-white text-amber-900 hover:bg-amber-100'
-                    }`}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-amber-900/80">Aplicando em: {workdaysLabel}</p>
-            </div>
-
-            <button
-              type="button"
-              onClick={onApplyDefaultSchedule}
-              disabled={busyDefaultApply}
-              className="w-full rounded-lg border border-amber-400 bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
-            >
-              {busyDefaultApply ? 'Aplicando padrao...' : 'Aplicar padrao no periodo'}
-            </button>
-
-            {onUndoDefaultSchedule && (
-              <button
-                type="button"
-                onClick={onUndoDefaultSchedule}
-                disabled={!canUndoDefaultSchedule || busyDefaultUndo}
-                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50"
-              >
-                {busyDefaultUndo ? 'Desfazendo...' : 'Desfazer ultima aplicacao'}
-              </button>
-            )}
-          </div>
-        )}
-
-        {onToggleDay && (
-          <div className="grid sm:grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => onToggleDay({ date: selectedDate, occupied: true })}
-              disabled={busyDayAction || allFreeSlotsBlocked}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
-            >
-              {busyDayAction ? 'Processando...' : 'Bloquear horarios livres do dia'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onToggleDay({ date: selectedDate, occupied: false })}
-              disabled={busyDayAction || manualBlockedList.length === 0}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 text-center leading-tight whitespace-normal"
-            >
-              Liberar bloqueios manuais do dia
-            </button>
-          </div>
-        )}
-
-        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-3 sm:gap-4">
-          <div className="space-y-2 order-2 lg:order-1">
-            <h4 className="text-sm font-semibold text-stone-900 inline-flex items-center gap-1.5">
-              <FiClock size={14} /> Atendimentos do dia
-            </h4>
-
-            {dayAppointments.length === 0 ? (
-              <p className="text-sm text-stone-500 border border-stone-200 bg-stone-50 rounded-xl p-3">Nenhum agendamento neste dia.</p>
-            ) : (
-              <div className="space-y-2">
-                {dayAppointments.map((appointment) => (
-                  <article key={appointment.id} className={`rounded-xl border p-3 text-sm ${statusColor(appointment.status)}`}>
-                    <p className="font-semibold">
-                      {appointment.effective_time || appointment.time} - {appointment.end_time}
-                    </p>
-                    <p>{appointment.client?.nome || 'Cliente'} - {appointment.service?.name || 'Servico'}</p>
-                  </article>
-                ))}
-              </div>
-            )}
-
-            <div className="rounded-xl border border-stone-200 bg-stone-50 p-3">
-              <p className="text-xs font-semibold text-stone-700">Bloqueios manuais</p>
-              {manualBlockedList.length === 0 ? (
-                <p className="text-xs text-stone-500 mt-1">Nenhum bloqueio manual para este dia.</p>
-              ) : (
-                <p className="text-xs text-stone-700 mt-1">{manualBlockedList.join(', ')}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2 order-1 lg:order-2">
-            <div className="rounded-xl border border-amber-200 bg-linear-to-br from-amber-50 to-orange-50 p-2.5">
-              <h4 className="text-sm font-semibold text-amber-900">Editor de horarios</h4>
-              <p className="text-xs text-amber-800 mt-1">
-                Abra o mapa para tocar nos blocos de horario e liberar ou bloquear rapidamente.
-              </p>
-
-              <button
-                type="button"
-                onClick={() => setMapModalOpen(true)}
-                className="mt-2.5 w-full rounded-lg border border-amber-500 bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"
-              >
-                Abrir mapa de horarios
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AppointmentsList dayAppointments={dayAppointments} />
+      <BlockedTimesList blockedTimes={manualBlockedList} />
 
       {mapModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-130 bg-black/55 flex items-center justify-center p-3 sm:p-4 overscroll-contain">
@@ -502,7 +617,7 @@ export default function BookingCalendar({
 
             <div className="flex items-center justify-between gap-3">
               <h4 id="schedule-map-title" className="text-xs sm:text-sm font-semibold text-stone-900">
-                Mapa de horarios ({formatDate(selectedDate)})
+                Selecionar horarios disponiveis ({formatDate(selectedDate)})
               </h4>
 
               <button
