@@ -76,42 +76,42 @@ export default function HomeRanking({ cidadeId, cidadeNome, currentUserId = '' }
         )}
         {!ranking.isLoading && listaVisivel.length > 0 && (
           <div className="space-y-2">
-          {listaVisivel.map((user, index) => {
-            const posicao = index + 1
-            const { nomeExibicao, fotoExibicao } = getDisplayUser({
-              nomeCompleto: user?.nome_snapshot,
-              fotoPerfil: user?.foto_snapshot,
-            })
-            return (
-              <div
-                key={String(user?.cliente_id || `${posicao}-${nomeExibicao}`)}
-                className="flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-3 py-2"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-stone-500 min-w-8">{medalha(posicao)}</span>
-                  {!isFotoPadrao(fotoExibicao) ? (
-                    <img
-                      src={fotoExibicao}
-                      alt={nomeExibicao}
-                      className="w-8 h-8 rounded-full object-cover bg-stone-200 border border-stone-200"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span
-                      className="w-8 h-8 rounded-full border border-stone-300 text-stone-500 bg-stone-50 inline-flex items-center justify-center"
-                      aria-label="Sem foto"
-                    >
-                      <FiUser size={14} />
-                    </span>
-                  )}
-                  <p className="text-sm font-semibold text-stone-800 truncate">{nomeExibicao}</p>
+            {listaVisivel.map((user, index) => {
+              const posicao = index + 1
+              const { nomeExibicao, fotoExibicao } = getDisplayUser({
+                nomeCompleto: user?.nome_snapshot,
+                fotoPerfil: user?.foto_snapshot,
+              })
+              return (
+                <div
+                  key={String(user?.cliente_id || `${posicao}-${nomeExibicao}`)}
+                  className="flex items-center justify-between rounded-xl border border-stone-200 bg-stone-50 px-3 py-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-bold text-stone-500 min-w-8">{medalha(posicao)}</span>
+                    {!isFotoPadrao(fotoExibicao) ? (
+                      <img
+                        src={fotoExibicao}
+                        alt={nomeExibicao}
+                        className="w-8 h-8 rounded-full object-cover bg-stone-200 border border-stone-200"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span
+                        className="w-8 h-8 rounded-full border border-stone-300 text-stone-500 bg-stone-50 inline-flex items-center justify-center"
+                        aria-label="Sem foto"
+                      >
+                        <FiUser size={14} />
+                      </span>
+                    )}
+                    <p className="text-sm font-semibold text-stone-800 truncate">{nomeExibicao}</p>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
           </div>
         )}
-      )}
+      </div>
 
       {Array.isArray(ranking.top10) && ranking.top10.length > 5 && (
         <button
