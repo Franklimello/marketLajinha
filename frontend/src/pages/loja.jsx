@@ -435,6 +435,7 @@ export default function LojaPage() {
   const secundariosIniciadosRef = useRef(new Set())
   const [pageVisible, setPageVisible] = useState(false)
   const cartButtonRef = useRef(null)
+  const produtosSectionRef = useRef(null)
 
   const lojaQuery = useQuery({
     queryKey: ['loja', slug],
@@ -655,7 +656,20 @@ export default function LojaPage() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-  }, [slug, etapa, categoriaSel, produtoDetalhe?.id])
+  }, [slug, etapa, produtoDetalhe?.id])
+
+  useEffect(() => {
+    if (!categoriaSel) return
+    const section = produtosSectionRef.current
+    if (!section) return
+
+    const raf = requestAnimationFrame(() => {
+      const y = section.getBoundingClientRect().top + window.scrollY - 86
+      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' })
+    })
+
+    return () => cancelAnimationFrame(raf)
+  }, [categoriaSel])
 
   const pageTransitionClass = pageVisible
     ? 'opacity-100'
@@ -2483,6 +2497,8 @@ export default function LojaPage() {
             />
           </div>
         )}
+
+        <div ref={produtosSectionRef} />
 
         {!produtosCarregando && (
           <div className="mb-2.5">
