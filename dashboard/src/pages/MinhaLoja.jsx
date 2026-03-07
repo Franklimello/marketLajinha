@@ -294,7 +294,7 @@ export default function MinhaLoja() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="w-full max-w-none space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Minha Loja</h1>
@@ -387,7 +387,9 @@ export default function MinhaLoja() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-stone-200 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-stone-200 p-6 lg:p-7 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-7">
+          <div className="space-y-6">
         <section className="space-y-3">
           <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3">Informações básicas da loja</h2>
           <p className="text-xs text-stone-500">Esses dados identificam sua loja e ajudam clientes a encontrar seu negócio.</p>
@@ -594,6 +596,9 @@ export default function MinhaLoja() {
           </button>
         </div>
 
+          </div>
+
+          <div className="space-y-6">
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Formas de pagamento aceitas</h2>
         <p className="text-xs text-stone-400 mb-2">Selecione quais formas de pagamento sua loja aceita. Apenas as selecionadas aparecerão para o cliente.</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -773,6 +778,8 @@ export default function MinhaLoja() {
               <input name="cor_primaria" type="color" value={form.cor_primaria} onChange={handleChange} className="w-10 h-10 rounded cursor-pointer border-0" />
               <input name="cor_primaria" value={form.cor_primaria} onChange={handleChange} className="flex-1 px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm font-mono" />
             </div>
+          </div>
+        </div>
           </div>
         </div>
 
