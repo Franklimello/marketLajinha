@@ -312,6 +312,20 @@ input, textarea, select {
 :root[data-theme="dark"] .home-page .border-stone-300 { border-color: #52525b !important; }
 :root[data-theme="dark"] .home-page .placeholder\:text-stone-400::placeholder { color: #a1a1aa !important; }
 
+/* Home: badge de lojas abertas */
+:root[data-theme="dark"] .home-page .home-open-badge {
+  background-color: rgba(5, 46, 22, 0.62) !important;
+  border-color: rgba(16, 185, 129, 0.42) !important;
+}
+
+:root[data-theme="dark"] .home-page .home-open-badge-icon {
+  color: #34d399 !important;
+}
+
+:root[data-theme="dark"] .home-page .home-open-badge-text {
+  color: #bbf7d0 !important;
+}
+
 /* Store page dark-mode tuning */
 :root[data-theme="dark"] .store-page-shell {
   color: #e7e5e4;

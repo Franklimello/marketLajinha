@@ -458,7 +458,7 @@ const HomeCarousel = memo(function HomeCarousel() {
   }, [])
 
   return (
-    <section className="mb-6" aria-label="Destaques do UaiFood">
+    <section className="mb-4" aria-label="Destaques do UaiFood">
       <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_5%,rgba(255,255,255,0.35),transparent_40%)]" />
         <div
@@ -466,13 +466,13 @@ const HomeCarousel = memo(function HomeCarousel() {
           style={{ transform: `translateX(-${slideAtivo * 100}%)` }}
         >
           {HOME_BANNERS.map((banner) => (
-            <div key={banner.id} className={`min-w-full px-5 py-6 text-white bg-linear-to-br ${banner.gradiente}`}>
-              <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold tracking-wide">
+            <div key={banner.id} className={`min-w-full px-4 py-4 text-white bg-linear-to-br ${banner.gradiente}`}>
+              <span className="inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide">
                 Curadoria UaiFood
               </span>
-              <h3 className="mt-3 text-[1.9rem] font-black leading-[1.05] tracking-tight">{banner.titulo}</h3>
-              <p className="mt-2 text-sm text-white/95 leading-relaxed max-w-[290px]">{banner.subtitulo}</p>
-              <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white/95 rounded-full border border-white/35 px-2.5 py-1">
+              <h3 className="mt-2 text-[1.55rem] font-black leading-[1.08] tracking-tight">{banner.titulo}</h3>
+              <p className="mt-1.5 text-[13px] text-white/95 leading-relaxed max-w-[250px]">{banner.subtitulo}</p>
+              <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/95 rounded-full border border-white/35 px-2 py-0.5">
                 {banner.destaque}
                 <FiChevronRight size={13} />
               </div>
@@ -480,7 +480,7 @@ const HomeCarousel = memo(function HomeCarousel() {
           ))}
         </div>
 
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
           {HOME_BANNERS.map((banner, idx) => (
             <button
               key={banner.id}

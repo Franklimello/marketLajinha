@@ -102,6 +102,7 @@ export default function MinhaLoja() {
         pix_nome_titular: loja.pix_nome_titular || '',
         pix_cidade: loja.pix_cidade || '',
         formas_pagamento: loja.formas_pagamento || 'PIX,CREDIT,DEBIT,CASH',
+        titulo_ofertas: loja.titulo_ofertas || 'Ofertas',
         aberta: loja.aberta ?? true,
         ativa: loja.ativa ?? true,
       })
@@ -261,6 +262,7 @@ export default function MinhaLoja() {
       }
       const eraModoManual = loja?.forcar_status
       const payload = { ...form }
+      payload.titulo_ofertas = String(payload.titulo_ofertas || '').trim() || 'Ofertas'
 
       if (payload.pix_tipo === 'TELEFONE') {
         const chaveNormalizada = normalizarTelefonePix(payload.pix_chave)
@@ -625,6 +627,23 @@ export default function MinhaLoja() {
               </label>
             )
           })}
+        </div>
+
+        <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">Vitrine da loja</h2>
+        <p className="text-xs text-stone-500">Personalize o título da seção de destaques que aparece para o cliente na página da loja.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Título da seção de ofertas</label>
+            <input
+              name="titulo_ofertas"
+              value={form.titulo_ofertas || ''}
+              onChange={handleChange}
+              maxLength={40}
+              placeholder="Ex.: Ofertas"
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+            />
+            <p className="text-[11px] text-stone-400 mt-1">Padrão: Ofertas. Exibido acima dos produtos em destaque.</p>
+          </div>
         </div>
 
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">PIX — Pagamento online</h2>

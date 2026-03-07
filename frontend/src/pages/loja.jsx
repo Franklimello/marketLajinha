@@ -241,7 +241,7 @@ function restaurarCarrinho(snapshot, produtos, combos) {
   return result
 }
 
-const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd }) {
+const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd, titulo = 'Ofertas' }) {
   const ref = useRef(null)
   const intervaloRef = useRef(null)
 
@@ -279,7 +279,7 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd })
   return (
     <div className="mb-6">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-bold text-stone-900">Ofertas</h2>
+        <h2 className="text-base font-bold text-stone-900">{titulo || 'Ofertas'}</h2>
         <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">destaques</span>
       </div>
       <div ref={ref} className="flex gap-2.5 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
@@ -2568,7 +2568,11 @@ export default function LojaPage() {
           const destaques = produtos.dados.filter((p) => p.destaque === true).slice(0, 10)
           if (destaques.length === 0) return null
           return (
-            <CarrosselDestaques produtos={destaques} onAdd={addItemDireto} />
+            <CarrosselDestaques
+              produtos={destaques}
+              onAdd={addItemDireto}
+              titulo={String(loja?.titulo_ofertas || '').trim() || 'Ofertas'}
+            />
           )
         })()}
 
