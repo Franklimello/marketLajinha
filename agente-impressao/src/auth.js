@@ -3,6 +3,13 @@ const http = require('http');
 
 const FIREBASE_API_KEY = 'AIzaSyDF51FzoLyRU52X4-jXMW1evIr3DKw9vQ8';
 
+function createHttpError(statusCode, message, payload = null) {
+  const err = new Error(message || `HTTP ${statusCode}`);
+  err.statusCode = Number(statusCode || 0);
+  err.payload = payload;
+  return err;
+}
+
 function request(url, options = {}) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
@@ -24,15 +31,17 @@ function request(url, options = {}) {
       res.on('data', (c) => (data += c));
       res.on('end', () => {
         try {
-          const json = JSON.parse(data);
+          const json = data ? JSON.parse(data) : null;
           if (res.statusCode >= 400) {
             const errMsg = json.error?.message || json.erro || `HTTP ${res.statusCode}`;
-            reject(new Error(errMsg));
+            reject(createHttpError(res.statusCode, errMsg, json));
           } else {
             resolve(json);
           }
         } catch {
-          if (res.statusCode >= 400) reject(new Error(`HTTP ${res.statusCode}`));
+          if (res.statusCode >= 400) {
+            reject(createHttpError(res.statusCode, data || `HTTP ${res.statusCode}`));
+          }
           else resolve(data);
         }
       });
@@ -66,7 +75,9 @@ async function getOrCreatePrintToken(apiUrl, idToken, currentToken) {
     method: 'POST',
     headers: { Authorization: `Bearer ${idToken}` },
   });
-  return res.token;
+  const token = res?.token_impressao || res?.token || '';
+  if (!token) throw new Error('Servidor nao retornou token de impressao.');
+  return token;
 }
 
 async function login(apiUrl, email, password) {

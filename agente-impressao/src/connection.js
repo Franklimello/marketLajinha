@@ -3,6 +3,7 @@ const { apiRequest } = require('./auth');
 const { sendToPrinter, sendToUsbPrinter } = require('./printer');
 const logger = require('./logger');
 const { detectPrinters } = require('./printerDetector');
+const store = require('./store');
 
 let socket = null;
 let pollTimer = null;
@@ -32,13 +33,101 @@ function getPrinterQueueKey(job) {
   return `IP:${String(job?.impressora_ip || '')}:${Number(job?.impressora_porta || 9100)}`;
 }
 
+function getShortId(value) {
+  const raw = String(value || '');
+  return raw ? raw.slice(-6).toUpperCase() : '------';
+}
+
+function isAuthError(err) {
+  const statusCode = Number(err?.statusCode || 0);
+  if (statusCode === 401 || statusCode === 403) return true;
+
+  const msg = String(err?.message || '').toLowerCase();
+  return msg.includes('token de impressao invalido') || msg.includes('token invalido');
+}
+
+function isNotFoundError(err) {
+  return Number(err?.statusCode || 0) === 404;
+}
+
+async function confirmPrintedJob(job, pedidoShort, { replay = false } = {}) {
+  try {
+    await apiRequest(config.apiUrl, `/impressoras/fila/${job.id}/impresso`, config.printToken, { method: 'PATCH' });
+    store.removePendingPrintJob(job.id);
+    logger.ok(
+      replay
+        ? `Confirmacao sincronizada para pedido #${pedidoShort}`
+        : `Pedido #${pedidoShort} impresso com sucesso`
+    );
+    return true;
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      store.removePendingPrintJob(job.id);
+      logger.info(`Job ${getShortId(job.id)} nao existe mais no servidor. Estado local limpo.`);
+      return true;
+    }
+    throw err;
+  }
+}
+
+async function reportPrintError(job, err) {
+  try {
+    await apiRequest(config.apiUrl, `/impressoras/fila/${job.id}/erro`, config.printToken, {
+      method: 'PATCH',
+      body: { erro: err.message },
+    });
+  } catch (reportErr) {
+    if (isAuthError(reportErr)) throw reportErr;
+  }
+}
+
+async function retryPendingPrintConfirmations() {
+  const pendingJobs = Object.values(store.loadPendingPrintJobs());
+  if (pendingJobs.length === 0) return;
+
+  for (const pendingJob of pendingJobs) {
+    const pedidoShort = getShortId(pendingJob.pedidoId || pendingJob.jobId);
+    try {
+      await apiRequest(
+        config.apiUrl,
+        `/impressoras/fila/${pendingJob.jobId}/impresso`,
+        config.printToken,
+        { method: 'PATCH' }
+      );
+      store.removePendingPrintJob(pendingJob.jobId);
+      logger.ok(`Confirmacao pendente sincronizada para pedido #${pedidoShort}`);
+    } catch (err) {
+      if (isNotFoundError(err)) {
+        store.removePendingPrintJob(pendingJob.jobId);
+        logger.info(`Job local ${getShortId(pendingJob.jobId)} ja nao existe no servidor. Limpando estado local.`);
+        continue;
+      }
+      if (isAuthError(err)) throw err;
+      logger.info(`Confirmacao ainda pendente para pedido #${pedidoShort}: ${err.message}`);
+    }
+  }
+}
+
 async function processJob(job) {
-  const pedidoShort = job.pedido_id.slice(-6).toUpperCase();
+  const pedidoShort = getShortId(job?.pedido_id);
   const tipo = String(job?.impressora_tipo || 'IP').toUpperCase() === 'USB' ? 'USB' : 'IP';
   const alvo = tipo === 'USB'
     ? `USB:${job.impressora_usb_identifier || 'desconhecido'}`
     : `${job.impressora_ip}:${job.impressora_porta}`;
-  logger.info(`Imprimindo pedido #${pedidoShort} → ${alvo} (${job.setor})`);
+
+  if (store.getPendingPrintJob(job.id)) {
+    logger.info(`Pedido #${pedidoShort} ja foi impresso localmente. Reenviando confirmacao.`);
+    try {
+      await confirmPrintedJob(job, pedidoShort, { replay: true });
+      return true;
+    } catch (err) {
+      if (isAuthError(err)) throw err;
+      logger.info(`Confirmacao ainda pendente para pedido #${pedidoShort}: ${err.message}`);
+      return false;
+    }
+  }
+
+  logger.info(`Imprimindo pedido #${pedidoShort} -> ${alvo} (${job.setor})`);
 
   try {
     if (tipo === 'USB') {
@@ -46,15 +135,26 @@ async function processJob(job) {
     } else {
       await sendToPrinter(job.impressora_ip, job.impressora_porta, job.conteudo);
     }
-    await apiRequest(config.apiUrl, `/impressoras/fila/${job.id}/impresso`, config.printToken, { method: 'PATCH' });
-    logger.ok(`Pedido #${pedidoShort} impresso com sucesso`);
-    return true;
   } catch (err) {
     logger.erro(`Falha pedido #${pedidoShort}: ${err.message}`);
-    await apiRequest(config.apiUrl, `/impressoras/fila/${job.id}/erro`, config.printToken, {
-      method: 'PATCH',
-      body: { erro: err.message },
-    }).catch(() => {});
+    await reportPrintError(job, err);
+    return false;
+  }
+
+  store.upsertPendingPrintJob({
+    jobId: job.id,
+    pedidoId: job.pedido_id,
+    setor: job.setor,
+    printer: alvo,
+    printedAt: new Date().toISOString(),
+  });
+
+  try {
+    await confirmPrintedJob(job, pedidoShort);
+    return true;
+  } catch (err) {
+    if (isAuthError(err)) throw err;
+    logger.info(`Pedido #${pedidoShort} foi impresso, mas a confirmacao falhou: ${err.message}`);
     return false;
   }
 }
@@ -70,7 +170,6 @@ async function processJobsInParallelByPrinter(jobs) {
   await Promise.all(
     [...groups.values()].map(async (queue) => {
       for (const job of queue) {
-        // Mantém ordem por impressora, mas processa impressoras em paralelo.
         await processJob(job);
       }
     })
@@ -81,22 +180,23 @@ async function fetchAndPrint() {
   if (fetchInFlight) return 'ok';
   fetchInFlight = true;
   try {
+    await retryPendingPrintConfirmations();
     const jobs = await apiRequest(config.apiUrl, '/impressoras/fila', config.printToken);
     updateStatus('online');
 
     if (Array.isArray(jobs) && jobs.length > 0) {
-      logger.info(`${jobs.length} impressão(ões) na fila`);
+      logger.info(`${jobs.length} impressoes na fila`);
       await processJobsInParallelByPrinter(jobs);
     }
   } catch (err) {
-    if (err.message.includes('401') || err.message.includes('403')) {
+    if (isAuthError(err)) {
       updateStatus('offline');
-      logger.erro('Token de impressão inválido. Faça login novamente.');
+      logger.erro('Token de impressao invalido. Faca login novamente.');
       disconnect();
       return 'auth_error';
     }
     updateStatus('reconnecting');
-    logger.erro(`Sem conexão com o servidor`);
+    logger.erro('Sem conexao com o servidor');
   } finally {
     fetchInFlight = false;
   }
@@ -143,7 +243,7 @@ function connect(cfg) {
 
   socket.on('disconnect', () => {
     updateStatus('reconnecting');
-    logger.info('Conexão perdida. Reconectando...');
+    logger.info('Conexao perdida. Reconectando...');
   });
 
   socket.on('reconnect_failed', () => {
@@ -151,7 +251,7 @@ function connect(cfg) {
   });
 
   const onNewOrderEvent = (pedido) => {
-    logger.info(`Novo pedido recebido: #${pedido.id?.slice(-6).toUpperCase()}`);
+    logger.info(`Novo pedido recebido: #${getShortId(pedido?.id)}`);
     if (onNewOrder) onNewOrder(pedido);
     setTimeout(() => fetchAndPrint(), 500);
   };

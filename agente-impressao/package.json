@@ -1,6 +1,6 @@
 {
   "name": "marketlajinha-impressao",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Central de Impressão Automática - MarketLajinha",
   "main": "main.js",
   "scripts": {
