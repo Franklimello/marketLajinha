@@ -10,6 +10,18 @@ const ESTADOS_SUPORTADOS = [
   { sigla: 'ES', nome: 'Espirito Santo' },
 ]
 
+function normalizarTelefonePix(valor) {
+  let digits = String(valor || '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('00')) digits = digits.slice(2)
+  if (digits.startsWith('55')) digits = digits.slice(2)
+  digits = digits.replace(/^0+/, '')
+
+  // Formato nacional esperado: DDD + numero (10 ou 11 digitos).
+  if (digits.length < 10 || digits.length > 11) return null
+  return `+55${digits}`
+}
+
 export default function MinhaLoja() {
   const { loja, atualizarLoja } = useAuth()
   const [form, setForm] = useState(null)
@@ -249,6 +261,17 @@ export default function MinhaLoja() {
       }
       const eraModoManual = loja?.forcar_status
       const payload = { ...form }
+
+      if (payload.pix_tipo === 'TELEFONE') {
+        const chaveNormalizada = normalizarTelefonePix(payload.pix_chave)
+        if (!chaveNormalizada) {
+          setErro('Para chave PIX do tipo telefone, use DDD + número (ex.: 33999999999). O sistema salva como +55.')
+          setCarregando(false)
+          return
+        }
+        payload.pix_chave = chaveNormalizada
+      }
+
       delete payload.estado
       const atualizada = await api.lojas.atualizar(loja.id, { ...payload, logo_url, banner_url, horarios_semana: JSON.stringify(horarios) })
       atualizarLoja(atualizada)
@@ -626,7 +649,24 @@ export default function MinhaLoja() {
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Chave PIX</label>
-            <input name="pix_chave" value={form.pix_chave} onChange={handleChange} placeholder="Ex.: seuemail@dominio.com ou chave aleatória" className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm" />
+            <input
+              name="pix_chave"
+              value={form.pix_chave}
+              onChange={handleChange}
+              onBlur={(e) => {
+                if (form.pix_tipo !== 'TELEFONE') return
+                const chaveNormalizada = normalizarTelefonePix(e.target.value)
+                if (!chaveNormalizada) return
+                setForm((prev) => ({ ...prev, pix_chave: chaveNormalizada }))
+              }}
+              placeholder={form.pix_tipo === 'TELEFONE' ? 'Ex.: +5533999999999' : 'Ex.: seuemail@dominio.com ou chave aleatória'}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+            />
+            {form.pix_tipo === 'TELEFONE' && (
+              <p className="text-[11px] text-stone-500 mt-1">
+                Telefone no padrão internacional. Você pode digitar só DDD+número que salvamos como <strong>+55</strong>.
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Nome do titular</label>
