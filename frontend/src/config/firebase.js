@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
@@ -12,7 +12,11 @@ const firebaseConfig = {
   measurementId: "G-QJ6RRF830R",
 }
 
-const app = initializeApp(firebaseConfig)
+const FIREBASE_APP_NAME = 'marcket-frontend'
+
+const app = getApps().some((existingApp) => existingApp.name === FIREBASE_APP_NAME)
+  ? getApp(FIREBASE_APP_NAME)
+  : initializeApp(firebaseConfig, FIREBASE_APP_NAME)
 const auth = getAuth(app)
 const storage = getStorage(app)
 const googleProvider = new GoogleAuthProvider()

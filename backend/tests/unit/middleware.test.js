@@ -92,6 +92,109 @@ describe('Middleware: requireSameStore', () => {
   });
 });
 
+describe('Middleware: authMiddleware', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  function buildAuthMiddleware({ decodedToken, verifyIdTokenError = null, usuarioPorUid = null, candidatosPorEmail = [] }) {
+    const prismaMock = {
+      usuarios: {
+        findUnique: jest.fn().mockResolvedValue(usuarioPorUid),
+        findMany: jest.fn().mockResolvedValue(candidatosPorEmail),
+        update: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          loja_id: 'loja-1',
+          role: 'OWNER',
+          firebase_uid: decodedToken?.uid || 'novo-uid',
+        }),
+      },
+    };
+
+    const verifyIdToken = jest.fn();
+    if (verifyIdTokenError) verifyIdToken.mockRejectedValue(verifyIdTokenError);
+    else verifyIdToken.mockResolvedValue(decodedToken);
+    const verifySessionCookie = jest.fn().mockResolvedValue(decodedToken);
+
+    jest.doMock('../../config/database', () => ({ prisma: prismaMock }));
+    jest.doMock('../../config/firebase', () => ({
+      isFirebaseInitialized: jest.fn(() => true),
+      getAuth: jest.fn(() => ({ verifyIdToken, verifySessionCookie })),
+    }));
+
+    const { authMiddleware } = require('../../middleware/auth');
+    return { authMiddleware, prismaMock, verifyIdToken, verifySessionCookie };
+  }
+
+  test('não faz relink por email quando login for Google', async () => {
+    const decoded = {
+      uid: 'uid-google-novo',
+      email: 'lojista@exemplo.com',
+      email_verified: true,
+      firebase: { sign_in_provider: 'google.com' },
+    };
+    const { authMiddleware, prismaMock } = buildAuthMiddleware({
+      decodedToken: decoded,
+      usuarioPorUid: null,
+      candidatosPorEmail: [{ id: 'user-1', loja_id: 'loja-1', role: 'OWNER', firebase_uid: 'uid-antigo' }],
+    });
+
+    const req = { headers: { authorization: 'Bearer token-valido' }, cookies: {} };
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    const next = jest.fn();
+
+    await authMiddleware(req, res, next);
+
+    expect(prismaMock.usuarios.findUnique).toHaveBeenCalledWith({
+      where: { firebase_uid: 'uid-google-novo' },
+      select: { id: true, loja_id: true, role: true, firebase_uid: true },
+    });
+    expect(prismaMock.usuarios.findMany).not.toHaveBeenCalled();
+    expect(prismaMock.usuarios.update).not.toHaveBeenCalled();
+    expect(req.user).toBeNull();
+    expect(next).toHaveBeenCalled();
+  });
+
+  test('permite relink por email quando login for senha', async () => {
+    const decoded = {
+      uid: 'uid-password-novo',
+      email: 'lojista@exemplo.com',
+      email_verified: true,
+      firebase: { sign_in_provider: 'password' },
+    };
+    const { authMiddleware, prismaMock } = buildAuthMiddleware({
+      decodedToken: decoded,
+      usuarioPorUid: null,
+      candidatosPorEmail: [{ id: 'user-1', loja_id: 'loja-1', role: 'OWNER', firebase_uid: 'uid-antigo' }],
+    });
+
+    const req = { headers: { authorization: 'Bearer token-valido' }, cookies: {} };
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    const next = jest.fn();
+
+    await authMiddleware(req, res, next);
+
+    expect(prismaMock.usuarios.findMany).toHaveBeenCalledWith({
+      where: { email: { equals: 'lojista@exemplo.com', mode: 'insensitive' } },
+      select: { id: true, loja_id: true, role: true, firebase_uid: true },
+      take: 2,
+    });
+    expect(prismaMock.usuarios.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { firebase_uid: 'uid-password-novo' },
+      select: { id: true, loja_id: true, role: true, firebase_uid: true },
+    });
+    expect(req.user).toEqual({
+      id: 'user-1',
+      loja_id: 'loja-1',
+      role: 'OWNER',
+      firebase_uid: 'uid-password-novo',
+    });
+    expect(next).toHaveBeenCalled();
+  });
+});
+
 describe('Middleware: validar (Zod)', () => {
   const { validar } = require('../../middleware/validacao');
   const { z } = require('zod');

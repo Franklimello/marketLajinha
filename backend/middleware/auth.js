@@ -18,6 +18,18 @@ function getAuthToken(req) {
   return null;
 }
 
+function getSignInProvider(decoded) {
+  return String(decoded?.firebase?.sign_in_provider || '').trim().toLowerCase();
+}
+
+function canRelinkStoreUserByEmail(decoded) {
+  if (!decoded?.email || decoded?.email_verified !== true) return false;
+  // Evita que um login social com o mesmo email sobrescreva o UID do lojista.
+  // O relink automatico fica restrito ao login por senha para recuperar contas
+  // que possam ter sido impactadas pela regra anterior.
+  return getSignInProvider(decoded) === 'password';
+}
+
 async function authMiddleware(req, res, next) {
   req.user = null;
   req.firebaseDecoded = null;
@@ -39,7 +51,7 @@ async function authMiddleware(req, res, next) {
       select: { id: true, loja_id: true, role: true, firebase_uid: true },
     });
     // Fallback para login social: se o UID mudou, tenta vincular pelo e-mail já cadastrado.
-    if (!usuario && decoded?.email && decoded?.email_verified === true) {
+    if (!usuario && canRelinkStoreUserByEmail(decoded)) {
       const candidatos = await prisma.usuarios.findMany({
         where: { email: { equals: String(decoded.email), mode: 'insensitive' } },
         select: { id: true, loja_id: true, role: true, firebase_uid: true },

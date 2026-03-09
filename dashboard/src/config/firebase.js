@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import imageCompression from 'browser-image-compression'
@@ -13,7 +13,11 @@ const firebaseConfig = {
   measurementId: 'G-QJ6RRF830R',
 }
 
-const app = initializeApp(firebaseConfig)
+const FIREBASE_APP_NAME = 'marcket-dashboard'
+
+const app = getApps().some((existingApp) => existingApp.name === FIREBASE_APP_NAME)
+  ? getApp(FIREBASE_APP_NAME)
+  : initializeApp(firebaseConfig, FIREBASE_APP_NAME)
 export const auth = getAuth(app)
 export const storage = getStorage(app)
 export const googleProvider = new GoogleAuthProvider()
