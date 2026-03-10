@@ -193,7 +193,7 @@ async function listarPorCliente(clienteId) {
     orderBy: { created_at: 'desc' },
     take: 10,
     include: {
-      loja: { select: { id: true, nome: true, slug: true, logo_url: true } },
+      loja: { select: { id: true, nome: true, slug: true, logo_url: true, telefone: true } },
       ...INCLUDE_ITENS,
     },
   });

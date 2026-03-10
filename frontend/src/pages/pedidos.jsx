@@ -49,6 +49,22 @@ function getStatusSteps(tipoEntrega) {
   return tipoEntrega === 'RETIRADA' ? STATUS_STEPS_RETIRADA : STATUS_STEPS_ENTREGA
 }
 
+function normalizarTelefoneWhatsapp(raw) {
+  const digits = String(raw || '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('55')) return digits
+  return `55${digits}`
+}
+
+function montarLinkWhatsappLoja(pedido) {
+  const numero = normalizarTelefoneWhatsapp(pedido?.loja?.telefone)
+  if (!numero) return ''
+  const codigo = getPedidoCodigo(pedido?.id)
+  const nomeLoja = pedido?.loja?.nome || 'loja'
+  const texto = encodeURIComponent(`Olá, ${nomeLoja}! Gostaria de falar sobre o pedido ${codigo}.`)
+  return `https://wa.me/${numero}?text=${texto}`
+}
+
 function StatusTracker({ status, tipoEntrega }) {
   if (status === 'CANCELLED') {
     return (
@@ -513,6 +529,7 @@ export default function PedidosPage() {
           {pedidos.map((p) => {
             const st = STATUS_MAP[p.status] || STATUS_MAP.PENDING
             const Icon = st.icon
+            const whatsappLojaUrl = montarLinkWhatsappLoja(p)
             return (
               <article key={p.id} className="bg-white rounded-2xl border border-stone-200 p-4 shadow-[0_20px_44px_-36px_rgba(15,23,42,0.65)]">
                 <div className="flex items-start justify-between gap-3 mb-3">
@@ -559,6 +576,20 @@ export default function PedidosPage() {
                     {p.agendado_para && <span className="text-[10px] bg-red-50 border border-red-200 text-red-700 px-2 py-1 rounded-full font-semibold">Agendado</span>}
                   </div>
                 </div>
+
+                {whatsappLojaUrl && (
+                  <div className="mt-3">
+                    <a
+                      href={whatsappLojaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-xl px-3 py-2 transition-colors"
+                    >
+                      <FiMessageCircle size={13} />
+                      <span>Chamar loja no WhatsApp</span>
+                    </a>
+                  </div>
+                )}
 
                 {p.status === 'DELIVERED' && <AvaliacaoInline pedidoId={p.id} />}
                 {p.status !== 'CANCELLED' && <ChatPedido pedidoId={p.id} socketRef={socketRef} />}
