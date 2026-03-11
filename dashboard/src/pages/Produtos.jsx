@@ -244,6 +244,22 @@ export default function Produtos() {
     }
   }, [produtoToggleLoading])
 
+  const handleToggleOcultarPrecoDestaque = useCallback(async (produto, novoValor) => {
+    if (!produto?.id) return
+    const estadoAnterior = Boolean(produto.ocultar_preco_destaque)
+    setTodosProdutos((prev) =>
+      prev.map((p) => (p.id === produto.id ? { ...p, ocultar_preco_destaque: novoValor } : p))
+    )
+    try {
+      await api.produtos.atualizar(produto.id, { ocultar_preco_destaque: novoValor })
+    } catch (err) {
+      setTodosProdutos((prev) =>
+        prev.map((p) => (p.id === produto.id ? { ...p, ocultar_preco_destaque: estadoAnterior } : p))
+      )
+      alert(err.message || 'Não foi possível atualizar a visibilidade do preço no destaque.')
+    }
+  }, [])
+
   /** Toggle ativo/inativo de uma categoria */
   const handleToggleCategoria = useCallback(async (cat, ativar) => {
     if (!loja?.id || salvandoCatToggle) return
@@ -615,6 +631,20 @@ export default function Produtos() {
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
+                          {p.destaque && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleOcultarPrecoDestaque(p, !p.ocultar_preco_destaque)}
+                              className={`px-2 py-1 text-[11px] font-semibold rounded-md transition-colors ${
+                                p.ocultar_preco_destaque
+                                  ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                                  : 'text-stone-700 bg-stone-100 hover:bg-stone-200'
+                              }`}
+                              title={p.ocultar_preco_destaque ? 'Mostrar preço no destaque' : 'Ocultar preço no destaque'}
+                            >
+                              {p.ocultar_preco_destaque ? 'Preço oculto' : 'Ocultar preço'}
+                            </button>
+                          )}
                           {temPromocao ? (
                             <button
                               onClick={() => desfazerPromocaoProduto(p)}

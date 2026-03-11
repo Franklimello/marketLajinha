@@ -295,7 +295,7 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd, t
                 <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
               </div>
               <p className="text-xs font-semibold text-stone-900 mt-2 line-clamp-1 px-0.5">{p.nome}</p>
-              {!esconderPreco && (
+              {!(esconderPreco || Boolean(p?.ocultar_preco_destaque)) && (
                 <p className="text-xs text-red-700 font-bold font-numeric leading-tight mt-0.5">
                   {p.variacoes?.length > 0
                     ? `a partir de R$ ${preco.toFixed(2).replace('.', ',')}${isProdutoPizza(p) ? ' (1 sabor)' : ''}`

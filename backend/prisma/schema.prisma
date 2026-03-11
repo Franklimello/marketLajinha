@@ -130,6 +130,7 @@ model Produtos {
   setor_impressao  String   @default("")
   ativo            Boolean
   destaque         Boolean  @default(false)
+  ocultar_preco_destaque Boolean @default(false)
   tipo_produto     String   @default("NORMAL")
   pizza_preco_sabores String @default("MAIOR")
 

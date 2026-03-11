@@ -88,6 +88,7 @@ async function criar(data) {
       setor_impressao: rest.setor_impressao || '',
       ativo: rest.ativo !== undefined ? rest.ativo : true,
       destaque: rest.destaque !== undefined ? rest.destaque : false,
+      ocultar_preco_destaque: rest.ocultar_preco_destaque !== undefined ? rest.ocultar_preco_destaque : false,
       tipo_produto: rest.tipo_produto || 'NORMAL',
       pizza_preco_sabores: rest.pizza_preco_sabores || 'MAIOR',
     },
