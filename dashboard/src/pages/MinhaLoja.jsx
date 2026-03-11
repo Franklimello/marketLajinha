@@ -33,6 +33,9 @@ export default function MinhaLoja() {
   const [sucesso, setSucesso] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [toggling, setToggling] = useState(false)
+  const [categoriasCardapio, setCategoriasCardapio] = useState([])
+  const [catsDesativadas, setCatsDesativadas] = useState(new Set())
+  const [salvandoCatToggle, setSalvandoCatToggle] = useState(false)
   const [cidadesSugestoes, setCidadesSugestoes] = useState([])
   const fileInputRef = useRef(null)
   const bannerInputRef = useRef(null)
@@ -103,6 +106,7 @@ export default function MinhaLoja() {
         pix_cidade: loja.pix_cidade || '',
         formas_pagamento: loja.formas_pagamento || 'PIX,CREDIT,DEBIT,CASH',
         titulo_ofertas: loja.titulo_ofertas || 'Ofertas',
+        ocultar_preco_destaques: Boolean(loja.ocultar_preco_destaques),
         aberta: loja.aberta ?? true,
         ativa: loja.ativa ?? true,
       })
@@ -111,8 +115,34 @@ export default function MinhaLoja() {
       setLogoFile(null)
       setBannerPreview(null)
       setBannerFile(null)
+
+      let parsed = []
+      try { parsed = JSON.parse(loja.categorias_desativadas || '[]') } catch { parsed = [] }
+      if (!Array.isArray(parsed)) parsed = []
+      setCatsDesativadas(new Set(parsed.filter((c) => typeof c === 'string' && c.trim())))
     }
   }, [loja])
+
+  useEffect(() => {
+    if (!loja?.id) return
+    let cancelado = false
+    api.produtos.listar(loja.id, 1)
+      .then((res) => {
+        if (cancelado) return
+        const dados = Array.isArray(res?.dados) ? res.dados : []
+        const categorias = [...new Set(dados
+          .map((p) => String(p?.categoria || '').trim())
+          .filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        setCategoriasCardapio(categorias)
+      })
+      .catch(() => {
+        if (!cancelado) setCategoriasCardapio([])
+      })
+    return () => {
+      cancelado = true
+    }
+  }, [loja?.id])
 
   useEffect(() => {
     if (!form?.cidade || form?.estado) return
@@ -170,6 +200,27 @@ export default function MinhaLoja() {
     const existe = atuais.includes(categoria)
     const proximas = existe ? atuais.filter((c) => c !== categoria) : [...atuais, categoria]
     setForm((prev) => ({ ...prev, categoria_negocio: proximas.join(', ') }))
+  }
+
+  async function toggleCategoriaCardapio(categoria, ativar) {
+    if (!loja?.id || !categoria || salvandoCatToggle) return
+    setErro('')
+    setSucesso('')
+    setSalvandoCatToggle(true)
+    const proximoSet = new Set(catsDesativadas)
+    if (ativar) proximoSet.delete(categoria)
+    else proximoSet.add(categoria)
+    setCatsDesativadas(proximoSet)
+    try {
+      await api.lojas.atualizarCategoriasDesativadas(loja.id, [...proximoSet])
+      setSucesso('Visibilidade das categorias atualizada com sucesso.')
+      setTimeout(() => setSucesso(''), 2500)
+    } catch (err) {
+      setCatsDesativadas(catsDesativadas)
+      setErro(err.message || 'Não foi possível atualizar as categorias do cardápio.')
+    } finally {
+      setSalvandoCatToggle(false)
+    }
   }
 
   function handleFileChange(e) {
@@ -649,6 +700,50 @@ export default function MinhaLoja() {
             />
             <p className="text-[11px] text-stone-400 mt-1">Padrão: Ofertas. Exibido acima dos produtos em destaque.</p>
           </div>
+          <label className="flex items-center gap-2 rounded-lg border border-stone-200 px-3 py-2.5 bg-stone-50 mt-6 sm:mt-0">
+            <input
+              type="checkbox"
+              name="ocultar_preco_destaques"
+              checked={!!form.ocultar_preco_destaques}
+              onChange={handleChange}
+              className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
+            />
+            <span className="text-sm text-stone-700">
+              Ocultar preço dos produtos em destaque
+            </span>
+          </label>
+        </div>
+
+        <div className="pt-1">
+          <h3 className="text-sm font-semibold text-stone-800">Categorias do cardápio</h3>
+          <p className="text-xs text-stone-500 mt-1">
+            Ative ou desative categorias para mostrar ou ocultar no cardápio do cliente.
+          </p>
+          {categoriasCardapio.length === 0 ? (
+            <p className="text-xs text-stone-400 mt-2">Sem categorias no cardápio ainda.</p>
+          ) : (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {categoriasCardapio.map((cat) => {
+                const ativa = !catsDesativadas.has(cat)
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    disabled={salvandoCatToggle}
+                    onClick={() => toggleCategoriaCardapio(cat, !ativa)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-60 ${
+                      ativa
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                        : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+                    }`}
+                    title={ativa ? 'Clique para desativar categoria' : 'Clique para ativar categoria'}
+                  >
+                    {cat} {ativa ? '• Ativa' : '• Inativa'}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <h2 className="font-semibold text-stone-900 border-b border-stone-200 pb-3 pt-2">PIX — Pagamento online</h2>

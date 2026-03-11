@@ -59,6 +59,7 @@ model Lojas {
   token_impressao          String    @default("")
   categorias_desativadas   String    @default("[]")
   titulo_ofertas          String    @default("Ofertas")
+  ocultar_preco_destaques Boolean   @default(false)
 
   @@index([ativa, cidade])
   @@index([cidade_id])

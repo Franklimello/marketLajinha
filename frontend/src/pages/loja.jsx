@@ -241,7 +241,7 @@ function restaurarCarrinho(snapshot, produtos, combos) {
   return result
 }
 
-const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd, titulo = 'Ofertas' }) {
+const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd, titulo = 'Ofertas', esconderPreco = false }) {
   const ref = useRef(null)
   const intervaloRef = useRef(null)
 
@@ -295,11 +295,13 @@ const CarrosselDestaques = memo(function CarrosselDestaques({ produtos, onAdd, t
                 <img src={p.imagem_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
               </div>
               <p className="text-xs font-semibold text-stone-900 mt-2 line-clamp-1 px-0.5">{p.nome}</p>
-              <p className="text-xs text-red-700 font-bold font-numeric leading-tight mt-0.5">
-                {p.variacoes?.length > 0
-                  ? `a partir de R$ ${preco.toFixed(2).replace('.', ',')}${isProdutoPizza(p) ? ' (1 sabor)' : ''}`
-                  : `R$ ${preco.toFixed(2).replace('.', ',')}`}
-              </p>
+              {!esconderPreco && (
+                <p className="text-xs text-red-700 font-bold font-numeric leading-tight mt-0.5">
+                  {p.variacoes?.length > 0
+                    ? `a partir de R$ ${preco.toFixed(2).replace('.', ',')}${isProdutoPizza(p) ? ' (1 sabor)' : ''}`
+                    : `R$ ${preco.toFixed(2).replace('.', ',')}`}
+                </p>
+              )}
             </button>
           )
         })}
@@ -2572,6 +2574,7 @@ export default function LojaPage() {
               produtos={destaques}
               onAdd={addItemDireto}
               titulo={String(loja?.titulo_ofertas || '').trim() || 'Ofertas'}
+              esconderPreco={Boolean(loja?.ocultar_preco_destaques)}
             />
           )
         })()}
