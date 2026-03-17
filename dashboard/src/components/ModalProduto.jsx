@@ -257,7 +257,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
   function addGrupoAdicional() {
     setGruposAdicionais((prev) => [
       ...prev,
-      { nome: '', min: 0, max: 1, ordem_grupo: prev.length, itens: [] },
+      { nome: '', min: '', max: '', ordem_grupo: prev.length, itens: [] },
     ])
   }
 
@@ -270,10 +270,16 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
       if (idx !== idxGrupo) return g
       const next = { ...g }
       if (field === 'nome') next.nome = value
-      if (field === 'min') next.min = Math.max(0, parseInt(value || 0, 10) || 0)
-      if (field === 'max') next.max = Math.max(0, parseInt(value || 0, 10) || 0)
+      if (field === 'min') {
+        const raw = String(value ?? '').trim()
+        next.min = raw === '' ? '' : Math.max(0, parseInt(raw, 10) || 0)
+      }
+      if (field === 'max') {
+        const raw = String(value ?? '').trim()
+        next.max = raw === '' ? '' : Math.max(0, parseInt(raw, 10) || 0)
+      }
       if (field === 'ordem_grupo') next.ordem_grupo = Math.max(0, parseInt(value || 0, 10) || 0)
-      if (next.max < next.min) next.max = next.min
+      if (next.min !== '' && next.max !== '' && Number(next.max) < Number(next.min)) next.max = next.min
       return next
     }))
   }
@@ -285,7 +291,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
         ...g,
         itens: [...g.itens, {
           nome: '',
-          preco: 0,
+          preco: '',
           descricao: '',
           ativo: true,
           ordem_item: g.itens.length,
@@ -316,7 +322,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
           return {
             ...it,
             [field]: field === 'preco'
-              ? (parseFloat(value) || 0)
+              ? (String(value ?? '').trim() === '' ? '' : (parseFloat(value) || 0))
               : field === 'ordem_item'
                 ? (parseInt(value || 0, 10) || 0)
                 : field === 'is_sabor'
@@ -332,7 +338,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
 
   function setPrecoVariacaoItem(idxGrupo, idxItem, variacaoNome, valor) {
     const key = String(variacaoNome || '').trim().toUpperCase()
-    const preco = parseFloat(valor) || 0
+    const preco = String(valor ?? '').trim() === '' ? '' : (parseFloat(valor) || 0)
     setGruposAdicionais((prev) => prev.map((g, idx) => {
       if (idx !== idxGrupo) return g
       return {
@@ -1196,7 +1202,7 @@ export default function ModalProduto({ lojaId, produto, categoriaInicial, catego
                                           type="number"
                                           min="0"
                                           step="0.01"
-                                          value={Number(item?.precos_variacoes?.[nomeVariacao] || 0)}
+                                          value={item?.precos_variacoes?.[nomeVariacao] ?? ''}
                                           onChange={(e) => setPrecoVariacaoItem(idxGrupo, idxItem, nomeVariacao, e.target.value)}
                                           className="w-full pl-7 pr-2 py-1.5 border border-amber-200 rounded-md text-xs bg-white focus:ring-2 focus:ring-amber-400"
                                         />
